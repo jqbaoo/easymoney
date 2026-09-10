@@ -1,0 +1,30 @@
+# ── Unity 自动生成，全部忽略 ──
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+# ── 编译产物 ──
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+# ── 系统文件 ──
+.DS_Store
+Thumbs.db
+# ── 崩溃日志 ──
+sysinfo.txt
+crashlytics-build.properties
