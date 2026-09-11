@@ -1,0 +1,111 @@
+# Assets/Resources — 资源目录
+
+**换美术资源只碰这个目录，不改任何代码。**
+
+完整指南（每个图标的文件名、显示尺寸、分类 slug 表、九宫格 border 怎么切）见
+`Claude/资源替换指南.md`。本文件是速查。
+
+---
+
+## 目录约定
+
+```
+Assets/Resources/
+├── Icons/          图标（PNG，透明底）
+├── Sprites/        卡片 / 按钮九宫格底图
+├── Fonts/          字体
+└── theme.json      配色
+```
+
+文件名不带扩展名引用。`Resources.Load` 的路径是相对 `Assets/Resources/` 的，
+所以 `Icons/chevron_right.png` 在代码里叫 `chevron_right`。
+
+---
+
+## 具名资源
+
+| 路径 | 用途 | 缺失时的兜底 |
+|---|---|---|
+| `Icons/<名字>.png` | 图标 | 文字符号（`<` `>` `+`）或纯文字标签 |
+| `Icons/<名字>_on.png` | 标签栏选中态（可选） | 把普通图标染成主色 |
+| `Sprites/card.png` | 卡片九宫格底图 | 程序化生成圆角矩形 |
+| `Sprites/button.png` | 按钮九宫格底图 | 复用 `card.png` |
+| `Fonts/main.ttf` | 主字体 | 系统字体 → Unity 内置字体 |
+| `theme.json` | 配色 | 内置浅色主题 |
+
+资源名常量在 `Assets/Scripts/App/UI/AssetPaths.cs` 和 `IconNames.cs`。
+
+---
+
+## 图标清单
+
+| 文件名 | 用在哪 | 显示尺寸 | 兜底 |
+|---|---|---|---|
+| `tab_record.png` | 底部标签「记一笔」 | 48 | 纯文字标签 |
+| `tab_list.png` | 底部标签「账单」 | 48 | 纯文字标签 |
+| `tab_account.png` | 底部标签「账户」 | 48 | 纯文字标签 |
+| `tab_report.png` | 底部标签「报表」 | 48 | 纯文字标签 |
+| `chevron_left.png` | 上一月 | 40 | 文字 `<` |
+| `chevron_right.png` | 下一月 / 行尾箭头 | 40 / 44 | 文字 `>` |
+| `icon_add.png` | 「添加账户」 | 38 | 文字「+ 添加账户」 |
+| `cat_*.png` | 分类图标 | 48 | 文字 / 纯色圆点 |
+
+**建议规格**：统一 `128×128` PNG，透明背景，**单色**（白或黑）。
+
+分类图标用 `cat_<slug>`，slug 表和数据库 `category.icon_name` 字段一致
+（`cat_food` / `cat_shopping` / `cat_salary` …），完整表见资源替换指南。
+
+---
+
+## 九宫格底图怎么切
+
+选中图片 → Inspector → `Sprite Editor` → 拖拽 Border 的四条边 → Apply。
+
+- 左右 border 至少要盖住圆角半径（当前 16pt，即 2 倍图上的 32px）
+- 上下同理
+- 中间留一段可拉伸区域
+
+**没设 border 的话，图片会被整体拉伸，圆角会变形。**
+
+---
+
+## 为什么建议图标做成单色
+
+标签栏的选中态靠**代码染色**实现：选中染主色、未选中染弱化色。
+图标本身是彩色的，染色会把它压成一片纯色。
+
+想保留彩色图标就再提供一张 `_on` 选中态图，代码会优先用它。
+
+---
+
+## theme.json
+
+```json
+{
+  "background":  "#F2F3F5",
+  "surface":     "#FFFFFF",
+  "primary":     "#307AE8",
+  "expense":     "#E03E3E",
+  "income":      "#2EA05C",
+  "textPrimary": "#1F2126",
+  "textWeak":    "#8A8F99",
+  "divider":     "#E6E8EB",
+  "barTrack":    "#E6E8EB",
+  "scrim":       "#00000073"
+}
+```
+
+格式 `#RRGGBB` 或 `#RRGGBBAA`。**可以只写想改的项**，没写的自动用默认值。
+格式不合法也只是该项退回默认，不会崩。
+
+深色模式：`ThemePalette.Dark()` 已就绪，调 `Theme.Apply(ThemePalette.Dark())`
+界面会自动重建。目前还没接切换入口（等设置页）。
+
+---
+
+## 注意事项
+
+- **`.meta` 文件必须一起提交**，漏了会导致引用全断
+- 图片 `Texture Type` 保持默认的 `Sprite (2D and UI)`
+- Play 模式下新丢的图片不会自动生效（静态缓存），重新 Play 一次
+- 空目录用 `.gitkeep` 占位（Unity 忽略 `.` 开头的文件，不会为它生成 meta）
