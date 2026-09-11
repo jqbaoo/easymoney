@@ -1,0 +1,12 @@
+{
+  "background": "#F2F3F5",
+  "surface": "#FFFFFF",
+  "primary": "#307AE8",
+  "expense": "#E03E3E",
+  "income": "#2EA05C",
+  "textPrimary": "#1F2126",
+  "textWeak": "#8A8F99",
+  "divider": "#E6E8EB",
+  "barTrack": "#E6E8EB",
+  "scrim": "#00000073"
+}

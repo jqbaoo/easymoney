@@ -1,0 +1,47 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Microsoft YaHei"
+skinparam shadowing false
+start
+:阶段 0 · 环境基线;
+note right
+  Unity 版本锁定 / Git / 命令行构建脚本 / 空测试跑通
+  【验收】AI 能自己执行构建和测试并读到日志
+end note
+:阶段 1 · 规格冻结;
+note right
+  产出 SPEC.md:功能清单 / 数据模型 / 界面跳转 / 明确不做什么
+  【验收】你读完确认,后续不再改需求方向
+end note
+:阶段 2 · 项目骨架;
+note right
+  目录规范 / asmdef 分层 / CLAUDE.md / SceneBuilder 模板
+  【验收】改一行代码编译时间 < 3 秒
+end note
+:阶段 3 · 垂直切片;
+note right
+  一条最窄端到端:启动→界面→交互→数据变更→刷新→存盘
+  【验收】可编译 + EditMode 测试通过 + 能出截图
+end note
+:阶段 4 · 模块复制;
+note right
+  照切片样板逐个模块扩展,一条指令一个模块
+  【验收】每个模块独立测试通过
+end note
+:阶段 5 · 内容管线;
+note right
+  ScriptableObject 配置 / Addressables / 批量导入脚本
+  【验收】新增一批资源不需要手点 Editor
+end note
+:阶段 6 · 构建发布;
+note right
+  batchmode 构建 / 版本号自动化 / CI
+  【验收】一条命令出安装包
+end note
+:阶段 7 · 迭代循环;
+note right
+  改码→测试→生成场景→截图→AI 自查回归
+  【验收】AI 能自己发现并定位回归
+end note
+stop
+@enduml
