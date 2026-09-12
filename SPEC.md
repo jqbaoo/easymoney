@@ -20,10 +20,10 @@
 **这是最重要的一节。** 项目处在「界面原型完成、Core 层起步」的阶段。
 
 ```
-Core 层   ██░░░░░░░░  20%   Money / MoneyParser 已完成并有测试
+Core 层   ████░░░░░░  40%   Money / MoneyParser / TimeUtil 已完成（Task 2-3）
 Data 层   █░░░░░░░░░   5%   仅 asmdef 骨架，无业务代码
 App 层    ████████░░  80%   界面全在，缺数据绑定
-测试      █████░░░░░  50%   25 个用例全绿（冒烟 1 + Money 7 + Parser 17）
+测试      ██████░░░░  60%   32 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 冒烟 1）
 打包      ░░░░░░░░░░   0%   未开始
 ```
 
@@ -38,12 +38,12 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 | 假数据 | `App/DemoData.cs` | 撑着页面用的，接数据层后**整个文件删掉** |
 | **程序集骨架 + 测试链路** | `Scripts/Core`、`Scripts/Data`、`Tests/EditMode`、`Tools/run-editmode-tests.sh` | Task 1 产出。命令行跑 EditMode 测试已实测可用 |
 | **金额值类型** | `Scripts/Core/Money.cs`、`MoneyParser.cs` | Task 2 产出。`readonly struct` 内部存「分」+ 输入解析，25 个用例全绿 |
+| **时间工具** | `Scripts/Core/TimeUtil.cs` | Task 3 产出。Unix 毫秒互转 + 月/日边界，7 个用例 |
 
 ### 未开始
 
 | 内容 | 对应计划任务 |
 |---|---|
-| `TimeUtil` 时间工具 | Task 3 |
 | SQLite 接入与建表 | Task 4（**最高风险**） |
 | 领域模型 | Task 5 |
 | 三个仓储 + 记账服务 + 校验 | Task 6、7、8、9 |
@@ -55,16 +55,17 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 ### 关键判断
 
 计划的 Task 12-16 是「UI 基础设施 + 四个页面」。其中**界面部分已作为视觉原型提前做完**，
-但数据层（Task 3-11）还没走，所以：
+但数据层与剩余 Core（Task 4-11）还没走，所以：
 
 - 界面上看到的每一个数字都来自 `DemoData.cs`，是假的
 - 按钮点了没有实际效果（保存只清空表单）
-- `Core` 程序集已有 `Money.cs` / `MoneyParser.cs`，`Library/ScriptAssemblies/`
+- `Core` 程序集已有 `Money.cs` / `MoneyParser.cs` / `TimeUtil.cs`，`Library/ScriptAssemblies/`
   下已如期出现 `EasyMoney.Core.dll`；`Data` 程序集仍**只有 asmdef、没有任何 `.cs` 文件**，
   Unity 不会为没有脚本的程序集生成 DLL，所以没有 `EasyMoney.Data.dll`——这是正常的，
   等 Task 4 往 Data 里放第一个 `.cs` 后就会出现
 
-**下一步应该从 Task 3 开始按顺序执行**，不要跳。
+**下一步应该从 Task 4 开始按顺序执行**，不要跳。Task 4 是最高风险的任务
+（Unity 不内置 SQLite），走不通就停下来报告，不要硬扛。
 
 ---
 

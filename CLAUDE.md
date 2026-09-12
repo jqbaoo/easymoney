@@ -18,14 +18,16 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
 - ✅ `Assets/Scripts/App/` —— UI 基础设施 + 四个页面（**用假数据撑着**）
 - ✅ **Task 1 完成** —— 三层 asmdef + 测试程序集 + `Tools/run-editmode-tests.sh`，
   命令行测试链路已实测跑通
-- ✅ **Task 2 完成** —— `Core/Money.cs` + `Core/MoneyParser.cs`，25 个用例全绿。
+- ✅ **Task 2 完成** —— `Core/Money.cs` + `Core/MoneyParser.cs`
+- ✅ **Task 3 完成** —— `Core/TimeUtil.cs`。合计 32 个用例全绿，
   `Library/ScriptAssemblies/` 里已如期出现 `EasyMoney.Core.dll`
 - ❌ `Assets/Scripts/Data/` —— **只有 asmdef，还没有 `.cs` 文件**。
   Unity 不为没有脚本的程序集生成 DLL，所以看不到 `EasyMoney.Data.dll`，
   **这是正常的**，Task 4 放入第一个 `.cs` 后就会出现
 
-计划的 17 个任务里，**Task 3-11 一步都没走**。下一步从 **Task 3** 开始，按顺序执行，
-不要跳。详见 `SPEC.md` 第 2 节。
+计划的 17 个任务里，**Task 4-11 一步都没走**。下一步从 **Task 4** 开始，按顺序执行，
+不要跳。Task 4 是最高风险的任务（Unity 不内置 SQLite），走不通就停下来报告。
+详见 `SPEC.md` 第 2 节。
 
 界面上看到的每个数字都来自 `Assets/Scripts/App/DemoData.cs`，是假的。
 
