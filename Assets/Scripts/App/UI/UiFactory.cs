@@ -440,6 +440,10 @@ namespace EasyMoney.App.UI
         public static ScrollRect CreateScroll(Transform oParent, string sName, out RectTransform oContent)
         {
             Image oBackground = CreatePanel(oParent, sName, Theme.TRANSPARENT);
+            // 必须铺满：调用方传进来的都是已经定好位的容器（页面主体、弹窗列表区），
+            // 指望滚动区自己撑满。少了这一步，滚动区的 RectTransform 会保持新建时的
+            // 默认 100x100 居中，而 Viewport 上的 RectMask2D 会把里面的文字裁掉一大半。
+            Stretch(oBackground.rectTransform);
 
             RectTransform oViewport = CreateNode(oBackground.transform, "Viewport");
             Stretch(oViewport);
