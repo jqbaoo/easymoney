@@ -52,6 +52,7 @@ namespace EasyMoney.Data
 
             _createTables();
             _ensureSchemaVersion();
+            _seedDefaultCategories();
         }
 
         public void Close()
@@ -85,6 +86,33 @@ namespace EasyMoney.Data
             if (iCount == 0)
             {
                 m_Connection.Execute("INSERT INTO schema_version (version) VALUES (?)", SCHEMA_VERSION);
+            }
+        }
+
+        /// <summary>
+        /// 分类表为空时写入预置分类。判据是「表为空」而不是「schema_version 刚插入」：
+        /// 系统分类不允许删除，表一旦被种过就不可能再空，所以这个条件天然幂等，
+        /// 也不会在用户删光自建分类后把系统分类重新塞回来。
+        /// </summary>
+        private void _seedDefaultCategories()
+        {
+            int iCount = m_Connection.ExecuteScalar<int>("SELECT COUNT(*) FROM category");
+            if (iCount > 0)
+            {
+                return;
+            }
+
+            foreach (Core.Category oCategory in DefaultCategories.Build())
+            {
+                m_Connection.Execute(
+                    @"INSERT INTO category (name, kind, parent_id, icon_name, sort_order, is_system)
+                      VALUES (?, ?, ?, ?, ?, ?)",
+                    oCategory.Name,
+                    (int)oCategory.Kind,
+                    oCategory.ParentId,
+                    oCategory.IconName,
+                    oCategory.SortOrder,
+                    oCategory.IsSystem ? 1 : 0);
             }
         }
     }
