@@ -27,6 +27,7 @@ App/
     ├── PageBase.cs         页面抽象基类
     ├── PageRouter.cs       页面注册与切换
     ├── TabBar.cs           底部标签栏
+    ├── PickerDialog.cs     通用选择弹窗（分类 / 账户 / 日期共用）
     └── Pages/
         ├── RecordPage.cs
         ├── TransactionListPage.cs
@@ -113,7 +114,7 @@ UiFactory.SetFlexible(right);         // 吃掉剩余
 
 ## 接数据层时改哪里
 
-**唯一的改动点是各页面的 `_refresh()`。**
+**唯一的改动点是各页面的 `_refresh()`。** `RecordPage` 已经改完，可以当范例。
 
 把 `DemoData.BuildXxx()` 换成 `AppContext.Instance` 的真实取数：
 
@@ -131,13 +132,17 @@ private void _refresh()
 }
 ```
 
-`AppContext` 已经在位，不用再建：`AppContext.Instance` 由 `AppRoot` 在 `Awake` 里
-初始化，页面只管用。
+`AppContext` 已经在位：`AppContext.Instance` 由 `AppRoot` 在 `Awake` 里初始化，
+页面只管用。
 
-然后：
+页面**不用自己订阅 `DataChanged`**——`AppRoot` 已经统一订阅，收到通知后重走当前页的
+`OnShow()`。写数据的一方负责在落库成功后喊一声：
 
-1. 页面订阅 `AppContext.Instance.DataChanged`，数据变了自动刷新
-2. 四个页面**全部**改完之后，删掉 `DemoData.cs`
+```csharp
+oContext.NotifyDataChanged();
+```
+
+剩下三个页面**全部**改完之后，删掉 `DemoData.cs`。
 
 页面里**只做展示和取数调用**，不要写业务逻辑。校验、聚合都在 Core / Data 层。
 
@@ -185,6 +190,19 @@ UiFactory.ReplaceButtonLabelWithIcon(oButton, IconNames.CHEVRON_LEFT, 40f, Theme
 有了图标之后要改按钮配色，用 `UiFactory.GetButtonIcon(oButton)` 拿到 Image。
 
 ---
+
+## 选择弹窗
+
+「弹一个列表让用户挑」的交互统一走 `PickerDialog`，不要各写一套：
+
+```csharp
+PickerDialog.Show(Root, "选择分类", lLabels, iIndex => { _pick(lCategories[iIndex]); },
+    "还没有分类，请先去「账户」页添加");
+```
+
+- 第四个参数是选中回调，拿到的是**下标**，不是对象——调用方自己索引回原列表
+- 第五个参数是列表为空时的文案，省略则显示「暂无可选项」
+- 弹窗挂在传入的父节点下（通常就是页面 `Root`），选完或取消后自行销毁
 
 ## 注意事项
 
