@@ -17,13 +17,13 @@
 
 ## 2. 当前状态（2026-09-13）
 
-**这是最重要的一节。** 项目处在「界面原型完成、Core 层与数据层基本就绪」的阶段。
+**这是最重要的一节。** 项目处在「界面原型完成、Core 层与数据层完工」的阶段。
 
 ```
-Core 层   █████████░  95%   加 ValidationResult / TransactionValidator（Task 2-3、5、7、9）
-Data 层   ████████░░  80%   建表 + 三个仓储 + 记账服务 + 账单筛选（Task 4、6、7、8、9、10）
-App 层    ████████░░  80%   界面全在，缺数据绑定
-测试      █████████░  95%   121 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 10 + 筛选 18）
+Core 层   ██████████ 100%   Money / TimeUtil / 模型 / 校验 / 报表（Task 2-3、5、7、9-11）
+Data 层   ██████████ 100%   SQLite / 三个仓储 / 记账服务 / 筛选（Task 4、6-11）
+App 层    ████████░░  80%   界面全在，缺 AppContext 与数据绑定
+测试      █████████░  95%   134 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 10 + 筛选 18 + 报表 13）
 打包      ░░░░░░░░░░   0%   未开始
 ```
 
@@ -46,12 +46,12 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 | **账单仓储 CRUD** | `Scripts/Data/SqliteTransactionRepository.cs` | Task 8 产出。字段往返、枚举映射、边界值共 10 个用例，均针对 Task 7 已写好的实现——本任务是计划里唯一「先实现后补测试」的一个 |
 | **校验规则 + 记账服务** | `Scripts/Core/ValidationResult.cs`、`TransactionValidator.cs`、`Scripts/Data/TransactionService.cs` | Task 9 产出。校验放 Core（纯函数），编排放 Data；转账只写一条记录。附带把 `Query` 从抛异常改成时间倒序分页的最简实现（筛选留给 Task 10） |
 | **账单筛选与搜索** | `Scripts/Core/Queries/TransactionQuery.cs`、`Scripts/Data/SqliteTransactionRepository.cs` | Task 10 产出。8 个维度：时间区间（左闭右开）、类型、分类、账户（含「是否连转入一起看」开关）、金额区间、关键词。`Count()` 忽略 Limit/Offset 供分页算总数 |
+| **报表汇总与分类占比** | `Scripts/Core/Reports/*.cs` | Task 11 产出。`PeriodSummary` / `CategoryBreakdownItem` / `ReportCalculator`，纯函数。**转账不进收支统计**；分类被删时兜底「未分类」；占比分母为 0 时不除 |
 
 ### 未开始
 
 | 内容 | 对应计划任务 |
 |---|---|
-| 报表计算 | Task 11 |
 | **`AppContext.cs`** | Task 12 剩余部分 |
 | 页面接真实数据（改 `_refresh()`） | Task 13-16 剩余部分 |
 | Android 构建与真机验收 | Task 17 |
@@ -59,17 +59,17 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 ### 关键判断
 
 计划的 Task 12-16 是「UI 基础设施 + 四个页面」。其中**界面部分已作为视觉原型提前做完**，
-但报表与 UI 接线（Task 11-16）还没走完，所以：
+剩下的只有 `AppContext` 和把 `DemoData` 换成真实取数：
 
 - 界面上看到的每一个数字都来自 `DemoData.cs`，是假的
 - 按钮点了没有实际效果（保存只清空表单）
 - `Core` / `Data` 两个程序集都已有 `.cs`，`Library/ScriptAssemblies/` 下
   `EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
-- 分类、账户、账单三类数据都已经能真正落库，记账走通了「校验 → 落库」的完整链路，
-  账单的多维筛选与模糊搜索也齐了（121 个用例验证过）。只差报表计算（Task 11）
-  和页面接线，所以页面上的数字仍然进不去数据库
+- **整个业务逻辑层已经完工**（Task 1-11，134 个用例锁住），打有标签
+  `data-layer-complete`。记账、筛选、报表的计算结果都被测试验证过了，
+  现在差的是「没有界面去调用它们」
 
-**下一步应该从 Task 11 开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了：
+**下一步应该从 Task 12 开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了：
 SQLite 依赖升到了 3.x，Android 原生库补齐了 ARMv7 / ARM64 / x86 / x64 四套，
 构建目标架构也已设为 ARMv7 + ARM64。Android 侧的准备到 Task 17 之前不用再动了。
 
@@ -111,7 +111,7 @@ easymoney/
 │   │   └── theme.json           配色
 │   ├── Scenes/                  场景（原型阶段用不到）
 │   ├── Scripts/
-│   │   ├── Core/                ✅ Money / MoneyParser / TimeUtil / Models / ValidationResult / TransactionValidator（noEngineReferences）
+│   │   ├── Core/                ✅ Money / MoneyParser / TimeUtil / Models / Queries / ValidationResult / TransactionValidator / Reports（noEngineReferences）
 │   │   ├── Data/                ✅ EasyMoneyDb / Schema / 三个仓储 / TransactionService / 账单筛选
 │   │   └── App/                 ✅ 已有
 │   │       ├── EasyMoney.App.asmdef
@@ -189,6 +189,24 @@ package "EasyMoney.Core  (noEngineReferences: true)" #E8F5E9 {
     +{static} long MaxAmountCents
     +{static} ValidationResult Validate(Transaction, IList<Account>, IList<Category>)
   }
+  class PeriodSummary {
+    +Money Income
+    +Money Expense
+    +Money Net
+    +int TxCount
+  }
+  class CategoryBreakdownItem {
+    +int CategoryId
+    +string CategoryName
+    +Money Total
+    +int TxCount
+    +decimal Ratio
+  }
+  class ReportCalculator {
+    +{static} PeriodSummary BuildSummary(IEnumerable<Transaction>)
+    +{static} List<CategoryBreakdownItem> BuildBreakdown(IEnumerable<Transaction>, TxType, IList<Category>)
+    +{static} void AssignRatios(List<CategoryBreakdownItem>)
+  }
   enum TxType { Expense=0, Income=1, Transfer=2 }
   enum CategoryKind { Expense=0, Income=1 }
   enum AccountType { Cash=0, BankCard=1, Alipay=2, WeChat=3, Other=4 }
@@ -212,7 +230,6 @@ package "EasyMoney.Data" #E3F2FD {
     +ValidationResult Save(Transaction, long)
     +ValidationResult CreateTransfer(int, int, long, string, long, long)
   }
-  class ReportCalculator
 }
 
 package "EasyMoney.App" #FFF3E0 {
