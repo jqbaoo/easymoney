@@ -13,20 +13,28 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
 
 ## 当前进度（2026-09-13）
 
-**四个页面全部接真数据库了，`DemoData.cs` 已删除。只剩打包。**
+**MVP 已完工。17 个任务全部完成，APK 已在 Redmi K60 真机上验收。**
 
 - ✅ `Assets/Scripts/App/` —— UI 基础设施 + 四个页面 + `AppContext` + `PickerDialog` + `AccountEditDialog`
-- ✅ **Task 1-16 完成** —— 三层程序集骨架 + 命令行测试链路 + 整个逻辑层 + 应用容器 + 四个页面
+- ✅ **Task 1-17 完成** —— 三层程序集骨架 + 命令行测试链路 + 整个逻辑层 + 应用容器 +
+  四个页面 + Android 打包
   （`Core`：Money / TimeUtil / 模型 / 校验 / 报表 / 快捷金额 / 账单展示投影 / 账户表单 / 报表展示；
   `Data`：SQLite / 三个仓储 / 记账服务 / 多维筛选；`App`：`AppContext` / 记账页 / 账单页 / 账户页 / 报表页）
-- ✅ **200 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
-- ✅ 标签 **`data-layer-complete`** —— 业务逻辑层封顶
-- ❌ 只剩 Task 17（Android 打包与真机验收）
+- ✅ **209 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
+- ✅ 标签 **`data-layer-complete`**（业务逻辑层封顶）、**`mvp-complete`**
+- ✅ **APK 构建成功**（`bash Tools/build-android.sh` → `Builds/EasyMoney.apk`，29 MB），
+  真机 18 项验收通过 17 项
 
 **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
 `ITransactionRepository` 等于绕过校验。
 
-计划的 17 个任务里，**只剩 Task 17（打包）**。
+⚠️ **打包配置现在有测试守着**（`AndroidPlayerSettingsTests`，9 个用例）。
+改 Player Settings 前先看这个文件——计划里 Task 17 那张配置表的每一条都有对应断言，
+配置对不对不靠肉眼核对 Unity 面板。
+
+⚠️ **真机验收的两处已知瑕疵**（都不影响功能）：APK 里仍有 `android.permission.INTERNET`
+（UnityWebRequest 模块带的）；备注里的 emoji 显示为空白（字体没有 emoji 字形）。
+详见 `Claude/plans/android-release-checklist.md`。
 
 ⚠️ **接页面时别把展示规则写进页面里。** 页面的分组、文案拼接、兜底规则都是纯逻辑，
 抽到 `Core` 才能被测试盯住——EditMode 跑不到页面，留在页面里只能靠肉眼看。
@@ -123,6 +131,19 @@ bash Tools/run-editmode-tests.sh
 
 详见 `SPEC.md` 第 10 节。
 
+### 构建 Android APK
+
+**同样必须先关掉 Unity 编辑器。**
+
+```bash
+bash Tools/build-android.sh
+```
+
+产物 `Builds/EasyMoney.apk`，退出码 **0 = 成功 / 1 = 构建失败 / 2 = 环境问题**。
+首次 IL2CPP 构建实测约 4.5 分钟。日志在 `Tools/build-android.log`（不放 `Temp/`，
+那个目录 Unity 退出时会清）。三个踩过的坑写死在脚本里了，别绕过它手敲 `Unity.exe`，
+详见 `SPEC.md` 第 10 节。
+
 ### 运行界面
 
 打开 Unity，任意场景点 Play。`AppRoot` 有 `[RuntimeInitializeOnLoadMethod]`，
@@ -156,5 +177,7 @@ bash Tools/run-editmode-tests.sh
 | `Claude/plans/2026-09-11-账单管理MVP.md` | 实施计划，17 个任务 |
 | `Claude/账单管理系统功能清单.md` | 需求来源 |
 | `Claude/资源替换指南.md` | 给美术/设计的换图指南 |
+| `Claude/图标资源库.md` | 开源图标库速查：启动图标工具、界面图标库、许可证对照 |
+| `Claude/plans/android-release-checklist.md` | Android 真机验收记录：结果、未通过项、环境问题、偏离计划处 |
 | `Assets/Scripts/App/CLAUDE.md` | App 层开发约定 |
 | `Assets/Resources/CLAUDE.md` | 资源目录速查 |

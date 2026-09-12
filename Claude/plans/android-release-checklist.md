@@ -1,0 +1,264 @@
+# Android 真机验收记录
+
+| 项 | 值 |
+|---|---|
+| 验收日期 | 2026-09-13 |
+| 设备型号 | Redmi K60 |
+| Android 版本 | 待确认 |
+| APK | `Builds/EasyMoney.apk`（29 MB / 29,843,835 字节） |
+| 构建时间 | 2026-09-13 03:25 |
+| 构建命令 | `bash Tools/build-android.sh` |
+| 包名 | `com.easymoney.app` |
+| 构建类型 | IL2CPP，Release，debug 签名 |
+
+---
+
+## ⚠️ 验收方式与可信度
+
+**本次验收由用户在真机上手动执行，AI 未直接观察界面、未采集 logcat、未截图。**
+
+Task 17 Step 5 原定用 `adb install` 装包、截图逐条核对。实际**未能这样做**，因为
+测试机与开发机之间始终无法建立 adb 连接（原因见下方「验收环境问题」）。最终改用
+「把 APK 传到手机、用户手动安装并操作」的方式完成验收。
+
+因此这份记录的**可信度是有限的**，读它的人需要知道：
+
+- 下表的「通过」**依据用户口述反馈**，不是 AI 的直接观察
+- **没有 logcat 佐证**。真机上若发生过闪退或异常，本记录无法反映
+- 「持久化」一项用户确认通过，但**不是用 `adb shell am force-stop` 精确杀死进程**验证的，
+  而是「从最近任务里划掉」——两者在 Android 上不等价（划掉不保证杀死进程）
+- 所有需要目测的项（中文显示、金额数字、占比百分比）都只有用户一个人的判断
+
+---
+
+## 结果
+
+| 分组 | 通过 | 未通过 | 备注 |
+|---|---|---|---|
+| 基础可用性 | 3 | 0 | |
+| 记账闭环 | 5 | 0 | |
+| 转账 | 4 | 0 | |
+| 持久化 | 1 | 0 | 见上方可信度说明 |
+| 边界情况 | 4 | 1 | emoji 备注显示为空白 |
+| **合计** | **17** | **1** | |
+
+### 逐条明细
+
+**① 基础可用性**
+
+| # | 项 | 结果 |
+|---|---|---|
+| 1 | 应用能启动，不闪退 | ✅ |
+| 2 | 中文显示正常，无方块、无乱码 | ✅ |
+| 3 | 底部四个标签能正常切换、不卡 | ✅ |
+
+**② 记账闭环**
+
+| # | 项 | 结果 |
+|---|---|---|
+| 4 | 新建账户「现金」初始余额 1000 | ✅ |
+| 5 | 记一笔支出 35.50 / 餐饮 / 午饭，提示「已保存」 | ✅ |
+| 6 | 账户页「现金」余额 964.50 | ✅ |
+| 7 | 账单页本月可见该笔，支出 35.50、结余 -35.50 | ✅ |
+| 8 | 报表页支出构成「餐饮」占 100% | ✅ |
+
+**③ 转账**
+
+| # | 项 | 结果 |
+|---|---|---|
+| 9 | 新建账户「支付宝」初始余额 0 | ✅ |
+| 10 | 转账 200 从「现金」到「支付宝」 | ✅ |
+| 11 | 现金 764.50、支付宝 200.00、总资产 964.50 不变 | ✅ |
+| 12 | 转账出现在账单列表，但不计入报表收支 | ✅ |
+
+**④ 持久化**
+
+| # | 项 | 结果 |
+|---|---|---|
+| 13 | 从最近任务划掉后重开，数据全部还在 | ✅ |
+
+**⑤ 边界情况**
+
+| # | 项 | 结果 |
+|---|---|---|
+| 14 | 金额 0 → 提示「金额必须大于 0」 | ✅ |
+| 15 | 金额 abc → 提示「请输入正确的金额，例如 12.50」 | ✅ |
+| 16 | 中文备注（含 emoji）能正确保存和显示 | ⚠️ **部分通过** |
+| 17 | 删除一笔记录，汇总与余额同步回退 | ✅ |
+| 18 | 连续快速记账 20 笔，不卡顿、不崩溃 | ✅ |
+
+---
+
+## 未通过项详情
+
+### #16 emoji 备注显示为空白
+
+**操作步骤**：记账页填写备注，其中包含 emoji（如 `午饭🍜`），保存后查看。
+
+**实际现象**：备注中的 emoji 显示为空白。用户反馈「问题不大」。
+
+**初步分析（尚未确证）**：
+
+`FontProvider.Resolve()` 的字体来源是 `Font.CreateDynamicFontFromOSFont`，候选列表
+全部是中文字体（Microsoft YaHei / Noto Sans CJK SC / Droid Sans Fallback / SimHei …）。
+**这些字体都不含 emoji 字形**，而 Unity 的 legacy `Text` 组件在字形缺失时不会跨字体回退，
+于是渲染成空白。
+
+**待确认**：目前无法区分下面两种情况，因为测试机上没有 adb、读不到 SQLite 里的实际值。
+
+| 情况 | 含义 | 严重程度 |
+|---|---|---|
+| (a) 中文正常、仅 emoji 空白 | 字体渲染限制，**数据没丢** | 低，观感问题 |
+| (b) 整条备注（含中文）都空 | **数据丢失**，可能是编码/截断问题 | 高，需立即修 |
+
+**建议**：下次接上 adb 后，用 `adb shell run-as com.easymoney.app` 或直接拉出数据库，
+查 `tx.note` 字段的实际字节，即可判定。
+
+**与已知风险的关系**：SPEC 第 11 节已记录「中文字体」风险（`FontProvider` 的候选
+一个都不命中会显示方块字，正式发布建议自带 `Fonts/main.ttf`）。emoji 是同一类问题的
+另一个表现——**字体覆盖不足**。
+
+---
+
+## 验收环境问题（这些是下次要解决的）
+
+本次验收没能走成 `adb install`，卡在连接上。两个坑都记下来，避免下次重踩。
+
+### 1. USB 连接：Windows 侧完全识别不到设备
+
+`adb devices` 始终为空，Windows 的 USB 设备列表里**连一个「未知设备」都没有**。
+
+- 手机端能弹出「USB 用途」选择框（选了「传输文件」）
+- Windows「此电脑」里看不到手机
+- 结论：**数据线只有电源线芯**（能充电、能触发 USB 用途弹窗，但传不了数据）。
+  不是驱动问题——驱动缺失会显示成带感叹号的未知设备
+- **解决**：换一根确定能传数据的线
+
+### 2. 无线调试：两个坑，第一个已解决
+
+**(a) `adb mdns daemon unavailable`** —— 已解决 ✅
+
+Unity 自带的 platform-tools（32.0.0）和 Google 官方 35.0.0 都报这个错。
+根因是 **platform-tools v31.0.2+ 默认关闭了 mDNS 的 OpenScreen 后端**，需要显式开启：
+
+```bash
+export ADB_MDNS_OPENSCREEN=1
+adb kill-server && adb start-server
+adb mdns check       # → mdns daemon version [Openscreen discovery 0.0.0]
+```
+
+在此之前 `adb pair` 一律失败并报 `Failed: Unable to start pairing client.`
+
+**(b) 路由器 AP 隔离** —— 未解决 ❌
+
+mDNS 修好后，`adb pair` 仍连不上，因为网络层就不通：
+
+- 电脑 `192.168.1.2`（有线），网关 `192.168.1.1`
+- 手机 `192.168.1.3`（无线），网关 `192.168.1.1` —— **同一台路由器**
+- 但 `ping 192.168.1.3` 返回「无法访问目标主机」，ARP 表里也没有该条目
+
+同网段、同网关却二层不通，典型原因是**路由器开了 AP 隔离 / 客户端隔离**。
+下次在路由器管理页关掉即可。
+
+---
+
+## 偏离计划的地方
+
+Task 17 的计划文档（`2026-09-11-账单管理MVP.md` 第 7023 行起）有三处与实际不符，
+执行时按实际情况处理了：
+
+### 1. Target Architectures：保持 ARMv7 + ARM64，没照计划只勾 ARM64
+
+计划 Step 2 的表格写「Target Architectures：只勾 ARM64」。**没有照做**，保持
+`AndroidTargetArchitectures: 3`（ARMv7 | ARM64）。
+
+理由：UNIT 已实测 ARMv7 的 SQLite 原生库在包内（见下方 APK 校验），只勾 ARM64 会
+白白丢掉仍在使用 32 位设备的用户；纯 64 位也不是 Google Play 的要求（要求是**必须
+提供** 64 位，不是只能有 64 位）。SPEC 第 11 节记录了这个决策，`AndroidBuildConfigTests`
+和新增的 `AndroidPlayerSettingsTests` 一起守着它。
+
+**APK 实测佐证**：
+
+```
+lib/arm64-v8a/libe_sqlite3.so     1,772,160 字节
+lib/armeabi-v7a/libe_sqlite3.so   1,246,788 字节
+```
+
+### 2. Managed Stripping Level：实测默认已是 Minimal，未改配置
+
+计划 Step 2 强调「Managed Stripping Level 必须设成 Minimal」，否则会剥离 sqlite-net
+的反射代码、表现为真机闪退。
+
+**实测结论：不用改。** `managedStrippingLevel` 字典里 Android 缺条目时，
+`PlayerSettings.GetManagedStrippingLevel(BuildTargetGroup.Android)` 返回的就是
+`Minimal`。反向验证时注入 `Android: 1` 才变成 `Low`——证实 `1 == Low`。
+
+因此**没有手写 YAML 去「显式设置」**：asset 里其他平台存的值就是 `1`，手写枚举映射
+有写错的风险，反而可能把 Minimal 写成别的值。改由 `AndroidPlayerSettingsTests`
+的 `ManagedStrippingLevel_IsMinimal` 守卫。
+
+### 3. Internet Access：设了 Not Required，但 APK 里仍有 INTERNET 权限
+
+计划 Step 2 要求 `Internet Access: Not Required`。已设置，`ForceInternetPermission: 0`，
+守卫测试 `InternetAccess_IsNotRequired` 也是绿的。
+
+**但 APK 里依然存在该权限**：
+
+```
+$ aapt dump badging Builds/EasyMoney.apk
+uses-permission: name='android.permission.INTERNET'
+```
+
+原因：`Packages/manifest.json` 里的 **`com.unity.modules.unitywebrequest`** 模块
+自身会声明 INTERNET 权限，manifest merger 会把它合并进来——`ForceInternetPermission`
+拦不住它。Unity 自带的 `LauncherManifest.xml` 模板里并没有这条权限。
+
+对一个「单机无网络」的记账 App 来说这是个瑕疵（应用商店会显示「需要网络权限」），
+但**不影响任何功能**，验收清单里也没有相关项。
+
+**要真正去掉**，需要在 `Assets/Plugins/Android/AndroidManifest.xml` 写：
+
+```xml
+<manifest xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove"/>
+</manifest>
+```
+
+自定义 manifest 是构建失败的高发区，**建议单独一轮做**，不塞进本次验收。
+
+---
+
+## APK 校验（构建后实测，这部分是 AI 直接观测的）
+
+```bash
+$ aapt dump badging Builds/EasyMoney.apk
+package: name='com.easymoney.app' versionCode='1' versionName='1.0'
+sdkVersion:'24'
+targetSdkVersion:'35'
+application-label:'EasyMoney'
+application: label='EasyMoney' icon='res/W5.png'
+application-icon-120/160/240/320/480/640  （6 档齐全）
+native-code: 'arm64-v8a' 'armeabi-v7a'
+```
+
+| 项 | 结果 |
+|---|---|
+| 包名 `com.easymoney.app` | ✅ |
+| MinSdk 24（计划值） | ✅ |
+| TargetSdk 35（Automatic） | ✅ |
+| 两个 ABI 都在 | ✅ |
+| SQLite 原生库两个 ABI 齐全 | ✅ **最高风险点确认解除** |
+| 应用图标（紫色钱包，6 档） | ✅ |
+| Resources 里不再打包 AppIcon 源图 | ✅ |
+
+---
+
+## 后续待办
+
+1. **确认 #16 是 (a) 还是 (b)** —— 接上 adb 后查 `tx.note` 的实际字节
+2. **解决连接问题**，下次验收才能真正用上 `adb install` + logcat + 截图
+   - 换一根 USB 数据线（首选）
+   - 或关掉路由器 AP 隔离走无线调试
+3. 决定要不要去掉 INTERNET 权限（自定义 AndroidManifest）
+4. emoji 若要支持，需自带含 emoji 字形的字体；但 Unity 的 legacy `Text` 不支持
+   彩色 emoji 字体回退，要彻底解决得换 TextMeshPro

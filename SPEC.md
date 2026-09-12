@@ -17,14 +17,14 @@
 
 ## 2. 当前状态（2026-09-13）
 
-**这是最重要的一节。** 项目处在「四个页面全部接真实数据、只剩打包」的阶段。
+**这是最重要的一节。** **MVP 已完工**——四个页面全部接真实数据，APK 已在真机上完成验收。
 
 ```
 Core 层   ██████████ 100%   Money / TimeUtil / 模型 / 校验 / 报表 / 账单展示投影 / 账户表单 / 报表展示（Task 2-3、5、7、9-11、14-16）
 Data 层   ██████████ 100%   SQLite / 三个仓储 / 记账服务 / 筛选（Task 4、6-11）
 App 层    ██████████ 100%   记账页 / 账单页 / 账户页 / 报表页全部通真实数据
-测试      ██████████ 100%   200 个用例全绿（Money 7 + Parser 17 + TimeUtil 12 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 10 + 筛选 18 + 报表 13 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 20 + 账户表单 13 + 报表展示 12）
-打包      ░░░░░░░░░░   0%   未开始
+测试      ██████████ 100%   209 个用例全绿（Money 7 + Parser 17 + TimeUtil 12 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 10 + 筛选 18 + 报表 13 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 20 + 账户表单 13 + 报表展示 12 + 构建配置守卫 9）
+打包      ██████████ 100%   APK 已构建，Redmi K60 真机验收 18 项中 17 项通过
 ```
 
 ### 已完成
@@ -52,11 +52,11 @@ App 层    ██████████ 100%   记账页 / 账单页 / 账户�
 | **账户管理页** | `App/UI/Pages/AccountPage.cs`、`App/UI/AccountEditDialog.cs`、`Core/Accounts/*.cs` | Task 15 产出。总资产 + 各账户实时余额 + 添加 / 编辑 / 归档 / 恢复。**表单规则抽在 Core 的 `AccountForm` 里**（名称去空白后非空、余额留空按 0、允许负数），新建与编辑共用一套弹窗。比计划多做了「显示已归档」开关——计划里的归档是单向的，点错一次就找不回来 |
 | **报表页** | `App/UI/Pages/ReportPage.cs`、`Core/Reports/ReportForm.cs` | Task 16 产出。月份切换 + 收支汇总 + 支出/收入分类占比条形图。**展示规则抽在 Core 的 `ReportForm` 里**（构成标题、占比文案、条形宽度钳位），月份格式统一走 `TimeUtil.FormatYearMonth`。`DemoData.cs` 已随之删除 |
 
-### 未开始
+### 全部完成
 
-| 内容 | 对应计划任务 |
-|---|---|
-| Android 构建与真机验收 | Task 17 |
+计划里的 17 个任务全部完成。Task 17 的验收细节、未通过项与遗留问题见
+**`Claude/plans/android-release-checklist.md`**（该文档同时记录了本次验收的可信度边界——
+验收是用户在真机上手动做的，没有 adb 日志佐证）。
 
 ### 关键判断
 
@@ -80,9 +80,17 @@ App 层    ██████████ 100%   记账页 / 账单页 / 账户�
   账户页 → `AccountForm`，报表页 → `ReportForm`。页面只剩取数与渲染，
   「一条账单怎么显示」「占比保留几位小数」这类约定都挪进了能被测试盯住的地方
 
-**下一步应该做 Task 17（Android 构建与真机验收）**。Task 4 这个最高风险点已经过了：
-SQLite 依赖升到了 3.x，Android 原生库补齐了 ARMv7 / ARM64 / x86 / x64 四套，
-构建目标架构也已设为 ARMv7 + ARM64。Android 侧的准备已经全部就绪。
+**Task 17 已完成**——APK 构建成功并在 Redmi K60 上过了验收，详见
+`Claude/plans/android-release-checklist.md`。三个值得记住的结论：
+
+- **最高风险点（SQLite 原生库）确认解除**：拆开 APK 实测，
+  `lib/arm64-v8a/libe_sqlite3.so`（1.77 MB）与 `lib/armeabi-v7a/libe_sqlite3.so`（1.25 MB）
+  都在包里。此前所有关于「原生库缺失」的担心到此为止
+- **打包配置现在有测试守着**：`AndroidPlayerSettingsTests`（9 个用例）把 Task 17 Step 2
+  那张配置表翻译成了断言。配置对不对不用再靠肉眼核对 Unity 面板，跑测试就知道
+- **还有两处已知瑕疵**，都不影响功能，记在 `android-release-checklist.md` 里：
+  APK 里仍有 `android.permission.INTERNET`（UnityWebRequest 模块带的，自定义 manifest
+  才能去掉）；备注里的 emoji 显示为空白（字体没有 emoji 字形）
 
 ---
 
@@ -558,6 +566,27 @@ bash Tools/run-editmode-tests.sh
 
 结论：改完界面代码，仍然必须在 Unity 里点 Play 肉眼确认。
 
+### 构建 Android APK
+
+**同样必须先关掉 Unity 编辑器**（同一个项目不能被两个实例打开）。
+
+```bash
+bash Tools/build-android.sh
+```
+
+产物 `Builds/EasyMoney.apk`。退出码：**0 = 成功，1 = 构建失败，2 = 环境问题**。
+
+⚠️ 脚本里写死了三件踩过的事，别绕过脚本手敲 `Unity.exe`：
+
+- **日志放 `Tools/build-android.log` 而不是 `Temp/`** —— 理由同测试脚本，
+  Unity 退出会清理 `Temp/`
+- **构建前先 `rm` 旧 APK** —— 否则这次构建失败了也会因为「文件在」被判成成功，
+  正是最该避免的静默失败
+- **`-executeMethod` 要写全命名空间**：
+  `EasyMoney.App.EditorTools.BuildScript.BuildAndroid`
+
+首次 IL2CPP 构建约 4-5 分钟（实测 4.5 分钟，产物 29 MB）。
+
 ### 运行界面
 
 打开 Unity，任意场景点 Play。`AppRoot` 有 `[RuntimeInitializeOnLoadMethod]`，
@@ -578,8 +607,12 @@ bash Tools/run-editmode-tests.sh
 | ~~LIKE 通配符~~ | 用户搜索词里的 `%` `_` 会被当通配符 | ✅ **已解决**（Task 10）。`_escapeLike` 先转义反斜杠、再转义 `%` 和 `_`，SQL 侧配 `ESCAPE '\'`。`Keyword_EscapesLikeWildcards` 守着 |
 | **SQLite-net 参数按出现顺序绑定** | `_buildWhere` 里 `lClauses.Add` 与 `lArgs.Add` 一旦错位，SQLite 不会报错，只会**静默筛出错误的行**——比崩溃更难发现 | 加条件时两者必须成对书写，顺序严格一致。排序、分页参数（Limit/Offset）必须拼在 `_buildWhere` 返回之后 |
 | **中文字体** | `FontProvider` 的系统字体候选列表可能一个都不命中，表现为方块字 | 正式发布建议自带 `Fonts/main.ttf` |
-| **编辑器占用** | 命令行跑测试时，另一个 Unity 实例不能打开同一项目 | 跑之前先关编辑器；脚本会以退出码 2 报出这个错误 |
+| **emoji 显示为空白** | 真机实测：备注里填 emoji 渲染成空白。根因同上——`FontProvider` 的候选全是中文字体，**都不含 emoji 字形**，而 legacy `Text` 在字形缺失时不跨字体回退 | 观感问题，不影响数据。要支持得自带 emoji 字体，且 legacy `Text` 不支持彩色 emoji，彻底解决需换 TextMeshPro |
+| **APK 里仍有 INTERNET 权限** | 已设 `Internet Access: Not Required`，测试也是绿的，但 `aapt dump badging` 实测包里仍有该权限。根因是 `com.unity.modules.unitywebrequest` 模块自己声明，manifest merger 合并进来，`ForceInternetPermission` 拦不住 | 单机 App 用不到，属瑕疵。要真正去掉需自定义 `Assets/Plugins/Android/AndroidManifest.xml` + `tools:node="remove"`——自定义 manifest 是构建失败高发区，单独一轮做 |
+| **adb 连不上真机** | Task 17 验收时 USB（线缆只有电源线芯）与无线调试（路由器 AP 隔离）双双失败，最后靠手动传 APK 完成验收，**没有 logcat 佐证** | 下次接设备前先确认线能传数据、路由器没开客户端隔离。另：platform-tools v31.0.2+ 需 `ADB_MDNS_OPENSCREEN=1` 才能 `adb pair` |
+| **编辑器占用** | 命令行跑测试或构建时，另一个 Unity 实例不能打开同一项目 | 跑之前先关编辑器；两个脚本都会以退出码 2 报出这个错误 |
 | **命令行测试的静默失败** | `-quit` 会让 Unity 跳过测试直接退出（退出码 0）；`Temp/` 下的结果文件会被 Unity 退出时清理 | 两个坑都已规避并写进脚本，见第 10 节 |
+| **`Assets/Resources/` 下的东西都会进 APK** | 放进去的每张图都算包体。应用图标源图一度放在 `Assets/Resources/Icons/AppIcon/`，等于把 47 张 PNG 白打进包里 | 图标源图已移到 `Assets/AppIcons/`（自动打包够不着），只在 Player Settings 里引用 |
 
 ---
 
@@ -594,3 +627,5 @@ bash Tools/run-editmode-tests.sh
 | `Claude/账单管理系统功能清单.md` | 需求来源（12 个模块 + 5 个场景 + 5 个特色功能） |
 | `Claude/plans/2026-09-11-账单管理MVP.md` | 实施计划，17 个任务，含完整代码 |
 | `Claude/资源替换指南.md` | 给美术/设计的换图指南 |
+| `Claude/图标资源库.md` | 开源图标库 / 插画 / 素材速查（含许可证对照与 SVG→PNG 处理） |
+| `Claude/plans/android-release-checklist.md` | Android 真机验收记录：18 项结果、未通过项、验收环境问题、偏离计划处 |
