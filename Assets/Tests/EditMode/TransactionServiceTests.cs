@@ -98,6 +98,23 @@ namespace EasyMoney.Tests
         }
 
         [Test]
+        public void Save_KeepsEmojiNoteIntact()
+        {
+            // 真机验收时 emoji 备注显示成空白（android-release-checklist.md #16）。
+            // 要判定「是字体画不出来」还是「数据真的丢了」，得把写入链路的每一段都证干净。
+            // 仓储那一段 TransactionRepositoryTests.Note_SupportsChineseAndEmoji 已经证过，
+            // 这里补上写账单的必经之路（Save 会顺带跑校验、盖时间戳）。
+            // 两段都干净，剩下的解释就只有渲染。
+            Transaction oTx = _newExpense(35.50m);
+            oTx.Note = "和朋友吃饭🍜";
+
+            ValidationResult oResult = m_Service.Save(oTx, NOW_MS);
+
+            Assert.IsTrue(oResult.IsValid, oResult.ErrorMessage);
+            Assert.AreEqual("和朋友吃饭🍜", m_TxRepo.GetById(oTx.Id).Note);
+        }
+
+        [Test]
         public void Save_InvalidCategoryForType_IsRejected()
         {
             int iIncomeCategoryId = m_CategoryRepo.GetByKind(CategoryKind.Income)[0].Id;

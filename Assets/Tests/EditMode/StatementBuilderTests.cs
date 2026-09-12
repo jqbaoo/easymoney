@@ -81,6 +81,20 @@ namespace EasyMoney.Tests
         }
 
         [Test]
+        public void BuildRow_EmojiNote_KeepsItWholeAsTitle()
+        {
+            // 真机验收时 emoji 备注显示成空白（android-release-checklist.md #16）。
+            // 展示投影这一层必须证明自己是干净的，否则「空白」到底是这里吃掉了字符
+            // 还是字体画不出来，就分不清了。emoji 是代理对（U+1F35C 占两个 char），
+            // 长度断言顺带盯住「被按 char 截断」这类事故。
+            StatementRow oRow = StatementBuilder.BuildRow(
+                _tx(TxType.Expense, 35.50m, 10, 1, "和朋友吃饭🍜"), m_Categories, m_Accounts);
+
+            Assert.AreEqual("和朋友吃饭🍜", oRow.Title);
+            Assert.AreEqual("和朋友吃饭🍜".Length, oRow.Title.Length);
+        }
+
+        [Test]
         public void BuildRow_Income_PrefixesPlusSign()
         {
             StatementRow oRow = StatementBuilder.BuildRow(
