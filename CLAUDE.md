@@ -13,22 +13,22 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
 
 ## 当前进度（2026-09-13）
 
-**界面原型完成，Core 层与数据层完工，只差页面接线。**
+**界面原型完成，逻辑层与容器层完工，只差页面接线。**
 
-- ✅ `Assets/Scripts/App/` —— UI 基础设施 + 四个页面（**用假数据撑着**）
-- ✅ **Task 1-11 完成** —— 三层程序集骨架 + 命令行测试链路 + 整个逻辑层
+- ✅ `Assets/Scripts/App/` —— UI 基础设施 + 四个页面 + `AppContext`（**页面仍用假数据撑着**）
+- ✅ **Task 1-12 完成** —— 三层程序集骨架 + 命令行测试链路 + 整个逻辑层 + 应用容器
   （`Core`：Money / TimeUtil / 模型 / 校验 / 报表；`Data`：SQLite / 三个仓储 /
-  记账服务 / 多维筛选）
-- ✅ **134 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
-- ✅ 标签 **`data-layer-complete`** —— 业务逻辑层封顶，往后改动都在 App 层
-- ❌ 页面上的数字还是进不去数据库 —— 缺 `AppContext`，各页面的 `_refresh()`
-  也还没换成真实取数（Task 12-16）
+  记账服务 / 多维筛选；`App`：`AppContext`）
+- ✅ **141 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
+- ✅ 标签 **`data-layer-complete`** —— 业务逻辑层封顶
+- ❌ 页面上的数字还是进不去数据库 —— `AppContext` 已能取到真数据，但各页面的
+  `_refresh()` 还没换成真实取数（Task 13-16）
 
 **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
 `ITransactionRepository` 等于绕过校验。
 
-计划的 17 个任务里，**Task 12-16 的 UI 接线还没开始**。下一步从 **Task 12**
-（AppContext）开始，按顺序执行，不要跳。
+计划的 17 个任务里，**Task 13-16 的 UI 接线还没开始**。下一步从 **Task 13**
+（记账页）开始，按顺序执行，不要跳。
 
 ⚠️ **Android 真机相关的坑，详见 `SPEC.md` 第 11 节**：
 

@@ -11,8 +11,9 @@
 ```
 App/
 ├── EasyMoney.App.asmdef
-├── AppRoot.cs          应用入口 + 界面骨架 + 标签栏装配
-├── DemoData.cs         ⚠️ 假数据。接数据层后整个文件删掉
+├── AppContext.cs       单例依赖容器（库 + 三个仓储 + TransactionService）
+├── AppRoot.cs          应用入口：建库 + 界面骨架 + 标签栏装配
+├── DemoData.cs         ⚠️ 假数据。页面接真实取数后整个文件删掉
 └── UI/
     ├── Theme.cs            尺寸 / 字号 / 颜色（颜色转发给 ThemePalette）
     ├── ThemePalette.cs     配色对象，含 Light() / Dark() / FromJson()
@@ -122,17 +123,21 @@ private void _refresh()
     // 现在：
     m_IncomeValue.text = DemoData.SUMMARY_INCOME;
 
-    // 接数据层后：
-    PeriodSummary oSummary = AppContext.Instance.ReportCalculator.Summarize(...);
-    m_IncomeValue.text = Money.FromCents(oSummary.IncomeCents).ToString();
+    // 接数据层后：先向仓储取数，再交给 Core 的纯函数算
+    List<Transaction> lTxs = AppContext.Instance.Transactions.Query(
+        new TransactionQuery { StartMs = iStartMs, EndMs = iEndMs });
+    PeriodSummary oSummary = ReportCalculator.BuildSummary(lTxs);
+    m_IncomeValue.text = oSummary.Income.ToString();   // Money.ToString() → "35.50"
 }
 ```
 
+`AppContext` 已经在位，不用再建：`AppContext.Instance` 由 `AppRoot` 在 `Awake` 里
+初始化，页面只管用。
+
 然后：
 
-1. 删掉 `DemoData.cs`
-2. 新建 `AppContext.cs`（计划 Task 12 有完整代码）
-3. 页面订阅 `AppContext.Instance.DataChanged`，数据变了自动刷新
+1. 页面订阅 `AppContext.Instance.DataChanged`，数据变了自动刷新
+2. 四个页面**全部**改完之后，删掉 `DemoData.cs`
 
 页面里**只做展示和取数调用**，不要写业务逻辑。校验、聚合都在 Core / Data 层。
 
