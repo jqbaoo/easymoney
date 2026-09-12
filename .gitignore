@@ -25,6 +25,10 @@
 # ── 系统文件 ──
 .DS_Store
 Thumbs.db
+# ── IDE ──
+.vs/
+# ── Unity 升级日志 ──
+/UpgradeLog*.htm
 # ── 崩溃日志 ──
 sysinfo.txt
 crashlytics-build.properties
