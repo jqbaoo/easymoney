@@ -13,7 +13,6 @@ App/
 ├── EasyMoney.App.asmdef
 ├── AppContext.cs       单例依赖容器（库 + 三个仓储 + TransactionService）
 ├── AppRoot.cs          应用入口：建库 + 界面骨架 + 标签栏装配
-├── DemoData.cs         ⚠️ 假数据。页面接真实取数后整个文件删掉
 └── UI/
     ├── Theme.cs            尺寸 / 字号 / 颜色（颜色转发给 ThemePalette）
     ├── ThemePalette.cs     配色对象，含 Light() / Dark() / FromJson()
@@ -126,20 +125,14 @@ UiFactory.SetFlexible(right);         // 吃掉剩余
 
 ---
 
-## 接数据层时改哪里
+## 页面怎么取数
 
-**唯一的改动点是各页面的 `_refresh()`。** `RecordPage`、`TransactionListPage` 与
-`AccountPage` 已经改完，可以当范例。
-
-把 `DemoData.BuildXxx()` 换成 `AppContext.Instance` 的真实取数：
+**唯一的取数点是各页面的 `_refresh()`。** 四个页面都接完了，随便挑一个当范例。
 
 ```csharp
 private void _refresh()
 {
-    // 现在：
-    m_IncomeValue.text = DemoData.SUMMARY_INCOME;
-
-    // 接数据层后：先向仓储取数，再交给 Core 的纯函数算
+    // 先向仓储取数，再交给 Core 的纯函数算
     List<Transaction> lTxs = AppContext.Instance.Transactions.Query(
         new TransactionQuery { StartMs = iStartMs, EndMs = iEndMs, Limit = 1000 });
     PeriodSummary oSummary = ReportCalculator.BuildSummary(lTxs);
@@ -148,7 +141,7 @@ private void _refresh()
 ```
 
 ⚠️ **`TransactionQuery.Limit` 默认只有 50**，而且超了不报错、只是结果变少。
-列表页要按月取数就得显式抬高（`TransactionListPage` 用 1000）。这个坑很隐蔽：
+按月取数就得显式抬高（`TransactionListPage` 与 `ReportPage` 都用 1000）。这个坑很隐蔽：
 界面不崩，只是「某个月少了几十条记录」。
 
 `AppContext` 已经在位：`AppContext.Instance` 由 `AppRoot` 在 `Awake` 里初始化，
@@ -161,8 +154,6 @@ private void _refresh()
 oContext.NotifyDataChanged();
 ```
 
-现在只剩 `ReportPage` 一个页面还在用它，改完之后整个文件删掉。
-
 页面里**只做展示和取数调用**，不要写业务逻辑。校验、聚合都在 Core / Data 层。
 
 更要紧的是：**「一条账单该怎么显示」这种规则也别写在页面里。** 备注为空时显示分类名、
@@ -171,7 +162,11 @@ oContext.NotifyDataChanged();
 AmountText` 往 `Text` 里塞。理由很实在：EditMode 测试根本跑不到页面，规则留在页面里就只能
 靠肉眼看；抽成纯函数才能被 `StatementBuilderTests` 逐条盯住。Task 15 也照这个来：
 `AccountEditDialog` 只摆控件，`Core/Accounts/AccountForm.cs` 管类型标签与表单校验
-（`AccountFormTests`）。
+（`AccountFormTests`）。Task 16 同理：`ReportPage` 只摆控件，`Core/Reports/ReportForm.cs`
+管构成标题、占比文案与条形宽度（`ReportFormTests`）。
+
+页面之间重复的写法也该往上收：月份标题原先账单页与报表页各拼一遍，现在统一走
+`TimeUtil.FormatYearMonth`。
 
 弹窗里还有个容易写错的点：**不要就地改传进来的 `Account`**。它是引用类型，就地改会让
 「点取消」变成改了一半的假取消——表单状态放局部变量，点保存再组装一个新对象写库。

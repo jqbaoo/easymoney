@@ -13,27 +13,27 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
 
 ## 当前进度（2026-09-13）
 
-**记账页、账单页、账户页都写进真数据库了，只剩报表页还是原型。**
+**四个页面全部接真数据库了，`DemoData.cs` 已删除。只剩打包。**
 
 - ✅ `Assets/Scripts/App/` —— UI 基础设施 + 四个页面 + `AppContext` + `PickerDialog` + `AccountEditDialog`
-- ✅ **Task 1-15 完成** —— 三层程序集骨架 + 命令行测试链路 + 整个逻辑层 + 应用容器 + 记账页 + 账单列表页 + 账户管理页
-  （`Core`：Money / TimeUtil / 模型 / 校验 / 报表 / 快捷金额 / 账单展示投影 / 账户表单；
-  `Data`：SQLite / 三个仓储 / 记账服务 / 多维筛选；`App`：`AppContext` / 记账页 / 账单页 / 账户页）
-- ✅ **187 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
+- ✅ **Task 1-16 完成** —— 三层程序集骨架 + 命令行测试链路 + 整个逻辑层 + 应用容器 + 四个页面
+  （`Core`：Money / TimeUtil / 模型 / 校验 / 报表 / 快捷金额 / 账单展示投影 / 账户表单 / 报表展示；
+  `Data`：SQLite / 三个仓储 / 记账服务 / 多维筛选；`App`：`AppContext` / 记账页 / 账单页 / 账户页 / 报表页）
+- ✅ **200 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
 - ✅ 标签 **`data-layer-complete`** —— 业务逻辑层封顶
-- ❌ 只剩报表页的数字仍来自 `DemoData.cs`，是假的（Task 16）
+- ❌ 只剩 Task 17（Android 打包与真机验收）
 
 **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
 `ITransactionRepository` 等于绕过校验。
 
-计划的 17 个任务里，**只剩 Task 16（报表页）与 Task 17（打包）**。下一步做 **Task 16**，
-做完就能删掉 `DemoData.cs`。
+计划的 17 个任务里，**只剩 Task 17（打包）**。
 
 ⚠️ **接页面时别把展示规则写进页面里。** 页面的分组、文案拼接、兜底规则都是纯逻辑，
 抽到 `Core` 才能被测试盯住——EditMode 跑不到页面，留在页面里只能靠肉眼看。
 Task 14 抽的是 `Core/Statements/StatementBuilder.cs`（按本地日期分组 / 金额正负号 /
 名称兜底），Task 15 抽的是 `Core/Accounts/AccountForm.cs`（类型标签 / 名称与初始
-余额校验），页面只管取数和渲染。
+余额校验），Task 16 抽的是 `Core/Reports/ReportForm.cs`（构成标题 / 占比文案 /
+条形宽度钳位），页面只管取数和渲染。
 
 ⚠️ **反向验证会暴露测试自身的洞，别把「预测失败数对上了」当成通过。** Task 15 注入
 4 个假 bug 后失败数确实是 5，但对不上预测的那 5 个：`Validate_EmptyBalance_MeansZero`
@@ -51,8 +51,6 @@ Task 14 抽的是 `Core/Statements/StatementBuilder.cs`（按本地日期分组 
 - 别把 `Project Settings → Burst AOT Settings` 里的 `ARMV8A` / `ARMV9A` 当成打包架构
   设置——那是 Burst 生成原生代码用的指令集目标，与 APK 里打包哪些 ABI 无关
 - SQLite 依赖已升到 3.x、四个 Android ABI 齐全，原「Android 原生库缺失」风险已解决
-
-只剩报表页的数字还来自 `Assets/Scripts/App/DemoData.cs`，是假的。
 
 ---
 

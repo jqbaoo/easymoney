@@ -17,13 +17,13 @@
 
 ## 2. 当前状态（2026-09-13）
 
-**这是最重要的一节。** 项目处在「界面原型完成、逻辑层与容器层完工」的阶段。
+**这是最重要的一节。** 项目处在「四个页面全部接真实数据、只剩打包」的阶段。
 
 ```
-Core 层   ██████████ 100%   Money / TimeUtil / 模型 / 校验 / 报表 / 账单展示投影 / 账户表单（Task 2-3、5、7、9-11、14-15）
+Core 层   ██████████ 100%   Money / TimeUtil / 模型 / 校验 / 报表 / 账单展示投影 / 账户表单 / 报表展示（Task 2-3、5、7、9-11、14-16）
 Data 层   ██████████ 100%   SQLite / 三个仓储 / 记账服务 / 筛选（Task 4、6-11）
-App 层    ██████████  98%   记账页 / 账单页 / 账户页已通；只剩报表页用假数据
-测试      █████████░  97%   187 个用例全绿（Money 7 + Parser 17 + TimeUtil 11 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 10 + 筛选 18 + 报表 13 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 20 + 账户表单 13）
+App 层    ██████████ 100%   记账页 / 账单页 / 账户页 / 报表页全部通真实数据
+测试      ██████████ 100%   200 个用例全绿（Money 7 + Parser 17 + TimeUtil 12 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 10 + 筛选 18 + 报表 13 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 20 + 账户表单 13 + 报表展示 12）
 打包      ░░░░░░░░░░   0%   未开始
 ```
 
@@ -34,8 +34,7 @@ App 层    ██████████  98%   记账页 / 账单页 / 账户�
 | UI 基础设施 | `App/Scripts/App/UI/*.cs` | Theme / UiFactory / SpriteFactory / FontProvider / SafeAreaFitter / PageBase / PageRouter / TabBar |
 | **资源层** | `App/UI/AssetPaths.cs`、`AssetProvider.cs`、`IconNames.cs`、`ThemePalette.cs` | 计划外新增，见第 7 节 |
 | 应用入口 | `App/AppRoot.cs` | 含 `RuntimeInitializeOnLoadMethod`，打开任意场景点 Play 即可运行 |
-| 四个页面（视觉原型） | `App/UI/Pages/*.cs` | 记账页 / 账单列表页 / 账户页 / 报表页 |
-| 假数据 | `App/DemoData.cs` | 撑着页面用的，接数据层后**整个文件删掉** |
+| 四个页面 | `App/UI/Pages/*.cs` | 记账页 / 账单列表页 / 账户页 / 报表页，**全部接真实数据** |
 | **程序集骨架 + 测试链路** | `Scripts/Core`、`Scripts/Data`、`Tests/EditMode`、`Tools/run-editmode-tests.sh` | Task 1 产出。命令行跑 EditMode 测试已实测可用 |
 | **金额值类型** | `Scripts/Core/Money.cs`、`MoneyParser.cs` | Task 2 产出。`readonly struct` 内部存「分」+ 输入解析，25 个用例全绿 |
 | **时间工具** | `Scripts/Core/TimeUtil.cs` | Task 3 产出。Unix 毫秒互转 + 月/日边界，7 个用例 |
@@ -51,24 +50,22 @@ App 层    ██████████  98%   记账页 / 账单页 / 账户�
 | **记账页** | `App/UI/Pages/RecordPage.cs`、`App/UI/PickerDialog.cs`、`Core/QuickAmountHelper.cs` | Task 13 产出。类型切换 / 金额 / 快捷金额 / 分类 / 账户 / 转入 / 日期 / 备注，保存走 `TransactionService.Save()`；进页面预选第一个账户与分类，通常只需填金额。选择弹窗由四个入口共用 |
 | **账单列表页** | `App/UI/Pages/TransactionListPage.cs`、`Core/Statements/*.cs` | Task 14 产出。按月查看 + 收支汇总 + 按天分组 + 删除。**展示规则抽在 Core 的 `StatementBuilder` 里**（本地日期分组、金额正负号、名称兜底），页面只做取数与渲染 |
 | **账户管理页** | `App/UI/Pages/AccountPage.cs`、`App/UI/AccountEditDialog.cs`、`Core/Accounts/*.cs` | Task 15 产出。总资产 + 各账户实时余额 + 添加 / 编辑 / 归档 / 恢复。**表单规则抽在 Core 的 `AccountForm` 里**（名称去空白后非空、余额留空按 0、允许负数），新建与编辑共用一套弹窗。比计划多做了「显示已归档」开关——计划里的归档是单向的，点错一次就找不回来 |
+| **报表页** | `App/UI/Pages/ReportPage.cs`、`Core/Reports/ReportForm.cs` | Task 16 产出。月份切换 + 收支汇总 + 支出/收入分类占比条形图。**展示规则抽在 Core 的 `ReportForm` 里**（构成标题、占比文案、条形宽度钳位），月份格式统一走 `TimeUtil.FormatYearMonth`。`DemoData.cs` 已随之删除 |
 
 ### 未开始
 
 | 内容 | 对应计划任务 |
 |---|---|
-| 报表页接真实数据 | Task 16 |
-| `DemoData.cs` 删除 | 只剩报表页引用它，改完就删 |
 | Android 构建与真机验收 | Task 17 |
 
 ### 关键判断
 
-计划的 Task 12-16 是「UI 基础设施 + 四个页面」。其中**界面部分已作为视觉原型提前做完**，
-容器层（Task 12）、记账页（Task 13）、账单列表页（Task 14）与账户管理页（Task 15）也已完成，
-只剩报表一个页面：
+计划的 Task 12-16 是「UI 基础设施 + 四个页面」，现在五个都已完工：
 
-- **记账 / 账单 / 账户三页已经是真的**：建账户 → 记账 → 账单页能看到、账户页余额跟着变，
-  删除与归档都直接作用在库里
-- 报表页的数字仍来自 `DemoData.cs`，切月份没有实际效果
+- **四个页面全是真的**：建账户 → 记账 → 账单页能看到、账户页余额跟着变、报表页按分类
+  算出占比，删除与归档都直接作用在库里
+- **`DemoData.cs` 已删除**（Task 16）。它撑着的是报表页，报表页一接真数据就没有调用方了。
+  最后一个假数据源消失，界面上看到的每个数字都来自 SQLite
 - Task 15 顺带修掉一个 bug：`AccountPage` 的「添加账户」按钮 `onClick` 传的是 `null`，
   而列表数据来自 `DemoData`（假账户），库里账户数为 0——所以记账页保存时一律被
   `TransactionValidator` 拒掉，报「请选择账户」。这个 bug 在视觉原型阶段看不出来：
@@ -79,10 +76,13 @@ App 层    ██████████  98%   记账页 / 账单页 / 账户�
   记账、筛选、报表的计算结果都被测试验证过了
 - **容器层也已完工**（Task 12）。`AppContext` 把库和仓储装配好，端到端链路
   「建账户 → 记账 → 余额正确 → 查得到记录」有测试锁住
+- **每个页面都配了一个 Core 纯逻辑模块**：账单页 → `StatementBuilder`，
+  账户页 → `AccountForm`，报表页 → `ReportForm`。页面只剩取数与渲染，
+  「一条账单怎么显示」「占比保留几位小数」这类约定都挪进了能被测试盯住的地方
 
-**下一步应该做 Task 16（报表页）**，做完就能删掉 `DemoData.cs`。Task 4 这个最高风险点已经过了：
+**下一步应该做 Task 17（Android 构建与真机验收）**。Task 4 这个最高风险点已经过了：
 SQLite 依赖升到了 3.x，Android 原生库补齐了 ARMv7 / ARM64 / x86 / x64 四套，
-构建目标架构也已设为 ARMv7 + ARM64。Android 侧的准备到 Task 17 之前不用再动了。
+构建目标架构也已设为 ARMv7 + ARM64。Android 侧的准备已经全部就绪。
 
 ---
 
@@ -128,7 +128,6 @@ easymoney/
 │   │       ├── EasyMoney.App.asmdef
 │   │       ├── AppContext.cs    ✅ 单例依赖容器（Task 12）
 │   │       ├── AppRoot.cs       启动入口，建库 + 搭界面 + 装配路由
-│   │       ├── DemoData.cs      ← 页面接真实取数后删除
 │   │       └── UI/
 │   │           ├── Theme.cs / ThemePalette.cs
 │   │           ├── UiFactory.cs
@@ -173,6 +172,7 @@ package "EasyMoney.Core  (noEngineReferences: true)" #E8F5E9 {
     +{static} long StartOfMonthMs(int, int)
     +{static} long StartOfNextMonthMs(int, int)
     +{static} (int,int) CurrentYearMonth()
+    +{static} string FormatYearMonth(int, int)
     +{static} (int,int) AddMonths(int, int, int)
   }
   class Account
@@ -251,6 +251,11 @@ package "EasyMoney.Core  (noEngineReferences: true)" #E8F5E9 {
     +long InitialBalanceCents
     +{static} AccountFormResult Ok(string, long)
     +{static} AccountFormResult Fail(string)
+  }
+  class ReportForm {
+    +{static} string BreakdownTitle(TxType)
+    +{static} string BreakdownValueText(Money, decimal)
+    +{static} decimal BarWidthRatio(decimal)
   }
   enum TxType { Expense=0, Income=1, Transfer=2 }
   enum CategoryKind { Expense=0, Income=1 }
@@ -331,6 +336,7 @@ AccountPage ..> UiFactory
 AccountPage ..> AccountEditDialog : 添加 / 编辑
 AccountEditDialog ..> AccountForm : 表单规则
 AccountEditDialog ..> PickerDialog : 选类型
+ReportPage ..> ReportForm : 占比文案与条形宽度
 ReportPage ..> UiFactory
 UiFactory ..> Theme
 UiFactory ..> AssetProvider
