@@ -20,7 +20,7 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   四个页面 + Android 打包
   （`Core`：Money / TimeUtil / 模型 / 校验 / 报表 / 快捷金额 / 账单展示投影 / 账户表单 / 报表展示；
   `Data`：SQLite / 三个仓储 / 记账服务 / 多维筛选；`App`：`AppContext` / 记账页 / 账单页 / 账户页 / 报表页）
-- ✅ **211 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
+- ✅ **220 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
 - ✅ 标签 **`data-layer-complete`**（业务逻辑层封顶）、**`mvp-complete`**
 - ✅ **APK 构建成功**（`bash Tools/build-android.sh` → `Builds/EasyMoney.apk`，29 MB），
   真机 18 项验收通过 17 项
@@ -87,6 +87,11 @@ Task 14 抽的是 `Core/Statements/StatementBuilder.cs`（按本地日期分组 
 - **时间一律 `long` 存 Unix 毫秒（UTC）**，时区转换只在展示层
 - **转账用单条记录**（`type=Transfer, account_id=转出, to_account_id=转入`），不用两条
 - **账户余额不冗余存储**，用 SQL 子查询实时聚合
+- **改表结构必须走迁移**。建表全是 `CREATE TABLE IF NOT EXISTS`，对已有的表等于
+  什么都不做——给旧表加列会让升级上来的老库报 `no such column`（崩溃，不是降级），
+  而第一版已经装在真机上且有真实数据。三步：往 `SchemaMigrations.ALL` 追加一条 →
+  `EasyMoneyDb.SCHEMA_VERSION` 加一 → 同步改 `Schema.cs`（全新安装走建表语句，
+  不经过迁移）。忘记加版本号会被 `SchemaMigrationTests` 拦住。详见 `SPEC.md` 第 6 节
 
 ### 命名（用户强制要求）
 | 种类 | 规则 | 例子 |
@@ -136,14 +141,16 @@ bash Tools/run-editmode-tests.sh
 
 **同样必须先关掉 Unity 编辑器。**
 
-```bash
-bash Tools/build-android.sh
-```
+**双击项目根目录的 `build-apk.bat`**，或命令行 `bash Tools/build-android.sh`。
+两者底层是同一个脚本，`.bat` 只是启动器。
 
 产物 `Builds/EasyMoney.apk`，退出码 **0 = 成功 / 1 = 构建失败 / 2 = 环境问题**。
 首次 IL2CPP 构建实测约 4.5 分钟。日志在 `Tools/build-android.log`（不放 `Temp/`，
-那个目录 Unity 退出时会清）。三个踩过的坑写死在脚本里了，别绕过它手敲 `Unity.exe`，
-详见 `SPEC.md` 第 10 节。
+那个目录 Unity 退出时会清）。
+
+⚠️ **别绕过脚本手敲 `Unity.exe`**，四个坑写死在里面了。⚠️ **`build-apk.bat`
+的内容必须保持纯 ASCII**——含中文的 `.bat` 会让 cmd 解析器错位，第一版因此
+打印了「构建成功」而实际什么都没构建。详见 `SPEC.md` 第 10 节。
 
 ### 运行界面
 
