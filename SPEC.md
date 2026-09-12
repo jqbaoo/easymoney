@@ -17,13 +17,13 @@
 
 ## 2. 当前状态（2026-09-13）
 
-**这是最重要的一节。** 项目处在「界面原型完成、Core 层起步」的阶段。
+**这是最重要的一节。** 项目处在「界面原型完成、Core 层就绪、数据层起步」的阶段。
 
 ```
-Core 层   ████░░░░░░  40%   Money / MoneyParser / TimeUtil 已完成（Task 2-3）
+Core 层   █████████░  90%   Money / MoneyParser / TimeUtil / 领域模型与枚举 已完成（Task 2-3、5）
 Data 层   ██░░░░░░░░  15%   SQLite 已接入，三张表 + 5 个索引建好（Task 4）
 App 层    ████████░░  80%   界面全在，缺数据绑定
-测试      ████████░░  72%   37 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1 + 构建配置 1）
+测试      ████████░░  80%   41 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4）
 打包      ░░░░░░░░░░   0%   未开始
 ```
 
@@ -39,13 +39,13 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 | **程序集骨架 + 测试链路** | `Scripts/Core`、`Scripts/Data`、`Tests/EditMode`、`Tools/run-editmode-tests.sh` | Task 1 产出。命令行跑 EditMode 测试已实测可用 |
 | **金额值类型** | `Scripts/Core/Money.cs`、`MoneyParser.cs` | Task 2 产出。`readonly struct` 内部存「分」+ 输入解析，25 个用例全绿 |
 | **时间工具** | `Scripts/Core/TimeUtil.cs` | Task 3 产出。Unix 毫秒互转 + 月/日边界，7 个用例 |
-| **SQLite 接入 + 建表** | `Scripts/Data/EasyMoneyDb.cs`、`Schema.cs`、`Plugins/SQLite/link.xml` | Task 4 产出。依赖已升到 3.x（sqlite-net-pcl 1.11.285 + SQLitePCLRaw 3.0.3 + SourceGear.sqlite3 3.53.4），三张表 + 5 个索引，37 个用例全绿 |
+| **SQLite 接入 + 建表** | `Scripts/Data/EasyMoneyDb.cs`、`Schema.cs`、`Plugins/SQLite/link.xml` | Task 4 产出。依赖已升到 3.x（sqlite-net-pcl 1.11.285 + SQLitePCLRaw 3.0.3 + SourceGear.sqlite3 3.53.4），三张表 + 5 个索引 |
+| **领域模型与枚举** | `Scripts/Core/Models/Enums.cs`、`Account.cs`、`Category.cs`、`Transaction.cs` | Task 5 产出。纯 POCO，**不带 SQLite 特性标注**，Data 层用手写 SQL + 列别名映射；枚举数值由 `ModelTests` 锁死 |
 
 ### 未开始
 
 | 内容 | 对应计划任务 |
 |---|---|
-| 领域模型 | Task 5 |
 | 三个仓储 + 记账服务 + 校验 | Task 6、7、8、9 |
 | 筛选搜索、报表计算 | Task 10、11 |
 | **`AppContext.cs`** | Task 12 剩余部分 |
@@ -55,15 +55,15 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 ### 关键判断
 
 计划的 Task 12-16 是「UI 基础设施 + 四个页面」。其中**界面部分已作为视觉原型提前做完**，
-但仓储与服务（Task 5-11）还没走，所以：
+但仓储与服务（Task 6-11）还没走，所以：
 
 - 界面上看到的每一个数字都来自 `DemoData.cs`，是假的
 - 按钮点了没有实际效果（保存只清空表单）
 - `Core` / `Data` 两个程序集都已有 `.cs`，`Library/ScriptAssemblies/` 下
   `EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
-- 数据库层已能建库建表（37 个用例验证过），但**还没有任何仓储**，数据仍进不去
+- 数据库层已能建库建表（41 个用例验证过），但**还没有任何仓储**，数据仍进不去
 
-**下一步应该从 Task 5 开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了：
+**下一步应该从 Task 6 开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了：
 SQLite 依赖升到了 3.x，Android 原生库补齐了 ARMv7 / ARM64 / x86 / x64 四套，
 构建目标架构也已设为 ARMv7 + ARM64。Android 侧的准备到 Task 17 之前不用再动了。
 
@@ -105,8 +105,8 @@ easymoney/
 │   │   └── theme.json           配色
 │   ├── Scenes/                  场景（原型阶段用不到）
 │   ├── Scripts/
-│   │   ├── Core/                ✅ asmdef 已建（noEngineReferences），业务代码待填
-│   │   ├── Data/                ✅ asmdef 已建，业务代码待填
+│   │   ├── Core/                ✅ Money / MoneyParser / TimeUtil / Models（noEngineReferences）
+│   │   ├── Data/                ✅ EasyMoneyDb / Schema，仓储待填
 │   │   └── App/                 ✅ 已有
 │   │       ├── EasyMoney.App.asmdef
 │   │       ├── AppRoot.cs
