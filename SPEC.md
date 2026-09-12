@@ -21,9 +21,9 @@
 
 ```
 Core 层   █████████░  90%   Money / MoneyParser / TimeUtil / 领域模型与枚举 已完成（Task 2-3、5）
-Data 层   ██░░░░░░░░  15%   SQLite 已接入，三张表 + 5 个索引建好（Task 4）
+Data 层   ███░░░░░░░  35%   建表 + 分类仓储与种子 已完成（Task 4、6）
 App 层    ████████░░  80%   界面全在，缺数据绑定
-测试      ████████░░  80%   41 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4）
+测试      █████████░  85%   54 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13）
 打包      ░░░░░░░░░░   0%   未开始
 ```
 
@@ -41,12 +41,14 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 | **时间工具** | `Scripts/Core/TimeUtil.cs` | Task 3 产出。Unix 毫秒互转 + 月/日边界，7 个用例 |
 | **SQLite 接入 + 建表** | `Scripts/Data/EasyMoneyDb.cs`、`Schema.cs`、`Plugins/SQLite/link.xml` | Task 4 产出。依赖已升到 3.x（sqlite-net-pcl 1.11.285 + SQLitePCLRaw 3.0.3 + SourceGear.sqlite3 3.53.4），三张表 + 5 个索引 |
 | **领域模型与枚举** | `Scripts/Core/Models/Enums.cs`、`Account.cs`、`Category.cs`、`Transaction.cs` | Task 5 产出。纯 POCO，**不带 SQLite 特性标注**，Data 层用手写 SQL + 列别名映射；枚举数值由 `ModelTests` 锁死 |
+| **分类仓储 + 默认分类种子** | `Scripts/Data/DefaultCategories.cs`、`ICategoryRepository.cs`、`SqliteCategoryRepository.cs` | Task 6 产出。预置 10 个支出 + 6 个收入分类；`Open()` 按「category 表为空」幂等写入 |
 
 ### 未开始
 
 | 内容 | 对应计划任务 |
 |---|---|
-| 三个仓储 + 记账服务 + 校验 | Task 6、7、8、9 |
+| 账户仓储（含余额聚合）、账单仓储 | Task 7、8 |
+| 记账服务 + 校验 | Task 9 |
 | 筛选搜索、报表计算 | Task 10、11 |
 | **`AppContext.cs`** | Task 12 剩余部分 |
 | 页面接真实数据（改 `_refresh()`） | Task 13-16 剩余部分 |
@@ -55,15 +57,16 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 ### 关键判断
 
 计划的 Task 12-16 是「UI 基础设施 + 四个页面」。其中**界面部分已作为视觉原型提前做完**，
-但仓储与服务（Task 6-11）还没走，所以：
+但仓储与服务（Task 7-11）还没走，所以：
 
 - 界面上看到的每一个数字都来自 `DemoData.cs`，是假的
 - 按钮点了没有实际效果（保存只清空表单）
 - `Core` / `Data` 两个程序集都已有 `.cs`，`Library/ScriptAssemblies/` 下
   `EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
-- 数据库层已能建库建表（41 个用例验证过），但**还没有任何仓储**，数据仍进不去
+- 分类已经能真正落库（54 个用例验证过），但账户和账单仓储还没写，
+  页面上的金额仍然进不去数据库
 
-**下一步应该从 Task 6 开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了：
+**下一步应该从 Task 7 开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了：
 SQLite 依赖升到了 3.x，Android 原生库补齐了 ARMv7 / ARM64 / x86 / x64 四套，
 构建目标架构也已设为 ARMv7 + ARM64。Android 侧的准备到 Task 17 之前不用再动了。
 
@@ -106,7 +109,7 @@ easymoney/
 │   ├── Scenes/                  场景（原型阶段用不到）
 │   ├── Scripts/
 │   │   ├── Core/                ✅ Money / MoneyParser / TimeUtil / Models（noEngineReferences）
-│   │   ├── Data/                ✅ EasyMoneyDb / Schema，仓储待填
+│   │   ├── Data/                ✅ EasyMoneyDb / Schema / 分类仓储（账户、账单仓储待填）
 │   │   └── App/                 ✅ 已有
 │   │       ├── EasyMoney.App.asmdef
 │   │       ├── AppRoot.cs

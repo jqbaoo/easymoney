@@ -16,13 +16,13 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
 **界面原型完成，Core 层就绪，数据层起步。**
 
 - ✅ `Assets/Scripts/App/` —— UI 基础设施 + 四个页面（**用假数据撑着**）
-- ✅ **Task 1-5 完成** —— 三层程序集骨架 + 命令行测试链路 +
+- ✅ **Task 1-6 完成** —— 三层程序集骨架 + 命令行测试链路 +
   `Core`（Money / MoneyParser / TimeUtil / 领域模型与枚举）+
-  `Data`（SQLite 接入、三张表 + 5 个索引）
-- ✅ **41 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
-- ❌ 还没有任何仓储，数据进不去
+  `Data`（SQLite 接入、三张表 + 5 个索引、分类仓储 + 默认分类种子）
+- ✅ **54 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
+- ❌ 账户和账单仓储还没写，页面上的金额进不去数据库
 
-计划的 17 个任务里，**Task 6-11 一步都没走**。下一步从 **Task 6**（分类仓储与默认分类）
+计划的 17 个任务里，**Task 7-11 一步都没走**。下一步从 **Task 7**（账户仓储与余额计算）
 开始，按顺序执行，不要跳。
 
 ⚠️ **Android 真机相关的坑，详见 `SPEC.md` 第 11 节**：
