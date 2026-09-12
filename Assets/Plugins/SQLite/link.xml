@@ -1,0 +1,15 @@
+<linker>
+  <!-- IL2CPP 代码剥离会删掉「只靠反射调用」的 SQLite 类型，表现为真机上运行时崩溃。
+       这里把 SQLite 相关程序集整体保留。
+
+       注意：程序集名以 NuGet 实际装出来的为准，与计划原文不同——
+       实际装的是 SQLitePCLRaw.provider.e_sqlite3 + SQLitePCLRaw.batteries_v2，
+       而不是计划里写的 provider.dynamic_cdecl + bundle_green（那两个程序集在
+       bundle_green 2.1.2 的依赖树里根本不存在）。 -->
+  <assembly fullname="SQLite-net" preserve="all" />
+  <assembly fullname="SQLitePCLRaw.core" preserve="all" />
+  <assembly fullname="SQLitePCLRaw.batteries_v2" preserve="all" />
+  <assembly fullname="SQLitePCLRaw.provider.e_sqlite3" preserve="all" />
+  <assembly fullname="EasyMoney.Core" preserve="all" />
+  <assembly fullname="EasyMoney.Data" preserve="all" />
+</linker>

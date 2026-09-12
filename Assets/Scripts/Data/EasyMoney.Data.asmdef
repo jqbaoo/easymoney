@@ -7,8 +7,13 @@
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "SQLite-net.dll",
+        "SQLitePCLRaw.core.dll",
+        "SQLitePCLRaw.batteries_v2.dll",
+        "SQLitePCLRaw.provider.e_sqlite3.dll"
+    ],
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
