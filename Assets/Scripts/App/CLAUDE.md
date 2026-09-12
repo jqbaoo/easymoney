@@ -93,6 +93,19 @@ UiFactory.SetFlexible(right);         // 吃掉剩余
 - `CreateBareRow` —— 定高、不带内边距（卡片内部用，避免与卡片内边距叠加）
 - `CreateRowContainer` —— 纯横向容器，无高度无内边距
 
+### 滚动区
+`CreateScroll(parent, name, out content)`，四个页面和 `PickerDialog` 共用。
+
+- **滚动区自己铺满父容器**，不用调用方 `Stretch`。父容器可以是页面主体，
+  也可以是弹窗里已经定好位的列表区
+- **返回的 `content` 是内容容器**，已经左右各缩进一个 `PAGE_PADDING`，
+  宽度不用自己算；往里塞 `CreateAutoColumn` 之类的自适应高度容器即可
+- Viewport 上挂了 `RectMask2D`，**超出部分真的会被裁掉**——滚动区尺寸算错不会报错，
+  只会让文字少半截
+
+同名的 `UiFactoryLayoutTests` 锁着这个契约（`Assets/Tests/EditMode/`）。
+它只断言锚点能即时决定的尺寸，布局组算出的高度测不了，那些仍要靠 Play 肉眼验。
+
 ### ⚠️ 三个已知陷阱
 
 **1. 一个节点上不要同时挂两种 LayoutGroup。**

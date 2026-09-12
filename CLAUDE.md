@@ -19,7 +19,7 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
 - ✅ **Task 1-13 完成** —— 三层程序集骨架 + 命令行测试链路 + 整个逻辑层 + 应用容器 + 记账页
   （`Core`：Money / TimeUtil / 模型 / 校验 / 报表 / 快捷金额；`Data`：SQLite / 三个仓储 /
   记账服务 / 多维筛选；`App`：`AppContext` / 记账页）
-- ✅ **147 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
+- ✅ **150 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
 - ✅ 标签 **`data-layer-complete`** —— 业务逻辑层封顶
 - ❌ 账单 / 账户 / 报表三页的数字仍来自 `DemoData.cs`，是假的（Task 14-16）
 

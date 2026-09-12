@@ -23,7 +23,7 @@
 Core 层   ██████████ 100%   Money / TimeUtil / 模型 / 校验 / 报表（Task 2-3、5、7、9-11）
 Data 层   ██████████ 100%   SQLite / 三个仓储 / 记账服务 / 筛选（Task 4、6-11）
 App 层    █████████░  92%   记账页已通；账单 / 账户 / 报表三页仍用假数据
-测试      █████████░  95%   147 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 10 + 筛选 18 + 报表 13 + 应用容器 7 + 快捷金额 6）
+测试      █████████░  95%   150 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 10 + 筛选 18 + 报表 13 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3）
 打包      ░░░░░░░░░░   0%   未开始
 ```
 
@@ -494,6 +494,17 @@ bash Tools/run-editmode-tests.sh
   -testResults "Tools/editmode-results.xml" \
   -logFile "Tools/editmode.log"
 ```
+
+**覆盖边界（别误读「全绿」）**：EditMode 测试只覆盖 Core 与 Data。App 层的页面、
+`PickerDialog`、`AppRoot` 在 EditMode 下**不会被实例化**（界面全部由代码在运行时构建，
+不走 `AppRoot.Awake`），所以对它们来说「编译通过」就是测试能给的上限。
+
+唯一的例外是 `UiFactoryLayoutTests`（2026-09-13 加入）。它只 `new GameObject` 摆锚点，
+断言锚点能即时决定的尺寸——`rect` 由锚点和父容器当场算出，不需要 Canvas，也不需要
+`LayoutRebuilder`，所以 EditMode 下跑得动也不飘。**布局组算出的高度依赖一次真实的
+布局重建，不在这里测**，别往里加那类断言。
+
+结论：改完界面代码，仍然必须在 Unity 里点 Play 肉眼确认。
 
 ### 运行界面
 
