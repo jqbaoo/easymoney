@@ -23,7 +23,7 @@
 Core 层   ██████████ 100%   Money / TimeUtil / 模型 / 校验 / 报表 / 账单展示投影 / 账户表单 / 报表展示（Task 2-3、5、7、9-11、14-16）
 Data 层   ██████████ 100%   SQLite / 三个仓储 / 记账服务 / 筛选（Task 4、6-11）
 App 层    ██████████ 100%   记账页 / 账单页 / 账户页 / 报表页全部通真实数据
-测试      ██████████ 100%   209 个用例全绿（Money 7 + Parser 17 + TimeUtil 12 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 10 + 筛选 18 + 报表 13 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 20 + 账户表单 13 + 报表展示 12 + 构建配置守卫 9）
+测试      ██████████ 100%   211 个用例全绿（Money 7 + Parser 17 + TimeUtil 12 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 11 + 筛选 18 + 报表 13 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 21 + 账户表单 13 + 报表展示 12 + 构建配置守卫 9）
 打包      ██████████ 100%   APK 已构建，Redmi K60 真机验收 18 项中 17 项通过
 ```
 
@@ -607,7 +607,7 @@ bash Tools/build-android.sh
 | ~~LIKE 通配符~~ | 用户搜索词里的 `%` `_` 会被当通配符 | ✅ **已解决**（Task 10）。`_escapeLike` 先转义反斜杠、再转义 `%` 和 `_`，SQL 侧配 `ESCAPE '\'`。`Keyword_EscapesLikeWildcards` 守着 |
 | **SQLite-net 参数按出现顺序绑定** | `_buildWhere` 里 `lClauses.Add` 与 `lArgs.Add` 一旦错位，SQLite 不会报错，只会**静默筛出错误的行**——比崩溃更难发现 | 加条件时两者必须成对书写，顺序严格一致。排序、分页参数（Limit/Offset）必须拼在 `_buildWhere` 返回之后 |
 | **中文字体** | `FontProvider` 的系统字体候选列表可能一个都不命中，表现为方块字 | 正式发布建议自带 `Fonts/main.ttf` |
-| **emoji 显示为空白** | 真机实测：备注里填 emoji 渲染成空白。根因同上——`FontProvider` 的候选全是中文字体，**都不含 emoji 字形**，而 legacy `Text` 在字形缺失时不跨字体回退 | 观感问题，不影响数据。要支持得自带 emoji 字体，且 legacy `Text` 不支持彩色 emoji，彻底解决需换 TextMeshPro |
+| **emoji 显示为空白** | 真机实测：备注里填 emoji 渲染成空白。根因同上——`FontProvider` 的候选全是中文字体，**都不含 emoji 字形**，而 legacy `Text` 在字形缺失时不跨字体回退 | **已定性为纯渲染问题，数据没丢**。依据是把写入链路三段都证干净了（仓储 `Note_SupportsChineseAndEmoji`、服务 `Save_KeepsEmojiNoteIntact`、投影 `BuildRow_EmojiNote_KeepsItWholeAsTitle`），且全项目没有按 `char` 截断的代码。要支持得自带 emoji 字体 + 换 TextMeshPro，**当前判断为不值得做** |
 | **APK 里仍有 INTERNET 权限** | 已设 `Internet Access: Not Required`，测试也是绿的，但 `aapt dump badging` 实测包里仍有该权限。根因是 `com.unity.modules.unitywebrequest` 模块自己声明，manifest merger 合并进来，`ForceInternetPermission` 拦不住 | 单机 App 用不到，属瑕疵。要真正去掉需自定义 `Assets/Plugins/Android/AndroidManifest.xml` + `tools:node="remove"`——自定义 manifest 是构建失败高发区，单独一轮做 |
 | **adb 连不上真机** | Task 17 验收时 USB（线缆只有电源线芯）与无线调试（路由器 AP 隔离）双双失败，最后靠手动传 APK 完成验收，**没有 logcat 佐证** | 下次接设备前先确认线能传数据、路由器没开客户端隔离。另：platform-tools v31.0.2+ 需 `ADB_MDNS_OPENSCREEN=1` 才能 `adb pair` |
 | **编辑器占用** | 命令行跑测试或构建时，另一个 Unity 实例不能打开同一项目 | 跑之前先关编辑器；两个脚本都会以退出码 2 报出这个错误 |

@@ -20,7 +20,7 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   四个页面 + Android 打包
   （`Core`：Money / TimeUtil / 模型 / 校验 / 报表 / 快捷金额 / 账单展示投影 / 账户表单 / 报表展示；
   `Data`：SQLite / 三个仓储 / 记账服务 / 多维筛选；`App`：`AppContext` / 记账页 / 账单页 / 账户页 / 报表页）
-- ✅ **209 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
+- ✅ **211 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
 - ✅ 标签 **`data-layer-complete`**（业务逻辑层封顶）、**`mvp-complete`**
 - ✅ **APK 构建成功**（`bash Tools/build-android.sh` → `Builds/EasyMoney.apk`，29 MB），
   真机 18 项验收通过 17 项
@@ -32,9 +32,10 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
 改 Player Settings 前先看这个文件——计划里 Task 17 那张配置表的每一条都有对应断言，
 配置对不对不靠肉眼核对 Unity 面板。
 
-⚠️ **真机验收的两处已知瑕疵**（都不影响功能）：APK 里仍有 `android.permission.INTERNET`
-（UnityWebRequest 模块带的）；备注里的 emoji 显示为空白（字体没有 emoji 字形）。
-详见 `Claude/plans/android-release-checklist.md`。
+⚠️ **真机验收的两处已知瑕疵**（都不影响功能，详见 `Claude/plans/android-release-checklist.md`）：
+APK 里仍有 `android.permission.INTERNET`（UnityWebRequest 模块带的，得自定义 AndroidManifest
+才能去掉）；备注里的 emoji 显示为空白。**emoji 那条已定性为纯字体问题，数据没丢**——
+真机上看到空白时别急着去查存储，写入链路三段都有测试钉着了。
 
 ⚠️ **接页面时别把展示规则写进页面里。** 页面的分组、文案拼接、兜底规则都是纯逻辑，
 抽到 `Core` 才能被测试盯住——EditMode 跑不到页面，留在页面里只能靠肉眼看。

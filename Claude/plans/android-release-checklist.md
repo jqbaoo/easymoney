@@ -4,7 +4,7 @@
 |---|---|
 | 验收日期 | 2026-09-13 |
 | 设备型号 | Redmi K60 |
-| Android 版本 | 待确认 |
+| Android 版本 | 14 |
 | APK | `Builds/EasyMoney.apk`（29 MB / 29,843,835 字节） |
 | 构建时间 | 2026-09-13 03:25 |
 | 构建命令 | `bash Tools/build-android.sh` |
@@ -39,7 +39,7 @@ Task 17 Step 5 原定用 `adb install` 装包、截图逐条核对。实际**未
 | 记账闭环 | 5 | 0 | |
 | 转账 | 4 | 0 | |
 | 持久化 | 1 | 0 | 见上方可信度说明 |
-| 边界情况 | 4 | 1 | emoji 备注显示为空白 |
+| 边界情况 | 4 | 1 | emoji 备注显示为空白——已定性为字体渲染，**数据没丢**，见下 |
 | **合计** | **17** | **1** | |
 
 ### 逐条明细
@@ -91,28 +91,38 @@ Task 17 Step 5 原定用 `adb install` 装包、截图逐条核对。实际**未
 
 ## 未通过项详情
 
-### #16 emoji 备注显示为空白
+### #16 emoji 备注显示为空白 —— **已定性：字体渲染，数据没丢**
 
 **操作步骤**：记账页填写备注，其中包含 emoji（如 `午饭🍜`），保存后查看。
 
-**实际现象**：备注中的 emoji 显示为空白。用户反馈「问题不大」。
+**实际现象**：备注中的 emoji 显示为空白，填几个都是空。用户反馈「问题不大」。
 
-**初步分析（尚未确证）**：
+**结论：(a) 字体画不出来，不是数据丢失。** 判定办法是把写入链路的**每一段**都证干净，
+只剩渲染这一环：
 
-`FontProvider.Resolve()` 的字体来源是 `Font.CreateDynamicFontFromOSFont`，候选列表
-全部是中文字体（Microsoft YaHei / Noto Sans CJK SC / Droid Sans Fallback / SimHei …）。
-**这些字体都不含 emoji 字形**，而 Unity 的 legacy `Text` 组件在字形缺失时不会跨字体回退，
-于是渲染成空白。
-
-**待确认**：目前无法区分下面两种情况，因为测试机上没有 adb、读不到 SQLite 里的实际值。
-
-| 情况 | 含义 | 严重程度 |
+| 环节 | 证据 | 结果 |
 |---|---|---|
-| (a) 中文正常、仅 emoji 空白 | 字体渲染限制，**数据没丢** | 低，观感问题 |
-| (b) 整条备注（含中文）都空 | **数据丢失**，可能是编码/截断问题 | 高，需立即修 |
+| 仓储往返 | `TransactionRepositoryTests.Note_SupportsChineseAndEmoji`（`和朋友吃饭🍜` 原样读回） | ✅ 干净 |
+| 服务层（写账单必经之路） | `TransactionServiceTests.Save_KeepsEmojiNoteIntact`（本次新增） | ✅ 干净 |
+| 展示投影 | `StatementBuilderTests.BuildRow_EmojiNote_KeepsItWholeAsTitle`（本次新增） | ✅ 干净 |
+| 字体渲染 | `FontProvider` 候选全是中文字体，**都不含 emoji 字形**；legacy `Text` 字形缺失时不跨字体回退 | ❌ **就是这里** |
 
-**建议**：下次接上 adb 后，用 `adb shell run-as com.easymoney.app` 或直接拉出数据库，
-查 `tx.note` 字段的实际字节，即可判定。
+**为什么可以断定是字体**：`SqliteTransactionRepository` 的读写直接透传 `Note` 字段，
+全项目没有任何 `Substring` / `Remove` / 按 `char` 截断的代码；上游两段又都有测试钉着。
+字符串既然完整地交到了界面手上，画不出来就只能是字形缺失。
+
+**两条新增测试做过反向验证**（按项目惯例，逐个核对失败用例名而非只看个数）：
+
+- 注入「按 `char` 截断、劈开代理对」→ 挂 5 个，全在 `StatementBuilderTests`，
+  且每一条都确认过是断言 `Title` 时才挂的（`"八月工资"→"八月工"`、`"午饭"→"午"`）
+- 注入「写入时丢掉 emoji」→ **恰好挂 2 个**：`Note_SupportsChineseAndEmoji` 与
+  `Save_KeepsEmojiNoteIntact`，没有多余失败
+
+**影响**：观感问题。emoji 那部分不显示，同一条备注里的中文正常，**数据是完整的**。
+
+**要支持 emoji 的话**：得自带含 emoji 字形的字体；但 Unity 的 legacy `Text` 不支持
+彩色 emoji 回退，彻底解决需换 TextMeshPro。**当前判断为不值得做**——为一个备注里的
+表情符号引入 TMP 迁移，对记账 App 不划算。
 
 **与已知风险的关系**：SPEC 第 11 节已记录「中文字体」风险（`FontProvider` 的候选
 一个都不命中会显示方块字，正式发布建议自带 `Fonts/main.ttf`）。emoji 是同一类问题的
@@ -255,10 +265,12 @@ native-code: 'arm64-v8a' 'armeabi-v7a'
 
 ## 后续待办
 
-1. **确认 #16 是 (a) 还是 (b)** —— 接上 adb 后查 `tx.note` 的实际字节
-2. **解决连接问题**，下次验收才能真正用上 `adb install` + logcat + 截图
+1. **解决连接问题**，下次验收才能真正用上 `adb install` + logcat + 截图
    - 换一根 USB 数据线（首选）
    - 或关掉路由器 AP 隔离走无线调试
-3. 决定要不要去掉 INTERNET 权限（自定义 AndroidManifest）
-4. emoji 若要支持，需自带含 emoji 字形的字体；但 Unity 的 legacy `Text` 不支持
-   彩色 emoji 字体回退，要彻底解决得换 TextMeshPro
+2. 决定要不要去掉 INTERNET 权限（自定义 AndroidManifest）
+3. emoji 若要支持，需自带含 emoji 字形的字体 + 换 TextMeshPro。**当前判断为不值得做**
+
+已了结：
+
+- ~~确认 #16 是 (a) 还是 (b)~~ —— 已定性为 (a) 字体渲染，数据没丢，用测试定的（见上）
