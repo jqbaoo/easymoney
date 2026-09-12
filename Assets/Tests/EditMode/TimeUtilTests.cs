@@ -90,5 +90,15 @@ namespace EasyMoney.Tests
             Assert.AreEqual((2027, 6), TimeUtil.AddMonths(2026, 3, 15));
             Assert.AreEqual((2024, 12), TimeUtil.AddMonths(2026, 3, -15));
         }
+
+        [Test]
+        public void FormatYearMonth_UsesChineseYearMonthLabel()
+        {
+            Assert.AreEqual("2026年9月", TimeUtil.FormatYearMonth(2026, 9));
+
+            // 月份不补零：账单页与报表页顶部的月份条都按这个格式显示
+            Assert.AreEqual("2026年12月", TimeUtil.FormatYearMonth(2026, 12));
+            Assert.AreEqual("2027年1月", TimeUtil.FormatYearMonth(2027, 1));
+        }
     }
 }

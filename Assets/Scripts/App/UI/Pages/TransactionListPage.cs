@@ -165,7 +165,7 @@ namespace EasyMoney.App.UI.Pages
                 return;
             }
 
-            m_MonthLabel.text = $"{m_Year}年{m_Month}月";
+            m_MonthLabel.text = TimeUtil.FormatYearMonth(m_Year, m_Month);
 
             List<Transaction> lTransactions = oContext.Transactions.Query(new TransactionQuery
             {

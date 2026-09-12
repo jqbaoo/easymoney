@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using EasyMoney.Core;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -6,7 +7,13 @@ namespace EasyMoney.App.UI.Pages
 {
     /// <summary>
     /// 报表。顶部月份切换与收支汇总，下面按分类列出占比。
-    /// 条形图用「轨道 + 填充」两层 Image 实现，不引入图表库也够用。
+    ///
+    /// 与账单页同源：同一套月份边界、同一个仓储查询，汇总走 <see cref="ReportCalculator"/>，
+    /// 展示规则（构成标题、占比文案、条形宽度）在 <see cref="ReportForm"/> 里。
+    /// 页面只做「取数 → 交给 Core 算 → 填充界面」，不写任何业务判断。
+    ///
+    /// 条形图用「轨道 + 填充」两层 Image 实现，靠填充层的 anchorMax.x 表达占比，
+    /// 比引入图表库轻得多，也够用。
     /// </summary>
     public class ReportPage : PageBase
     {
@@ -16,6 +23,17 @@ namespace EasyMoney.App.UI.Pages
         private const float VALUE_WIDTH = 280f;
         private const float NAV_BUTTON_WIDTH = 88f;
         private const float NAV_ICON_SIZE = 40f;
+        private const float EMPTY_HINT_HEIGHT = 200f;
+
+        /// <summary>
+        /// 一次取一个月来算报表，不做分页。TransactionQuery 的默认 Limit 只有 50，
+        /// 不显式抬高的话记录多的月份会被悄悄截断，报表跟着偏小。
+        /// </summary>
+        private const int MAX_ROWS_PER_MONTH = 1000;
+
+        private int m_Year;
+        private int m_Month;
+        private TxType m_BreakdownType = TxType.Expense;
 
         private Text m_MonthLabel;
         private Text m_IncomeValue;
@@ -25,12 +43,17 @@ namespace EasyMoney.App.UI.Pages
         private Button m_ExpenseTab;
         private Button m_IncomeTab;
 
-        private bool m_ShowExpense = true;
-
         public override string Title => "报表";
 
         public override void OnShow()
         {
+            // 首次进来才取当前年月：之后用户可能已经翻到别的月份，
+            // 每次切回来都重置会让翻页白做
+            if (m_Year == 0)
+            {
+                (m_Year, m_Month) = TimeUtil.CurrentYearMonth();
+            }
+
             _refresh();
         }
 
@@ -54,22 +77,38 @@ namespace EasyMoney.App.UI.Pages
             UiFactory.SetHeight(oRow, MONTH_BAR_HEIGHT);
             oRow.gameObject.AddComponent<Image>().color = Theme.SURFACE;
 
-            _addNavButton(oRow, "Prev", IconNames.CHEVRON_LEFT, "<");
-            m_MonthLabel = UiFactory.CreateText(oRow, "Month", DemoData.MONTH_LABEL,
+            _addNavButton(oRow, "Prev", IconNames.CHEVRON_LEFT, "<", _goPreviousMonth);
+
+            m_MonthLabel = UiFactory.CreateText(oRow, "Month", string.Empty,
                 Theme.FONT_TITLE, TextAnchor.MiddleCenter);
             UiFactory.SetFlexible(m_MonthLabel.rectTransform);
-            _addNavButton(oRow, "Next", IconNames.CHEVRON_RIGHT, ">");
+
+            _addNavButton(oRow, "Next", IconNames.CHEVRON_RIGHT, ">", _goNextMonth);
         }
 
-        private static void _addNavButton(RectTransform oRow, string sName, string sIconName, string sFallbackLabel)
+        private static void _addNavButton(
+            RectTransform oRow, string sName, string sIconName, string sFallbackLabel,
+            UnityEngine.Events.UnityAction oOnClick)
         {
             Button oButton = UiFactory.CreateButton(
-                oRow, sName, sFallbackLabel, null, Theme.TRANSPARENT, Theme.FONT_TITLE);
+                oRow, sName, sFallbackLabel, oOnClick, Theme.TRANSPARENT, Theme.FONT_TITLE);
             UiFactory.SetWidth(oButton.GetComponent<RectTransform>(), NAV_BUTTON_WIDTH);
             UiFactory.PaintButton(oButton, Theme.TRANSPARENT, Theme.PRIMARY);
 
             // 美术给了箭头图就用图，没给就是原来的 "<" ">"
             UiFactory.ReplaceButtonLabelWithIcon(oButton, sIconName, NAV_ICON_SIZE, Theme.PRIMARY);
+        }
+
+        private void _goPreviousMonth()
+        {
+            (m_Year, m_Month) = TimeUtil.AddMonths(m_Year, m_Month, -1);
+            _refresh();
+        }
+
+        private void _goNextMonth()
+        {
+            (m_Year, m_Month) = TimeUtil.AddMonths(m_Year, m_Month, 1);
+            _refresh();
         }
 
         // ── 收支汇总 ────────────────────────────────
@@ -78,7 +117,6 @@ namespace EasyMoney.App.UI.Pages
         {
             RectTransform oRow = UiFactory.CreateRowContainer(oParent, "Summary");
             UiFactory.SetHeight(oRow, SUMMARY_HEIGHT);
-            oRow.gameObject.AddComponent<Image>().color = Theme.SURFACE;
 
             m_IncomeValue = _addSummaryCell(oRow, "Income", "收入", Theme.INCOME);
             m_ExpenseValue = _addSummaryCell(oRow, "Expense", "支出", Theme.EXPENSE);
@@ -118,33 +156,34 @@ namespace EasyMoney.App.UI.Pages
             oLayout.padding = new RectOffset(
                 (int)Theme.PAGE_PADDING, (int)Theme.PAGE_PADDING, 12, 12);
 
-            m_ExpenseTab = UiFactory.CreateButton(oRow, "ExpenseTab", "支出构成",
-                () => _setShowExpense(true), Theme.PRIMARY, Theme.FONT_BODY);
+            m_ExpenseTab = UiFactory.CreateButton(oRow, "ExpenseTab", ReportForm.EXPENSE_TITLE,
+                () => _setBreakdownType(TxType.Expense), Theme.PRIMARY, Theme.FONT_BODY);
             UiFactory.SetFlexible(m_ExpenseTab.GetComponent<RectTransform>());
 
-            m_IncomeTab = UiFactory.CreateButton(oRow, "IncomeTab", "收入构成",
-                () => _setShowExpense(false), Theme.SURFACE, Theme.FONT_BODY);
+            m_IncomeTab = UiFactory.CreateButton(oRow, "IncomeTab", ReportForm.INCOME_TITLE,
+                () => _setBreakdownType(TxType.Income), Theme.SURFACE, Theme.FONT_BODY);
             UiFactory.SetFlexible(m_IncomeTab.GetComponent<RectTransform>());
 
             _paintTabs();
         }
 
-        private void _setShowExpense(bool bShowExpense)
+        private void _setBreakdownType(TxType oType)
         {
-            m_ShowExpense = bShowExpense;
-            _paintTabs();
+            m_BreakdownType = oType;
             _refresh();
         }
 
         private void _paintTabs()
         {
+            bool bExpense = m_BreakdownType == TxType.Expense;
+
             UiFactory.PaintButton(m_ExpenseTab,
-                m_ShowExpense ? Theme.PRIMARY : Theme.SURFACE,
-                m_ShowExpense ? Theme.WHITE : Theme.TEXT);
+                bExpense ? Theme.PRIMARY : Theme.SURFACE,
+                bExpense ? Theme.WHITE : Theme.TEXT);
 
             UiFactory.PaintButton(m_IncomeTab,
-                m_ShowExpense ? Theme.SURFACE : Theme.PRIMARY,
-                m_ShowExpense ? Theme.TEXT : Theme.WHITE);
+                bExpense ? Theme.SURFACE : Theme.PRIMARY,
+                bExpense ? Theme.TEXT : Theme.WHITE);
         }
 
         // ── 分类占比 ────────────────────────────────
@@ -159,33 +198,63 @@ namespace EasyMoney.App.UI.Pages
 
         private void _refresh()
         {
-            m_IncomeValue.text = DemoData.SUMMARY_INCOME;
-            m_ExpenseValue.text = DemoData.SUMMARY_EXPENSE;
-            m_NetValue.text = DemoData.SUMMARY_NET;
-            m_NetValue.color = DemoData.SUMMARY_NET.StartsWith("-") ? Theme.EXPENSE : Theme.TEXT;
+            AppContext oContext = AppContext.Instance;
+            if (oContext == null)
+            {
+                return;
+            }
 
-            List<DemoData.DemoCategory> lItems = m_ShowExpense
-                ? DemoData.BuildExpenseCategories()
-                : DemoData.BuildIncomeCategories();
+            m_MonthLabel.text = TimeUtil.FormatYearMonth(m_Year, m_Month);
 
-            _renderBreakdown(lItems);
+            List<Transaction> lTransactions = oContext.Transactions.Query(new TransactionQuery
+            {
+                // 左闭右开：StartOfNextMonthMs 正好是下月一号零点，与账单页同一套边界
+                StartMs = TimeUtil.StartOfMonthMs(m_Year, m_Month),
+                EndMs = TimeUtil.StartOfNextMonthMs(m_Year, m_Month),
+                Limit = MAX_ROWS_PER_MONTH
+            });
+
+            _refreshSummary(ReportCalculator.BuildSummary(lTransactions));
+
+            _paintTabs();
+
+            _renderBreakdown(ReportCalculator.BuildBreakdown(
+                lTransactions, m_BreakdownType, oContext.Categories.GetAll()));
         }
 
-        private void _renderBreakdown(List<DemoData.DemoCategory> lItems)
+        private void _refreshSummary(PeriodSummary oSummary)
+        {
+            m_IncomeValue.text = oSummary.Income.ToString();
+            m_ExpenseValue.text = oSummary.Expense.ToString();
+            m_NetValue.text = oSummary.Net.ToString();
+
+            // 结余为负，说明这个月是倒贴的，标红一眼能看出来
+            m_NetValue.color = oSummary.Net.Cents < 0 ? Theme.EXPENSE : Theme.TEXT;
+        }
+
+        private void _renderBreakdown(List<CategoryBreakdownItem> lItems)
         {
             _clearList();
 
-            foreach (DemoData.DemoCategory oItem in lItems)
+            if (lItems.Count == 0)
+            {
+                Text oEmpty = UiFactory.CreateText(m_BreakdownContent, "Empty", ReportForm.EMPTY_HINT,
+                    Theme.FONT_BODY, TextAnchor.MiddleCenter, Theme.TEXT_WEAK);
+                UiFactory.SetHeight(oEmpty.rectTransform, EMPTY_HINT_HEIGHT);
+                return;
+            }
+
+            foreach (CategoryBreakdownItem oItem in lItems)
             {
                 _addBreakdownRow(oItem);
             }
         }
 
-        private void _addBreakdownRow(DemoData.DemoCategory oItem)
+        private void _addBreakdownRow(CategoryBreakdownItem oItem)
         {
             // 这一行要竖排（上面文字、下面条形），所以不能用 CreateRow——
             // 它自带 HorizontalLayoutGroup，再叠加 VerticalLayoutGroup 会打架。
-            RectTransform oRow = UiFactory.CreateNode(m_BreakdownContent, $"Item_{oItem.Name}");
+            RectTransform oRow = UiFactory.CreateNode(m_BreakdownContent, $"Item_{oItem.CategoryId}");
             UiFactory.SetHeight(oRow, Theme.ROW_HEIGHT);
 
             Image oBackground = oRow.gameObject.AddComponent<Image>();
@@ -210,19 +279,19 @@ namespace EasyMoney.App.UI.Pages
             oLabelLayout.childForceExpandWidth = false;
             oLabelLayout.childForceExpandHeight = true;
 
-            Text oName = UiFactory.CreateText(oLabelLine, "Name", oItem.Name,
+            Text oName = UiFactory.CreateText(oLabelLine, "Name", oItem.CategoryName,
                 Theme.FONT_BODY, TextAnchor.MiddleLeft);
             UiFactory.SetFlexible(oName.rectTransform);
 
-            string sRight = $"{oItem.Amount}   {oItem.Ratio * 100f:0.0}%";
-            Text oValue = UiFactory.CreateText(oLabelLine, "Value", sRight,
+            Text oValue = UiFactory.CreateText(oLabelLine, "Value",
+                ReportForm.BreakdownValueText(oItem.Total, oItem.Ratio),
                 Theme.FONT_CAPTION, TextAnchor.MiddleRight, Theme.TEXT_WEAK);
             UiFactory.SetWidth(oValue.rectTransform, VALUE_WIDTH);
 
             _addBar(oRow, oItem.Ratio);
         }
 
-        private void _addBar(RectTransform oParent, float fRatio)
+        private void _addBar(RectTransform oParent, decimal dRatio)
         {
             RectTransform oTrack = UiFactory.CreateNode(oParent, "BarTrack");
             UiFactory.SetHeight(oTrack, Theme.BAR_TRACK_HEIGHT);
@@ -233,10 +302,13 @@ namespace EasyMoney.App.UI.Pages
             oTrackImage.color = Theme.BAR_TRACK;
 
             Image oFill = UiFactory.CreatePanel(oTrack, "Fill",
-                m_ShowExpense ? Theme.EXPENSE : Theme.INCOME, bRounded: true);
+                m_BreakdownType == TxType.Expense ? Theme.EXPENSE : Theme.INCOME, bRounded: true);
+
+            // 用锚点右边界表达占比：0 = 一点不画，1 = 铺满整条轨道
+            float fRatio = (float)ReportForm.BarWidthRatio(dRatio);
 
             oFill.rectTransform.anchorMin = new Vector2(0f, 0f);
-            oFill.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(fRatio), 1f);
+            oFill.rectTransform.anchorMax = new Vector2(fRatio, 1f);
             oFill.rectTransform.offsetMin = Vector2.zero;
             oFill.rectTransform.offsetMax = Vector2.zero;
         }

@@ -51,6 +51,15 @@ namespace EasyMoney.Core
         }
 
         /// <summary>
+        /// 年月标题，形如「2026年9月」。账单页与报表页顶部的月份条共用，
+        /// 免得两处各写一遍、慢慢长得不一样。
+        /// </summary>
+        public static string FormatYearMonth(int iYear, int iMonth)
+        {
+            return $"{iYear}年{iMonth}月";
+        }
+
+        /// <summary>
         /// 年月加减，跨年自动进位 / 借位（2026-12 加 1 个月得 2027-1，2026-1 减 1 得 2025-12）。
         /// 「上个月 / 下个月」按钮用它，免得页面里散落一堆 DateTime 构造和进位判断。
         /// </summary>
