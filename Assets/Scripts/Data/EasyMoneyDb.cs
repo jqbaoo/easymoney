@@ -51,7 +51,7 @@ namespace EasyMoney.Data
             m_Connection.ExecuteScalar<string>("PRAGMA journal_mode = WAL;");
 
             _createTables();
-            _ensureSchemaVersion();
+            _migrate();
             _seedDefaultCategories();
         }
 
@@ -80,13 +80,14 @@ namespace EasyMoney.Data
             m_Connection.Execute(Schema.CREATE_INDEXES);
         }
 
-        private void _ensureSchemaVersion()
+        /// <summary>
+        /// 把库升到当前结构版本。全新库直接盖章；老库按需补跑缺失的迁移。
+        /// 建表语句是 CREATE TABLE IF NOT EXISTS，对已经存在的表等于什么都不做，
+        /// 所以**给旧表加列这类变更只能靠迁移**，不能只改建表语句。
+        /// </summary>
+        private void _migrate()
         {
-            int iCount = m_Connection.ExecuteScalar<int>("SELECT COUNT(*) FROM schema_version");
-            if (iCount == 0)
-            {
-                m_Connection.Execute("INSERT INTO schema_version (version) VALUES (?)", SCHEMA_VERSION);
-            }
+            SchemaMigrator.Migrate(m_Connection, SCHEMA_VERSION, SchemaMigrations.ALL);
         }
 
         /// <summary>
