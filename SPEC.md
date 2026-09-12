@@ -23,7 +23,7 @@
 Core 层   ██████████ 100%   Money / TimeUtil / 模型 / 校验 / 报表 / 账单展示投影 / 账户表单（Task 2-3、5、7、9-11、14-15）
 Data 层   ██████████ 100%   SQLite / 三个仓储 / 记账服务 / 筛选（Task 4、6-11）
 App 层    ██████████  98%   记账页 / 账单页 / 账户页已通；只剩报表页用假数据
-测试      █████████░  97%   189 个用例全绿（Money 7 + Parser 17 + TimeUtil 11 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 10 + 筛选 18 + 报表 13 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 20 + 账户表单 15）
+测试      █████████░  97%   187 个用例全绿（Money 7 + Parser 17 + TimeUtil 11 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 10 + 筛选 18 + 报表 13 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 20 + 账户表单 13）
 打包      ░░░░░░░░░░   0%   未开始
 ```
 
@@ -242,7 +242,6 @@ package "EasyMoney.Core  (noEngineReferences: true)" #E8F5E9 {
   }
   class AccountForm {
     +{static} string TypeLabel(AccountType)
-    +{static} AccountType NextType(AccountType)
     +{static} AccountFormResult Validate(string, string)
   }
   class AccountFormResult {

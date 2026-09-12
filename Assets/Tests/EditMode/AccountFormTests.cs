@@ -10,7 +10,7 @@ namespace EasyMoney.Tests
     /// </summary>
     public class AccountFormTests
     {
-        // ── 类型标签与循环 ──────────────────────────
+        // ── 类型标签 ────────────────────────────────
 
         [Test]
         public void TypeLabel_CoversEveryAccountType()
@@ -26,23 +26,6 @@ namespace EasyMoney.Tests
         public void TypeLabel_UnknownValue_FallsBackToOther()
         {
             Assert.AreEqual("其他", AccountForm.TypeLabel((AccountType)999));
-        }
-
-        [Test]
-        public void NextType_WalksTheWholeCycleAndWrapsAround()
-        {
-            Assert.AreEqual(AccountType.BankCard, AccountForm.NextType(AccountType.Cash));
-            Assert.AreEqual(AccountType.Alipay, AccountForm.NextType(AccountType.BankCard));
-            Assert.AreEqual(AccountType.WeChat, AccountForm.NextType(AccountType.Alipay));
-            Assert.AreEqual(AccountType.Other, AccountForm.NextType(AccountType.WeChat));
-            Assert.AreEqual(AccountType.Cash, AccountForm.NextType(AccountType.Other));
-        }
-
-        [Test]
-        public void NextType_UnknownValue_ReturnsFirstType()
-        {
-            // 枚举将来加了新值而 TYPE_CYCLE 忘了同步时，界面不能卡死
-            Assert.AreEqual(AccountType.Cash, AccountForm.NextType((AccountType)999));
         }
 
         [Test]

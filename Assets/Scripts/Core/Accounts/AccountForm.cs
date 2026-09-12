@@ -37,23 +37,6 @@ namespace EasyMoney.Core
         }
 
         /// <summary>
-        /// 循环到下一个类型。不认识的取值一律回到第一项，保证界面上永远点得动——
-        /// 枚举将来加了新值而这里忘了改时，最多是顺序不对，不会卡住。
-        /// </summary>
-        public static AccountType NextType(AccountType oType)
-        {
-            for (int i = 0; i < TYPE_CYCLE.Length; i++)
-            {
-                if (TYPE_CYCLE[i] == oType)
-                {
-                    return TYPE_CYCLE[(i + 1) % TYPE_CYCLE.Length];
-                }
-            }
-
-            return TYPE_CYCLE[0];
-        }
-
-        /// <summary>
         /// 校验名称与初始余额。余额留空按 0 算（新建账户时最省事），
         /// 填了就必须是合法金额；负数允许，那是信用卡欠款这类情况。
         /// </summary>
