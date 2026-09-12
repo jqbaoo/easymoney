@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using EasyMoney.Core;
 using SQLite;
@@ -84,9 +83,19 @@ namespace EasyMoney.Data
             return m_Db.Connection.ExecuteScalar<int>("SELECT COUNT(*) FROM tx");
         }
 
+        /// <summary>
+        /// 最简形态：只做时间倒序分页，筛选条件 Task 10 再补。
+        /// 记账服务要读回刚写入的那条记录，所以这里不能再抛异常。
+        /// </summary>
         public List<Transaction> Query(TransactionQuery oQuery)
         {
-            throw new NotImplementedException("在 Task 10 实现");
+            return m_Db.Connection.Query<Transaction>(
+                $@"SELECT {SELECT_COLUMNS}
+                     FROM tx
+                    ORDER BY occurred_at DESC, id DESC
+                    LIMIT ? OFFSET ?",
+                oQuery.Limit,
+                oQuery.Offset);
         }
     }
 }
