@@ -11,14 +11,18 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
 
 ---
 
-## 当前进度（2026-09-11）
+## 当前进度（2026-09-13）
 
 **界面原型完成，数据层为零。**
 
 - ✅ `Assets/Scripts/App/` —— UI 基础设施 + 四个页面（**用假数据撑着**）
-- ❌ `Assets/Scripts/Core/`、`Assets/Scripts/Data/`、`Assets/Tests/`、`Tools/` —— **四个目录都还不存在**
+- ✅ **Task 1 完成** —— 三层 asmdef + 测试程序集 + `Tools/run-editmode-tests.sh`，
+  命令行测试链路已实测跑通
+- ❌ `Assets/Scripts/Core/`、`Assets/Scripts/Data/` —— **只有 asmdef，还没有 `.cs` 文件**。
+  Unity 不为没有脚本的程序集生成 DLL，所以 `Library/ScriptAssemblies/` 里
+  看不到这两个 dll，**这是正常的**，Task 2 放入第一个 `.cs` 后就会出现
 
-计划的 17 个任务里，**Task 1-11 一步都没走**。下一步从 **Task 1** 开始，按顺序执行，
+计划的 17 个任务里，**Task 2-11 一步都没走**。下一步从 **Task 2** 开始，按顺序执行，
 不要跳。详见 `SPEC.md` 第 2 节。
 
 界面上看到的每个数字都来自 `Assets/Scripts/App/DemoData.cs`，是假的。
@@ -80,17 +84,19 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
 **必须先关掉 Unity 编辑器**，否则第二个实例起不来（`Multiple Unity instances cannot open the same project`）。
 
 ```bash
-"/d/unity/unity2022/2022.3.53f1c1/Editor/Unity.exe" \
-  -batchmode -nographics -quit \
-  -projectPath "E:/Projects/easymoney" \
-  -runTests -testPlatform EditMode \
-  -testResults "Tools/editmode-results.xml" \
-  -logFile "Tools/editmode.log"
+bash Tools/run-editmode-tests.sh
 ```
 
-退出码 0 = 通过。
+退出码：**0 = 全部通过，1 = 有测试失败，2 = 环境/编译错误**。
 
-> `Tools/` 目录属于 Task 1 的产出，**目前还不存在**。
+⚠️ 两个已实测的坑，写死在脚本里了，别绕过脚本手敲命令：
+
+- **不要加 `-quit`** —— 它会让 Unity 在跑测试之前就退出，退出码 0 但一个测试都没跑，
+  是静默失败
+- **`-testResults` 不要指向 `Temp/`** —— Unity 退出时会清理 `Temp/` 目录，结果文件
+  会被删掉（实测写入成功后又消失），脚本会误判成编译错误
+
+详见 `SPEC.md` 第 10 节。
 
 ### 运行界面
 

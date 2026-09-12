@@ -1,11 +1,8 @@
 {
-    "name": "EasyMoney.App",
-    "rootNamespace": "EasyMoney.App",
+    "name": "EasyMoney.Data",
+    "rootNamespace": "EasyMoney.Data",
     "references": [
-        "EasyMoney.Core",
-        "EasyMoney.Data",
-        "UnityEngine.UI",
-        "Unity.TextMeshPro"
+        "EasyMoney.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -15,5 +12,5 @@
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
-    "noEngineReferences": false
+    "noEngineReferences": true
 }

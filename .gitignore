@@ -28,3 +28,6 @@ Thumbs.db
 # ── 崩溃日志 ──
 sysinfo.txt
 crashlytics-build.properties
+# ── 测试脚本产物 ──
+Tools/*.log
+Tools/*.xml
