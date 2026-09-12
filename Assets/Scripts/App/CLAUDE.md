@@ -127,7 +127,8 @@ UiFactory.SetFlexible(right);         // 吃掉剩余
 
 ## 接数据层时改哪里
 
-**唯一的改动点是各页面的 `_refresh()`。** `RecordPage` 已经改完，可以当范例。
+**唯一的改动点是各页面的 `_refresh()`。** `RecordPage` 与 `TransactionListPage` 已经改完，
+可以当范例。
 
 把 `DemoData.BuildXxx()` 换成 `AppContext.Instance` 的真实取数：
 
@@ -139,11 +140,15 @@ private void _refresh()
 
     // 接数据层后：先向仓储取数，再交给 Core 的纯函数算
     List<Transaction> lTxs = AppContext.Instance.Transactions.Query(
-        new TransactionQuery { StartMs = iStartMs, EndMs = iEndMs });
+        new TransactionQuery { StartMs = iStartMs, EndMs = iEndMs, Limit = 1000 });
     PeriodSummary oSummary = ReportCalculator.BuildSummary(lTxs);
     m_IncomeValue.text = oSummary.Income.ToString();   // Money.ToString() → "35.50"
 }
 ```
+
+⚠️ **`TransactionQuery.Limit` 默认只有 50**，而且超了不报错、只是结果变少。
+列表页要按月取数就得显式抬高（`TransactionListPage` 用 1000）。这个坑很隐蔽：
+界面不崩，只是「某个月少了几十条记录」。
 
 `AppContext` 已经在位：`AppContext.Instance` 由 `AppRoot` 在 `Awake` 里初始化，
 页面只管用。
@@ -155,9 +160,15 @@ private void _refresh()
 oContext.NotifyDataChanged();
 ```
 
-剩下三个页面**全部**改完之后，删掉 `DemoData.cs`。
+剩下两个页面**全部**改完之后，删掉 `DemoData.cs`。
 
 页面里**只做展示和取数调用**，不要写业务逻辑。校验、聚合都在 Core / Data 层。
+
+更要紧的是：**「一条账单该怎么显示」这种规则也别写在页面里。** 备注为空时显示分类名、
+转账不带正负号、分类被删了显示「未分类」——这些是业务约定，不是版式。`TransactionListPage`
+把它们放在 `Core/Statements/StatementBuilder.cs`，页面只拿现成的 `Title / Subtitle /
+AmountText` 往 `Text` 里塞。理由很实在：EditMode 测试根本跑不到页面，规则留在页面里就只能
+靠肉眼看；抽成纯函数才能被 `StatementBuilderTests` 逐条盯住。接 Task 15 / 16 时照这个来。
 
 ---
 
