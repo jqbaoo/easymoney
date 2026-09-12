@@ -13,23 +13,23 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
 
 ## 当前进度（2026-09-13）
 
-**界面原型完成，Core 层就绪，数据层大半就绪。**
+**界面原型完成，Core 层与数据层基本就绪，只差报表和页面接线。**
 
 - ✅ `Assets/Scripts/App/` —— UI 基础设施 + 四个页面（**用假数据撑着**）
-- ✅ **Task 1-9 完成** —— 三层程序集骨架 + 命令行测试链路 +
+- ✅ **Task 1-10 完成** —— 三层程序集骨架 + 命令行测试链路 +
   `Core`（Money / MoneyParser / TimeUtil / 领域模型与枚举 / AccountBalance /
-  ValidationResult / TransactionValidator）+
+  TransactionQuery / ValidationResult / TransactionValidator）+
   `Data`（SQLite 接入、三张表 + 5 个索引、分类仓储 + 默认分类种子、账户仓储 + 实时余额聚合、
-  账单仓储 CRUD、TransactionService 记账服务）
-- ✅ **103 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
-- ❌ 页面上的数字还是进不去数据库 —— 账单查询筛选（Task 10）和报表（Task 11）都没写，
-  `SqliteTransactionRepository.Query` 目前只做时间倒序分页，筛不了任何条件
+  账单仓储 CRUD 与多维筛选、TransactionService 记账服务）
+- ✅ **121 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
+- ❌ 页面上的数字还是进不去数据库 —— 报表计算（Task 11）没写，页面也还没接上
+  `AppContext`（Task 12-16）
 
 **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
 `ITransactionRepository` 等于绕过校验。
 
-计划的 17 个任务里，**Task 10-11 一步都没走**。下一步从 **Task 10**（筛选与搜索）
-开始，按顺序执行，不要跳。
+计划的 17 个任务里，**Task 11 还没走，Task 12-16 的 UI 接线也没开始**。下一步从
+**Task 11**（报表计算）开始，按顺序执行，不要跳。
 
 ⚠️ **Android 真机相关的坑，详见 `SPEC.md` 第 11 节**：
 

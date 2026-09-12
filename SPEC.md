@@ -17,13 +17,13 @@
 
 ## 2. 当前状态（2026-09-13）
 
-**这是最重要的一节。** 项目处在「界面原型完成、Core 层就绪、数据层起步」的阶段。
+**这是最重要的一节。** 项目处在「界面原型完成、Core 层与数据层基本就绪」的阶段。
 
 ```
 Core 层   █████████░  95%   加 ValidationResult / TransactionValidator（Task 2-3、5、7、9）
-Data 层   ███████░░░  70%   建表 + 三个仓储 + 记账服务（Task 4、6、7、8、9）
+Data 层   ████████░░  80%   建表 + 三个仓储 + 记账服务 + 账单筛选（Task 4、6、7、8、9、10）
 App 层    ████████░░  80%   界面全在，缺数据绑定
-测试      █████████░  95%   103 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 10）
+测试      █████████░  95%   121 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 10 + 筛选 18）
 打包      ░░░░░░░░░░   0%   未开始
 ```
 
@@ -45,12 +45,13 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 | **账户仓储 + 实时余额聚合** | `Scripts/Data/IAccountRepository.cs`、`SqliteAccountRepository.cs`、`Scripts/Core/Models/AccountBalance.cs` | Task 7 产出。余额用相关子查询实时算，**不冗余存储**；同时补了账单仓储的最小形态（`Query` 的筛选待 Task 10） |
 | **账单仓储 CRUD** | `Scripts/Data/SqliteTransactionRepository.cs` | Task 8 产出。字段往返、枚举映射、边界值共 10 个用例，均针对 Task 7 已写好的实现——本任务是计划里唯一「先实现后补测试」的一个 |
 | **校验规则 + 记账服务** | `Scripts/Core/ValidationResult.cs`、`TransactionValidator.cs`、`Scripts/Data/TransactionService.cs` | Task 9 产出。校验放 Core（纯函数），编排放 Data；转账只写一条记录。附带把 `Query` 从抛异常改成时间倒序分页的最简实现（筛选留给 Task 10） |
+| **账单筛选与搜索** | `Scripts/Core/Queries/TransactionQuery.cs`、`Scripts/Data/SqliteTransactionRepository.cs` | Task 10 产出。8 个维度：时间区间（左闭右开）、类型、分类、账户（含「是否连转入一起看」开关）、金额区间、关键词。`Count()` 忽略 Limit/Offset 供分页算总数 |
 
 ### 未开始
 
 | 内容 | 对应计划任务 |
 |---|---|
-| 筛选搜索、报表计算 | Task 10、11 |
+| 报表计算 | Task 11 |
 | **`AppContext.cs`** | Task 12 剩余部分 |
 | 页面接真实数据（改 `_refresh()`） | Task 13-16 剩余部分 |
 | Android 构建与真机验收 | Task 17 |
@@ -58,17 +59,17 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 ### 关键判断
 
 计划的 Task 12-16 是「UI 基础设施 + 四个页面」。其中**界面部分已作为视觉原型提前做完**，
-但账单查询与报表（Task 10-11）还没走完，所以：
+但报表与 UI 接线（Task 11-16）还没走完，所以：
 
 - 界面上看到的每一个数字都来自 `DemoData.cs`，是假的
 - 按钮点了没有实际效果（保存只清空表单）
 - `Core` / `Data` 两个程序集都已有 `.cs`，`Library/ScriptAssemblies/` 下
   `EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
-- 分类、账户、账单三类数据都已经能真正落库，记账也走通了「校验 → 落库」的完整链路
-  （103 个用例验证过）。但账单列表还不能筛选（`Query` 只做时间倒序分页）、
-  报表也没算，页面上的数字仍然进不去数据库
+- 分类、账户、账单三类数据都已经能真正落库，记账走通了「校验 → 落库」的完整链路，
+  账单的多维筛选与模糊搜索也齐了（121 个用例验证过）。只差报表计算（Task 11）
+  和页面接线，所以页面上的数字仍然进不去数据库
 
-**下一步应该从 Task 10 开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了：
+**下一步应该从 Task 11 开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了：
 SQLite 依赖升到了 3.x，Android 原生库补齐了 ARMv7 / ARM64 / x86 / x64 四套，
 构建目标架构也已设为 ARMv7 + ARM64。Android 侧的准备到 Task 17 之前不用再动了。
 
@@ -111,7 +112,7 @@ easymoney/
 │   ├── Scenes/                  场景（原型阶段用不到）
 │   ├── Scripts/
 │   │   ├── Core/                ✅ Money / MoneyParser / TimeUtil / Models / ValidationResult / TransactionValidator（noEngineReferences）
-│   │   ├── Data/                ✅ EasyMoneyDb / Schema / 三个仓储 / TransactionService（Query 筛选待补）
+│   │   ├── Data/                ✅ EasyMoneyDb / Schema / 三个仓储 / TransactionService / 账单筛选
 │   │   └── App/                 ✅ 已有
 │   │       ├── EasyMoney.App.asmdef
 │   │       ├── AppRoot.cs
@@ -165,7 +166,19 @@ package "EasyMoney.Core  (noEngineReferences: true)" #E8F5E9 {
     +Account Account
     +Money Balance
   }
-  class TransactionQuery
+  class TransactionQuery {
+    +long? StartMs
+    +long? EndMs
+    +TxType? Type
+    +int? CategoryId
+    +int? AccountId
+    +bool AccountIncludesTransfers
+    +long? MinCents
+    +long? MaxCents
+    +string Keyword
+    +int Limit
+    +int Offset
+  }
   class ValidationResult {
     +bool IsValid
     +string ErrorMessage
@@ -473,7 +486,8 @@ bash Tools/run-editmode-tests.sh
 | ~~Target Architectures 缺 ARM64~~ | 项目原先 `AndroidTargetArchitectures: 1`，只勾了 ARMv7。纯 32 位不满足 Google Play 的 64 位要求，且新设备陆续移除 32 位兼容层 | ✅ **已解决**。改为 `3`（ARMv7 \| ARM64）。arm64 的原生库本来就在，不用额外装东西；守卫测试现在同时校验 `android-arm` 与 `android-arm64` |
 | **Burst AOT Settings 极易与 Target Architectures 混淆** | `Project Settings → Burst AOT Settings` 里的 `ARMV8A` / `ARMV8A_HALFFP` / `ARMV9A` 是 Burst 生成原生代码用的指令集目标，tooltip 却写着 "target architectures to support for the currently selected platform"，看起来像打包架构设置 | 两者无关，Burst 页保持默认即可。真正决定打包哪些 ABI 的是 `PlayerSettings.Android.targetArchitectures` |
 | **IL2CPP 代码剥离** | 会删掉 SQLite 靠反射调用的代码，表现为真机上崩 | `link.xml` + 剥离级别设 `Minimal`，双重保护 |
-| **LIKE 通配符** | 用户搜索词里的 `%` `_` 会被当通配符 | SQL 里用 `ESCAPE '\'` 转义 |
+| ~~LIKE 通配符~~ | 用户搜索词里的 `%` `_` 会被当通配符 | ✅ **已解决**（Task 10）。`_escapeLike` 先转义反斜杠、再转义 `%` 和 `_`，SQL 侧配 `ESCAPE '\'`。`Keyword_EscapesLikeWildcards` 守着 |
+| **SQLite-net 参数按出现顺序绑定** | `_buildWhere` 里 `lClauses.Add` 与 `lArgs.Add` 一旦错位，SQLite 不会报错，只会**静默筛出错误的行**——比崩溃更难发现 | 加条件时两者必须成对书写，顺序严格一致。排序、分页参数（Limit/Offset）必须拼在 `_buildWhere` 返回之后 |
 | **中文字体** | `FontProvider` 的系统字体候选列表可能一个都不命中，表现为方块字 | 正式发布建议自带 `Fonts/main.ttf` |
 | **编辑器占用** | 命令行跑测试时，另一个 Unity 实例不能打开同一项目 | 跑之前先关编辑器；脚本会以退出码 2 报出这个错误 |
 | **命令行测试的静默失败** | `-quit` 会让 Unity 跳过测试直接退出（退出码 0）；`Temp/` 下的结果文件会被 Unity 退出时清理 | 两个坑都已规避并写进脚本，见第 10 节 |
