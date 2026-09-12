@@ -1,0 +1,15 @@
+完整指南在 Claude/资源替换指南.md，速查在 Assets/Resources/CLAUDE.md。核心是：只碰 Assets/Resources/，一行代码都不用改，名字对上就生效，没放文件就走代码兜底。
+
+
+
+Assets/Resources/
+├── Icons/      tab_record.png / cat_food.png …
+├── Sprites/    card.png / button.png（要切九宫格）
+├── Fonts/      main.ttf
+└── theme.json  配色
+但你得先知道现状：这三个目录现在都是空的（只有 .gitkeep 占位）。也就是说 App 现在显示的全是代码兜底的形态——纯文字标签、程序化生成的圆角矩形、系统字体。你放第一张图进去，那才是资源第一次真正生效。
+
+指南里没写、但我这轮实测出来的两件事，你换资源前要知道：
+
+换完要重新构建，真机上才看得到。 指南说的是编辑器里 Play 立刻生效——那是在编辑器里。Assets/Resources/ 下的东西是打包进 APK 的，改完得重新 build-android.sh 再装。
+应用图标不走这条路。 上一轮为了让图标源图不进 APK，已经把 47 张图从 Assets/Resources/Icons/AppIcon/ 搬到了 Assets/AppIcons/，接在 Player Settings 里。换启动图标是另一套流程。指南写在前、搬家在后，这一节现在是缺的，我建议补上。
