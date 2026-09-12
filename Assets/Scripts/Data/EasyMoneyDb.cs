@@ -37,8 +37,11 @@ namespace EasyMoney.Data
                 return;
             }
 
-            SQLitePCL.Batteries_V2.Init();
-
+            // 这里不需要手动初始化 provider：3.x 依赖树（sqlite-net-pcl 1.11.285 +
+            // SQLitePCLRaw 3.0.3 + SourceGear.sqlite3）里已经没有 batteries_v2 包，
+            // SQLitePCL.Batteries_V2 类型不复存在；新版 sqlite-net 在自身静态构造里
+            // 直接调用 raw.SetProvider(new SQLite3Provider_e_sqlite3()) 完成注册。
+            // 原先 2.x 时代写的 SQLitePCL.Batteries_V2.Init() 已删除。
             m_Connection = new SQLiteConnection(m_DbPath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create);
             m_Connection.Execute("PRAGMA foreign_keys = ON;");
             // journal_mode 是「会返回结果行」的 PRAGMA（返回切换后的模式名），
