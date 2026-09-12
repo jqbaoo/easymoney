@@ -20,10 +20,10 @@
 **这是最重要的一节。** 项目处在「界面原型完成、Core 层就绪、数据层起步」的阶段。
 
 ```
-Core 层   █████████░  90%   Money / MoneyParser / TimeUtil / 领域模型与枚举 已完成（Task 2-3、5）
-Data 层   ███░░░░░░░  35%   建表 + 分类仓储与种子 已完成（Task 4、6）
+Core 层   █████████░  92%   加 AccountBalance / TransactionQuery（Task 2-3、5、7）
+Data 层   █████░░░░░  50%   建表 + 分类仓储 + 账户仓储（Task 4、6、7）
 App 层    ████████░░  80%   界面全在，缺数据绑定
-测试      █████████░  85%   54 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13）
+测试      █████████░  88%   66 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12）
 打包      ░░░░░░░░░░   0%   未开始
 ```
 
@@ -42,12 +42,13 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 | **SQLite 接入 + 建表** | `Scripts/Data/EasyMoneyDb.cs`、`Schema.cs`、`Plugins/SQLite/link.xml` | Task 4 产出。依赖已升到 3.x（sqlite-net-pcl 1.11.285 + SQLitePCLRaw 3.0.3 + SourceGear.sqlite3 3.53.4），三张表 + 5 个索引 |
 | **领域模型与枚举** | `Scripts/Core/Models/Enums.cs`、`Account.cs`、`Category.cs`、`Transaction.cs` | Task 5 产出。纯 POCO，**不带 SQLite 特性标注**，Data 层用手写 SQL + 列别名映射；枚举数值由 `ModelTests` 锁死 |
 | **分类仓储 + 默认分类种子** | `Scripts/Data/DefaultCategories.cs`、`ICategoryRepository.cs`、`SqliteCategoryRepository.cs` | Task 6 产出。预置 10 个支出 + 6 个收入分类；`Open()` 按「category 表为空」幂等写入 |
+| **账户仓储 + 实时余额聚合** | `Scripts/Data/IAccountRepository.cs`、`SqliteAccountRepository.cs`、`Scripts/Core/Models/AccountBalance.cs` | Task 7 产出。余额用相关子查询实时算，**不冗余存储**；同时补了账单仓储的最小形态（`Query` 待 Task 10） |
 
 ### 未开始
 
 | 内容 | 对应计划任务 |
 |---|---|
-| 账户仓储（含余额聚合）、账单仓储 | Task 7、8 |
+| 账单仓储完整实现（查询 / 筛选） | Task 8 |
 | 记账服务 + 校验 | Task 9 |
 | 筛选搜索、报表计算 | Task 10、11 |
 | **`AppContext.cs`** | Task 12 剩余部分 |
@@ -57,16 +58,16 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 ### 关键判断
 
 计划的 Task 12-16 是「UI 基础设施 + 四个页面」。其中**界面部分已作为视觉原型提前做完**，
-但仓储与服务（Task 7-11）还没走，所以：
+但仓储与服务（Task 8-11）还没走，所以：
 
 - 界面上看到的每一个数字都来自 `DemoData.cs`，是假的
 - 按钮点了没有实际效果（保存只清空表单）
 - `Core` / `Data` 两个程序集都已有 `.cs`，`Library/ScriptAssemblies/` 下
   `EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
-- 分类已经能真正落库（54 个用例验证过），但账户和账单仓储还没写，
-  页面上的金额仍然进不去数据库
+- 分类和账户已经能真正落库（66 个用例验证过），但账单仓储只有最小形态
+  （`Query` 还没实现），页面上的数字仍然进不去数据库
 
-**下一步应该从 Task 7 开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了：
+**下一步应该从 Task 8 开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了：
 SQLite 依赖升到了 3.x，Android 原生库补齐了 ARMv7 / ARM64 / x86 / x64 四套，
 构建目标架构也已设为 ARMv7 + ARM64。Android 侧的准备到 Task 17 之前不用再动了。
 
@@ -109,7 +110,7 @@ easymoney/
 │   ├── Scenes/                  场景（原型阶段用不到）
 │   ├── Scripts/
 │   │   ├── Core/                ✅ Money / MoneyParser / TimeUtil / Models（noEngineReferences）
-│   │   ├── Data/                ✅ EasyMoneyDb / Schema / 分类仓储（账户、账单仓储待填）
+│   │   ├── Data/                ✅ EasyMoneyDb / Schema / 分类仓储 / 账户仓储（账单仓储待填）
 │   │   └── App/                 ✅ 已有
 │   │       ├── EasyMoney.App.asmdef
 │   │       ├── AppRoot.cs
@@ -159,6 +160,11 @@ package "EasyMoney.Core  (noEngineReferences: true)" #E8F5E9 {
   class Account
   class Category
   class Transaction
+  class AccountBalance {
+    +Account Account
+    +Money Balance
+  }
+  class TransactionQuery
   enum TxType { Expense=0, Income=1, Transfer=2 }
   enum CategoryKind { Expense=0, Income=1 }
   enum AccountType { Cash=0, BankCard=1, Alipay=2, WeChat=3, Other=4 }
@@ -166,9 +172,12 @@ package "EasyMoney.Core  (noEngineReferences: true)" #E8F5E9 {
 
 package "EasyMoney.Data" #E3F2FD {
   class EasyMoneyDb {
-    +Initialize(string sPath)
+    +Connection
+    +Open()
+    +Close()
     +Dispose()
   }
+  class DefaultCategories
   interface IAccountRepository
   interface ICategoryRepository
   interface ITransactionRepository
@@ -178,7 +187,6 @@ package "EasyMoney.Data" #E3F2FD {
   class TransactionService
   class TransactionValidator
   class ReportCalculator
-  class TransactionQuery
 }
 
 package "EasyMoney.App" #FFF3E0 {
