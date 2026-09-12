@@ -18,14 +18,20 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
 - ✅ `Assets/Scripts/App/` —— UI 基础设施 + 四个页面（**用假数据撑着**）
 - ✅ **Task 1-4 完成** —— 三层程序集骨架 + 命令行测试链路 +
   `Core`（Money / MoneyParser / TimeUtil）+ `Data`（SQLite 接入、三张表 + 5 个索引）
-- ✅ **36 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
+- ✅ **37 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
 - ❌ 还没有任何仓储，数据进不去
 
 计划的 17 个任务里，**Task 5-11 一步都没走**。下一步从 **Task 5**（领域模型）开始，
 按顺序执行，不要跳。
 
-⚠️ **Task 17 之前必须处理**：`SQLitePCLRaw.lib.e_sqlite3` 的 2.1.x 全线不含 Android
-原生库，编辑器能跑但真机会崩。详见 `SPEC.md` 第 11 节。
+⚠️ **Android 真机相关的坑，详见 `SPEC.md` 第 11 节**：
+
+- **`NuGetForUnity` 只解压 `NativeRuntimeSettings.json` 里登记过的 runtime**，
+  nupkg 里的其余平台会被**静默丢弃**，编辑器里完全看不出来。新增带原生库的包时
+  务必检查 `ProjectSettings/Packages/com.github-glitchenzo.nugetforunity/`
+  下这个文件
+- **Target Architectures 目前只勾了 ARMv7，不含 ARM64**（待决策）
+- SQLite 依赖已升到 3.x、四个 Android ABI 齐全，原「Android 原生库缺失」风险已解决
 
 界面上看到的每个数字都来自 `Assets/Scripts/App/DemoData.cs`，是假的。
 

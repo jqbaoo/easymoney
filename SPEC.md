@@ -23,7 +23,7 @@
 Core 层   ████░░░░░░  40%   Money / MoneyParser / TimeUtil 已完成（Task 2-3）
 Data 层   ██░░░░░░░░  15%   SQLite 已接入，三张表 + 5 个索引建好（Task 4）
 App 层    ████████░░  80%   界面全在，缺数据绑定
-测试      ███████░░░  70%   36 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1）
+测试      ████████░░  72%   37 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1 + 构建配置 1）
 打包      ░░░░░░░░░░   0%   未开始
 ```
 
@@ -39,7 +39,7 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 | **程序集骨架 + 测试链路** | `Scripts/Core`、`Scripts/Data`、`Tests/EditMode`、`Tools/run-editmode-tests.sh` | Task 1 产出。命令行跑 EditMode 测试已实测可用 |
 | **金额值类型** | `Scripts/Core/Money.cs`、`MoneyParser.cs` | Task 2 产出。`readonly struct` 内部存「分」+ 输入解析，25 个用例全绿 |
 | **时间工具** | `Scripts/Core/TimeUtil.cs` | Task 3 产出。Unix 毫秒互转 + 月/日边界，7 个用例 |
-| **SQLite 接入 + 建表** | `Scripts/Data/EasyMoneyDb.cs`、`Schema.cs`、`Plugins/SQLite/link.xml` | Task 4 产出。sqlite-net-pcl 1.9.172，三张表 + 5 个索引，36 个用例全绿 |
+| **SQLite 接入 + 建表** | `Scripts/Data/EasyMoneyDb.cs`、`Schema.cs`、`Plugins/SQLite/link.xml` | Task 4 产出。依赖已升到 3.x（sqlite-net-pcl 1.11.285 + SQLitePCLRaw 3.0.3 + SourceGear.sqlite3 3.53.4），三张表 + 5 个索引，37 个用例全绿 |
 
 ### 未开始
 
@@ -61,10 +61,11 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 - 按钮点了没有实际效果（保存只清空表单）
 - `Core` / `Data` 两个程序集都已有 `.cs`，`Library/ScriptAssemblies/` 下
   `EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
-- 数据库层已能建库建表（36 个用例验证过），但**还没有任何仓储**，数据仍进不去
+- 数据库层已能建库建表（37 个用例验证过），但**还没有任何仓储**，数据仍进不去
 
-**下一步应该从 Task 5 开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了
-（SQLite 接入成功），但它留了一个 Android 原生库的坑，必须在 Task 17 之前处理，见第 11 节。
+**下一步应该从 Task 5 开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了：
+SQLite 依赖升到了 3.x，Android 原生库也补齐了 ARMv7 / ARM64 / x86 / x64 四套。
+唯一待决的是 Target Architectures 目前只勾了 ARMv7，见第 11 节。
 
 ---
 
@@ -77,7 +78,7 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 | 模板 | 2D |
 | 目标平台 | Android，IL2CPP |
 | UI | UGUI（`UnityEngine.UI`），**全部代码构建，不用 Prefab** |
-| 数据库 | SQLite（sqlite-net-pcl + SQLitePCLRaw.bundle_green） |
+| 数据库 | SQLite（sqlite-net-pcl 1.11.285 + SQLitePCLRaw 3.0.3 + SourceGear.sqlite3 3.53.4） |
 | 测试 | Unity Test Framework（NUnit，EditMode） |
 
 ### 为什么不用 Prefab
@@ -442,7 +443,9 @@ bash Tools/run-editmode-tests.sh
 | 风险 | 说明 | 处置 |
 |---|---|---|
 | **Unity 不内置 SQLite** | Task 4 的最高风险点。需要手工导入 sqlite-net-pcl 及其原生依赖 DLL | ✅ 已解决（Task 4 完成），命令行测试全绿 |
-| **Android 原生库缺失** | `SQLitePCLRaw.lib.e_sqlite3` **2.1.x 全线不含 Android 的 `libe_sqlite3.so`**：实测 2.1.2 与 2.1.13 的 nupkg 里都只有 linux/osx/win。编辑器靠 win-x64 能跑，真机上会 `DllNotFoundException` | **Task 17 之前必须处理**。升级到 `sqlite-net-pcl 1.11.285`（连带 `SourceGear.sqlite3 3.53.3`，含 4 个 Android ABI）是已验证的路径；注意升级会带来 API 变化（`Batteries_V2` 不再存在） |
+| ~~Android 原生库缺失~~ | `SQLitePCLRaw.lib.e_sqlite3` 2.1.x 全线不含 Android 的 `libe_sqlite3.so`（实测 2.1.2 / 2.1.13 的 nupkg 里只有 linux/osx/win） | ✅ **已解决**。升级到 3.x 依赖树（`sqlite-net-pcl 1.11.285` + `SQLitePCLRaw 3.0.3` + `SourceGear.sqlite3 3.53.4`）。注意 3.x 移除了 `batteries_v2`，`SQLitePCL.Batteries_V2` 类型不复存在，新版 sqlite-net 自己完成 provider 注册 |
+| **NuGetForUnity 会静默过滤 runtime** | 它只解压 `ProjectSettings/Packages/com.github-glitchenzo.nugetforunity/NativeRuntimeSettings.json` 里登记过的 runtime，nupkg 里的其余平台**无任何提示地丢弃**。`SourceGear.sqlite3 3.53.4` 含 30 个平台，实际只落地 7 个 | 已补登记 `android-arm` / `android-x86` / `android-x64`，并加 `AndroidBuildConfigTests` 守卫。**以后新增任何带原生库的包，都要先看这个 json** |
+| **Target Architectures 只有 ARMv7** | 项目当前不含 ARM64。纯 32 位不满足 Google Play 的 64 位要求，而 arm64 的原生库其实已经在手边 | **待决策**。在 Player Settings > Android > Other Settings > Configuration > Target Architectures 勾上 ARM64 即可；一旦勾上，守卫测试会自动开始校验 `android-arm64` |
 | **IL2CPP 代码剥离** | 会删掉 SQLite 靠反射调用的代码，表现为真机上崩 | `link.xml` + 剥离级别设 `Minimal`，双重保护 |
 | **LIKE 通配符** | 用户搜索词里的 `%` `_` 会被当通配符 | SQL 里用 `ESCAPE '\'` 转义 |
 | **中文字体** | `FontProvider` 的系统字体候选列表可能一个都不命中，表现为方块字 | 正式发布建议自带 `Fonts/main.ttf` |
