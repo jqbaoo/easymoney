@@ -30,7 +30,9 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   nupkg 里的其余平台会被**静默丢弃**，编辑器里完全看不出来。新增带原生库的包时
   务必检查 `ProjectSettings/Packages/com.github-glitchenzo.nugetforunity/`
   下这个文件
-- **Target Architectures 目前只勾了 ARMv7，不含 ARM64**（待决策）
+- Target Architectures 已设为 **ARMv7 + ARM64**（`AndroidTargetArchitectures: 3`）
+- 别把 `Project Settings → Burst AOT Settings` 里的 `ARMV8A` / `ARMV9A` 当成打包架构
+  设置——那是 Burst 生成原生代码用的指令集目标，与 APK 里打包哪些 ABI 无关
 - SQLite 依赖已升到 3.x、四个 Android ABI 齐全，原「Android 原生库缺失」风险已解决
 
 界面上看到的每个数字都来自 `Assets/Scripts/App/DemoData.cs`，是假的。
