@@ -20,10 +20,10 @@
 **这是最重要的一节。** 项目处在「界面原型完成、Core 层就绪、数据层起步」的阶段。
 
 ```
-Core 层   █████████░  92%   加 AccountBalance / TransactionQuery（Task 2-3、5、7）
-Data 层   ██████░░░░  60%   建表 + 分类仓储 + 账户仓储 + 账单仓储 CRUD（Task 4、6、7、8）
+Core 层   █████████░  95%   加 ValidationResult / TransactionValidator（Task 2-3、5、7、9）
+Data 层   ███████░░░  70%   建表 + 三个仓储 + 记账服务（Task 4、6、7、8、9）
 App 层    ████████░░  80%   界面全在，缺数据绑定
-测试      █████████░  92%   76 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10）
+测试      █████████░  95%   103 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 10）
 打包      ░░░░░░░░░░   0%   未开始
 ```
 
@@ -42,14 +42,14 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 | **SQLite 接入 + 建表** | `Scripts/Data/EasyMoneyDb.cs`、`Schema.cs`、`Plugins/SQLite/link.xml` | Task 4 产出。依赖已升到 3.x（sqlite-net-pcl 1.11.285 + SQLitePCLRaw 3.0.3 + SourceGear.sqlite3 3.53.4），三张表 + 5 个索引 |
 | **领域模型与枚举** | `Scripts/Core/Models/Enums.cs`、`Account.cs`、`Category.cs`、`Transaction.cs` | Task 5 产出。纯 POCO，**不带 SQLite 特性标注**，Data 层用手写 SQL + 列别名映射；枚举数值由 `ModelTests` 锁死 |
 | **分类仓储 + 默认分类种子** | `Scripts/Data/DefaultCategories.cs`、`ICategoryRepository.cs`、`SqliteCategoryRepository.cs` | Task 6 产出。预置 10 个支出 + 6 个收入分类；`Open()` 按「category 表为空」幂等写入 |
-| **账户仓储 + 实时余额聚合** | `Scripts/Data/IAccountRepository.cs`、`SqliteAccountRepository.cs`、`Scripts/Core/Models/AccountBalance.cs` | Task 7 产出。余额用相关子查询实时算，**不冗余存储**；同时补了账单仓储的最小形态（`Query` 待 Task 10） |
+| **账户仓储 + 实时余额聚合** | `Scripts/Data/IAccountRepository.cs`、`SqliteAccountRepository.cs`、`Scripts/Core/Models/AccountBalance.cs` | Task 7 产出。余额用相关子查询实时算，**不冗余存储**；同时补了账单仓储的最小形态（`Query` 的筛选待 Task 10） |
 | **账单仓储 CRUD** | `Scripts/Data/SqliteTransactionRepository.cs` | Task 8 产出。字段往返、枚举映射、边界值共 10 个用例，均针对 Task 7 已写好的实现——本任务是计划里唯一「先实现后补测试」的一个 |
+| **校验规则 + 记账服务** | `Scripts/Core/ValidationResult.cs`、`TransactionValidator.cs`、`Scripts/Data/TransactionService.cs` | Task 9 产出。校验放 Core（纯函数），编排放 Data；转账只写一条记录。附带把 `Query` 从抛异常改成时间倒序分页的最简实现（筛选留给 Task 10） |
 
 ### 未开始
 
 | 内容 | 对应计划任务 |
 |---|---|
-| 记账服务 + 校验 | Task 9 |
 | 筛选搜索、报表计算 | Task 10、11 |
 | **`AppContext.cs`** | Task 12 剩余部分 |
 | 页面接真实数据（改 `_refresh()`） | Task 13-16 剩余部分 |
@@ -58,16 +58,17 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 ### 关键判断
 
 计划的 Task 12-16 是「UI 基础设施 + 四个页面」。其中**界面部分已作为视觉原型提前做完**，
-但仓储与服务（Task 8-11）还没走完，所以：
+但账单查询与报表（Task 10-11）还没走完，所以：
 
 - 界面上看到的每一个数字都来自 `DemoData.cs`，是假的
 - 按钮点了没有实际效果（保存只清空表单）
 - `Core` / `Data` 两个程序集都已有 `.cs`，`Library/ScriptAssemblies/` 下
   `EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
-- 分类、账户、账单三类数据都已经能真正落库（76 个用例验证过），但账单查询
-  （`Query`）还是占位，记账服务、报表也都还没写，页面上的数字仍然进不去数据库
+- 分类、账户、账单三类数据都已经能真正落库，记账也走通了「校验 → 落库」的完整链路
+  （103 个用例验证过）。但账单列表还不能筛选（`Query` 只做时间倒序分页）、
+  报表也没算，页面上的数字仍然进不去数据库
 
-**下一步应该从 Task 9 开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了：
+**下一步应该从 Task 10 开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了：
 SQLite 依赖升到了 3.x，Android 原生库补齐了 ARMv7 / ARM64 / x86 / x64 四套，
 构建目标架构也已设为 ARMv7 + ARM64。Android 侧的准备到 Task 17 之前不用再动了。
 
@@ -109,8 +110,8 @@ easymoney/
 │   │   └── theme.json           配色
 │   ├── Scenes/                  场景（原型阶段用不到）
 │   ├── Scripts/
-│   │   ├── Core/                ✅ Money / MoneyParser / TimeUtil / Models（noEngineReferences）
-│   │   ├── Data/                ✅ EasyMoneyDb / Schema / 分类仓储 / 账户仓储 / 账单仓储 CRUD（Query 待填）
+│   │   ├── Core/                ✅ Money / MoneyParser / TimeUtil / Models / ValidationResult / TransactionValidator（noEngineReferences）
+│   │   ├── Data/                ✅ EasyMoneyDb / Schema / 三个仓储 / TransactionService（Query 筛选待补）
 │   │   └── App/                 ✅ 已有
 │   │       ├── EasyMoney.App.asmdef
 │   │       ├── AppRoot.cs
@@ -165,6 +166,16 @@ package "EasyMoney.Core  (noEngineReferences: true)" #E8F5E9 {
     +Money Balance
   }
   class TransactionQuery
+  class ValidationResult {
+    +bool IsValid
+    +string ErrorMessage
+    +{static} ValidationResult Ok()
+    +{static} ValidationResult Fail(string)
+  }
+  class TransactionValidator {
+    +{static} long MaxAmountCents
+    +{static} ValidationResult Validate(Transaction, IList<Account>, IList<Category>)
+  }
   enum TxType { Expense=0, Income=1, Transfer=2 }
   enum CategoryKind { Expense=0, Income=1 }
   enum AccountType { Cash=0, BankCard=1, Alipay=2, WeChat=3, Other=4 }
@@ -184,8 +195,10 @@ package "EasyMoney.Data" #E3F2FD {
   class SqliteAccountRepository
   class SqliteCategoryRepository
   class SqliteTransactionRepository
-  class TransactionService
-  class TransactionValidator
+  class TransactionService {
+    +ValidationResult Save(Transaction, long)
+    +ValidationResult CreateTransfer(int, int, long, string, long, long)
+  }
   class ReportCalculator
 }
 
@@ -216,6 +229,7 @@ package "Assets/Resources" #F3E5F5 {
 
 Core <-- Data
 Data <-- App
+TransactionService ..> TransactionValidator : 校验规则在 Core
 App --> "Assets/Resources" : AssetProvider 是唯一入口
 
 AppContext --> EasyMoneyDb
