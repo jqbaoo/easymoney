@@ -20,10 +20,10 @@
 **这是最重要的一节。** 项目处在「界面原型完成、逻辑层与容器层完工」的阶段。
 
 ```
-Core 层   ██████████ 100%   Money / TimeUtil / 模型 / 校验 / 报表 / 账单展示投影（Task 2-3、5、7、9-11、14）
+Core 层   ██████████ 100%   Money / TimeUtil / 模型 / 校验 / 报表 / 账单展示投影 / 账户表单（Task 2-3、5、7、9-11、14-15）
 Data 层   ██████████ 100%   SQLite / 三个仓储 / 记账服务 / 筛选（Task 4、6-11）
-App 层    █████████░  95%   记账页与账单页已通；账户 / 报表两页仍用假数据
-测试      █████████░  96%   174 个用例全绿（Money 7 + Parser 17 + TimeUtil 11 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 10 + 筛选 18 + 报表 13 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 20）
+App 层    ██████████  98%   记账页 / 账单页 / 账户页已通；只剩报表页用假数据
+测试      █████████░  97%   189 个用例全绿（Money 7 + Parser 17 + TimeUtil 11 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 10 + 筛选 18 + 报表 13 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 20 + 账户表单 15）
 打包      ░░░░░░░░░░   0%   未开始
 ```
 
@@ -50,23 +50,29 @@ App 层    █████████░  95%   记账页与账单页已通；�
 | **应用容器** | `Scripts/App/AppContext.cs` | Task 12 产出。单例依赖容器，持有 `EasyMoneyDb` 与三个仓储、`TransactionService`；`AppRoot` 打开 `persistentDataPath` 下的 `easymoney.db`，订阅 `DataChanged` 刷新当前页 |
 | **记账页** | `App/UI/Pages/RecordPage.cs`、`App/UI/PickerDialog.cs`、`Core/QuickAmountHelper.cs` | Task 13 产出。类型切换 / 金额 / 快捷金额 / 分类 / 账户 / 转入 / 日期 / 备注，保存走 `TransactionService.Save()`；进页面预选第一个账户与分类，通常只需填金额。选择弹窗由四个入口共用 |
 | **账单列表页** | `App/UI/Pages/TransactionListPage.cs`、`Core/Statements/*.cs` | Task 14 产出。按月查看 + 收支汇总 + 按天分组 + 删除。**展示规则抽在 Core 的 `StatementBuilder` 里**（本地日期分组、金额正负号、名称兜底），页面只做取数与渲染 |
+| **账户管理页** | `App/UI/Pages/AccountPage.cs`、`App/UI/AccountEditDialog.cs`、`Core/Accounts/*.cs` | Task 15 产出。总资产 + 各账户实时余额 + 添加 / 编辑 / 归档 / 恢复。**表单规则抽在 Core 的 `AccountForm` 里**（名称去空白后非空、余额留空按 0、允许负数），新建与编辑共用一套弹窗。比计划多做了「显示已归档」开关——计划里的归档是单向的，点错一次就找不回来 |
 
 ### 未开始
 
 | 内容 | 对应计划任务 |
 |---|---|
-| 账户 / 报表两页接真实数据 | Task 15-16 |
-| `DemoData.cs` 删除 | 两页全部改完后删除（记账页与账单页已不再引用它） |
+| 报表页接真实数据 | Task 16 |
+| `DemoData.cs` 删除 | 只剩报表页引用它，改完就删 |
 | Android 构建与真机验收 | Task 17 |
 
 ### 关键判断
 
 计划的 Task 12-16 是「UI 基础设施 + 四个页面」。其中**界面部分已作为视觉原型提前做完**，
-容器层（Task 12）、记账页（Task 13）与账单列表页（Task 14）也已完成，剩下两个页面：
+容器层（Task 12）、记账页（Task 13）、账单列表页（Task 14）与账户管理页（Task 15）也已完成，
+只剩报表一个页面：
 
-- **记账页与账单页已经是真的**：记完一笔切到账单页就能看到它，删除按钮直接作用在库里，
-  顶部收支汇总也跟着变
-- 账户 / 报表两页的数字仍来自 `DemoData.cs`，按钮点了没有实际效果
+- **记账 / 账单 / 账户三页已经是真的**：建账户 → 记账 → 账单页能看到、账户页余额跟着变，
+  删除与归档都直接作用在库里
+- 报表页的数字仍来自 `DemoData.cs`，切月份没有实际效果
+- Task 15 顺带修掉一个 bug：`AccountPage` 的「添加账户」按钮 `onClick` 传的是 `null`，
+  而列表数据来自 `DemoData`（假账户），库里账户数为 0——所以记账页保存时一律被
+  `TransactionValidator` 拒掉，报「请选择账户」。这个 bug 在视觉原型阶段看不出来：
+  界面有账户显示，只是点了没反应
 - `Core` / `Data` 两个程序集都已有 `.cs`，`Library/ScriptAssemblies/` 下
   `EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
 - **整个业务逻辑层已经完工**（Task 1-11，打有标签 `data-layer-complete`）。
@@ -74,7 +80,7 @@ App 层    █████████░  95%   记账页与账单页已通；�
 - **容器层也已完工**（Task 12）。`AppContext` 把库和仓储装配好，端到端链路
   「建账户 → 记账 → 余额正确 → 查得到记录」有测试锁住
 
-**下一步应该从 Task 15（账户管理页）开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了：
+**下一步应该做 Task 16（报表页）**，做完就能删掉 `DemoData.cs`。Task 4 这个最高风险点已经过了：
 SQLite 依赖升到了 3.x，Android 原生库补齐了 ARMv7 / ARM64 / x86 / x64 四套，
 构建目标架构也已设为 ARMv7 + ARM64。Android 侧的准备到 Task 17 之前不用再动了。
 
@@ -116,7 +122,7 @@ easymoney/
 │   │   └── theme.json           配色
 │   ├── Scenes/                  场景（原型阶段用不到）
 │   ├── Scripts/
-│   │   ├── Core/                ✅ Money / MoneyParser / TimeUtil / Models / Queries / ValidationResult / TransactionValidator / Reports / Statements（noEngineReferences）
+│   │   ├── Core/                ✅ Money / MoneyParser / TimeUtil / Models / Queries / ValidationResult / TransactionValidator / Reports / Statements / Accounts（noEngineReferences）
 │   │   ├── Data/                ✅ EasyMoneyDb / Schema / 三个仓储 / TransactionService / 账单筛选
 │   │   └── App/                 ✅ 已有
 │   │       ├── EasyMoney.App.asmdef
@@ -130,7 +136,8 @@ easymoney/
 │   │           ├── AssetPaths.cs / AssetProvider.cs / IconNames.cs
 │   │           ├── SafeAreaFitter.cs
 │   │           ├── PageBase.cs / PageRouter.cs / TabBar.cs
-│   │           ├── PickerDialog.cs   通用选择弹窗（分类 / 账户 / 日期共用）
+│   │           ├── PickerDialog.cs     通用选择弹窗（分类 / 账户 / 日期共用）
+│   │           ├── AccountEditDialog.cs 账户新建 / 编辑弹窗（Task 15）
 │   │           └── Pages/       RecordPage / TransactionListPage / AccountPage / ReportPage
 │   └── Tests/EditMode/          ✅ 测试程序集 + 冒烟测试
 ├── Tools/                       ✅ run-editmode-tests.sh
@@ -233,6 +240,19 @@ package "EasyMoney.Core  (noEngineReferences: true)" #E8F5E9 {
     +string AmountText
     +TxType Type
   }
+  class AccountForm {
+    +{static} string TypeLabel(AccountType)
+    +{static} AccountType NextType(AccountType)
+    +{static} AccountFormResult Validate(string, string)
+  }
+  class AccountFormResult {
+    +bool IsValid
+    +string ErrorMessage
+    +string Name
+    +long InitialBalanceCents
+    +{static} AccountFormResult Ok(string, long)
+    +{static} AccountFormResult Fail(string)
+  }
   enum TxType { Expense=0, Income=1, Transfer=2 }
   enum CategoryKind { Expense=0, Income=1 }
   enum AccountType { Cash=0, BankCard=1, Alipay=2, WeChat=3, Other=4 }
@@ -274,12 +294,14 @@ package "EasyMoney.App" #FFF3E0 {
   class PageBase
   class PageRouter
   class TabBar
+  class PickerDialog
   class UiFactory
   class Theme
   class AssetProvider
   class RecordPage
   class TransactionListPage
   class AccountPage
+  class AccountEditDialog
   class ReportPage
 }
 
@@ -307,6 +329,9 @@ RecordPage ..> UiFactory
 TransactionListPage ..> UiFactory
 TransactionListPage ..> StatementBuilder : 分组与文案规则
 AccountPage ..> UiFactory
+AccountPage ..> AccountEditDialog : 添加 / 编辑
+AccountEditDialog ..> AccountForm : 表单规则
+AccountEditDialog ..> PickerDialog : 选类型
 ReportPage ..> UiFactory
 UiFactory ..> Theme
 UiFactory ..> AssetProvider

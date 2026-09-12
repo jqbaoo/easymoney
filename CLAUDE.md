@@ -13,26 +13,33 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
 
 ## 当前进度（2026-09-13）
 
-**记账页和账单页都写进真数据库了，剩下的两个页面还是原型。**
+**记账页、账单页、账户页都写进真数据库了，只剩报表页还是原型。**
 
-- ✅ `Assets/Scripts/App/` —— UI 基础设施 + 四个页面 + `AppContext` + `PickerDialog`
-- ✅ **Task 1-14 完成** —— 三层程序集骨架 + 命令行测试链路 + 整个逻辑层 + 应用容器 + 记账页 + 账单列表页
-  （`Core`：Money / TimeUtil / 模型 / 校验 / 报表 / 快捷金额 / 账单展示投影；`Data`：SQLite /
-  三个仓储 / 记账服务 / 多维筛选；`App`：`AppContext` / 记账页 / 账单页）
-- ✅ **174 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
+- ✅ `Assets/Scripts/App/` —— UI 基础设施 + 四个页面 + `AppContext` + `PickerDialog` + `AccountEditDialog`
+- ✅ **Task 1-15 完成** —— 三层程序集骨架 + 命令行测试链路 + 整个逻辑层 + 应用容器 + 记账页 + 账单列表页 + 账户管理页
+  （`Core`：Money / TimeUtil / 模型 / 校验 / 报表 / 快捷金额 / 账单展示投影 / 账户表单；
+  `Data`：SQLite / 三个仓储 / 记账服务 / 多维筛选；`App`：`AppContext` / 记账页 / 账单页 / 账户页）
+- ✅ **189 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
 - ✅ 标签 **`data-layer-complete`** —— 业务逻辑层封顶
-- ❌ 账户 / 报表两页的数字仍来自 `DemoData.cs`，是假的（Task 15-16）
+- ❌ 只剩报表页的数字仍来自 `DemoData.cs`，是假的（Task 16）
 
 **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
 `ITransactionRepository` 等于绕过校验。
 
-计划的 17 个任务里，**Task 15-16 的 UI 接线还没开始**。下一步从 **Task 15**
-（账户管理页）开始，按顺序执行，不要跳。
+计划的 17 个任务里，**只剩 Task 16（报表页）与 Task 17（打包）**。下一步做 **Task 16**，
+做完就能删掉 `DemoData.cs`。
 
 ⚠️ **接页面时别把展示规则写进页面里。** 页面的分组、文案拼接、兜底规则都是纯逻辑，
 抽到 `Core` 才能被测试盯住——EditMode 跑不到页面，留在页面里只能靠肉眼看。
-Task 14 就是这么做的：`Core/Statements/StatementBuilder.cs` 负责「按本地日期分组 /
-金额正负号 / 名称兜底」，`TransactionListPage` 只管取数和渲染。
+Task 14 抽的是 `Core/Statements/StatementBuilder.cs`（按本地日期分组 / 金额正负号 /
+名称兜底），Task 15 抽的是 `Core/Accounts/AccountForm.cs`（类型标签 / 类型循环 /
+名称与初始余额校验），页面只管取数和渲染。
+
+⚠️ **反向验证会暴露测试自身的洞，别把「预测失败数对上了」当成通过。** Task 15 注入
+4 个假 bug 后失败数确实是 5，但对不上预测的那 5 个：`Validate_EmptyBalance_MeansZero`
+该红没红，因为它只断言了 `InitialBalanceCents == 0`，而校验失败的返回值那个字段同样是
+默认值 0——「留空按 0 算」和「留空报错」在这个断言下没有区别。别只看失败个数，要逐个
+核对**名字**对不对得上。
 
 ⚠️ **Android 真机相关的坑，详见 `SPEC.md` 第 11 节**：
 

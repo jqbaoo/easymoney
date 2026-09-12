@@ -28,6 +28,7 @@ App/
     ├── PageRouter.cs       页面注册与切换
     ├── TabBar.cs           底部标签栏
     ├── PickerDialog.cs     通用选择弹窗（分类 / 账户 / 日期共用）
+    ├── AccountEditDialog.cs 账户新建 / 编辑弹窗（Task 15）
     └── Pages/
         ├── RecordPage.cs
         ├── TransactionListPage.cs
@@ -127,8 +128,8 @@ UiFactory.SetFlexible(right);         // 吃掉剩余
 
 ## 接数据层时改哪里
 
-**唯一的改动点是各页面的 `_refresh()`。** `RecordPage` 与 `TransactionListPage` 已经改完，
-可以当范例。
+**唯一的改动点是各页面的 `_refresh()`。** `RecordPage`、`TransactionListPage` 与
+`AccountPage` 已经改完，可以当范例。
 
 把 `DemoData.BuildXxx()` 换成 `AppContext.Instance` 的真实取数：
 
@@ -160,7 +161,7 @@ private void _refresh()
 oContext.NotifyDataChanged();
 ```
 
-剩下两个页面**全部**改完之后，删掉 `DemoData.cs`。
+现在只剩 `ReportPage` 一个页面还在用它，改完之后整个文件删掉。
 
 页面里**只做展示和取数调用**，不要写业务逻辑。校验、聚合都在 Core / Data 层。
 
@@ -168,7 +169,12 @@ oContext.NotifyDataChanged();
 转账不带正负号、分类被删了显示「未分类」——这些是业务约定，不是版式。`TransactionListPage`
 把它们放在 `Core/Statements/StatementBuilder.cs`，页面只拿现成的 `Title / Subtitle /
 AmountText` 往 `Text` 里塞。理由很实在：EditMode 测试根本跑不到页面，规则留在页面里就只能
-靠肉眼看；抽成纯函数才能被 `StatementBuilderTests` 逐条盯住。接 Task 15 / 16 时照这个来。
+靠肉眼看；抽成纯函数才能被 `StatementBuilderTests` 逐条盯住。Task 15 也照这个来：
+`AccountEditDialog` 只摆控件，`Core/Accounts/AccountForm.cs` 管类型标签与表单校验
+（`AccountFormTests`）。
+
+弹窗里还有个容易写错的点：**不要就地改传进来的 `Account`**。它是引用类型，就地改会让
+「点取消」变成改了一半的假取消——表单状态放局部变量，点保存再组装一个新对象写库。
 
 ---
 
