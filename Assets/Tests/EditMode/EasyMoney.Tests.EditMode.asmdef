@@ -4,6 +4,7 @@
     "references": [
         "EasyMoney.Core",
         "EasyMoney.Data",
+        "EasyMoney.App",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

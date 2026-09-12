@@ -1,3 +1,4 @@
+using System.IO;
 using EasyMoney.App.UI;
 using EasyMoney.App.UI.Pages;
 using UnityEngine;
@@ -22,6 +23,7 @@ namespace EasyMoney.App
             ("report", IconNames.TAB_REPORT, "报表")
         };
 
+        private AppContext m_Context;
         private PageRouter m_Router;
         private TabBar m_TabBar;
         private Text m_HeaderTitle;
@@ -47,11 +49,48 @@ namespace EasyMoney.App
         {
             Application.targetFrameRate = 60;
 
+            _openDatabase();
+
             _ensureEventSystem();
             _buildSkeleton();
             _buildPages();
 
             m_Router.Show(m_CurrentKey);
+        }
+
+        private void OnDestroy()
+        {
+            if (m_Context == null)
+            {
+                return;
+            }
+
+            m_Context.DataChanged -= _onDataChanged;
+            m_Context.Dispose();
+            m_Context = null;
+        }
+
+        /// <summary>
+        /// 打开数据库并装配仓储。库文件放 persistentDataPath——
+        /// Android 上这是唯一可写且不会被系统清理的目录。
+        /// </summary>
+        private void _openDatabase()
+        {
+            m_Context = new AppContext();
+            m_Context.Initialize(Path.Combine(Application.persistentDataPath, "easymoney.db"));
+            m_Context.DataChanged += _onDataChanged;
+        }
+
+        /// <summary>
+        /// 数据变了就重走当前页的 OnShow。只刷当前页即可：隐藏的页面切回去时
+        /// PageRouter 会再调一次 OnShow，那时自然读到最新数据。
+        /// </summary>
+        private void _onDataChanged()
+        {
+            if (m_Router != null)
+            {
+                m_Router.RefreshCurrent();
+            }
         }
 
         private void OnEnable()
