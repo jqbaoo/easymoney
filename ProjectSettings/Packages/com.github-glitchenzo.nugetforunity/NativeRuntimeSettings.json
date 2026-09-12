@@ -82,6 +82,33 @@
             ]
         },
         {
+            "cpuArchitecture": "ARMv7",
+            "editorCpuArchitecture": "",
+            "editorOperatingSystem": "",
+            "runtime": "android-arm",
+            "supportedPlatformTargets": [
+                "Android"
+            ]
+        },
+        {
+            "cpuArchitecture": "X86",
+            "editorCpuArchitecture": "",
+            "editorOperatingSystem": "",
+            "runtime": "android-x86",
+            "supportedPlatformTargets": [
+                "Android"
+            ]
+        },
+        {
+            "cpuArchitecture": "X86_64",
+            "editorCpuArchitecture": "",
+            "editorOperatingSystem": "",
+            "runtime": "android-x64",
+            "supportedPlatformTargets": [
+                "Android"
+            ]
+        },
+        {
             "cpuArchitecture": "",
             "editorCpuArchitecture": "",
             "editorOperatingSystem": "",
