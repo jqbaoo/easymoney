@@ -21,9 +21,9 @@
 
 ```
 Core 层   ████░░░░░░  40%   Money / MoneyParser / TimeUtil 已完成（Task 2-3）
-Data 层   █░░░░░░░░░   5%   仅 asmdef 骨架，无业务代码
+Data 层   ██░░░░░░░░  15%   SQLite 已接入，三张表 + 5 个索引建好（Task 4）
 App 层    ████████░░  80%   界面全在，缺数据绑定
-测试      ██████░░░░  60%   32 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 冒烟 1）
+测试      ███████░░░  70%   36 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1）
 打包      ░░░░░░░░░░   0%   未开始
 ```
 
@@ -39,12 +39,12 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 | **程序集骨架 + 测试链路** | `Scripts/Core`、`Scripts/Data`、`Tests/EditMode`、`Tools/run-editmode-tests.sh` | Task 1 产出。命令行跑 EditMode 测试已实测可用 |
 | **金额值类型** | `Scripts/Core/Money.cs`、`MoneyParser.cs` | Task 2 产出。`readonly struct` 内部存「分」+ 输入解析，25 个用例全绿 |
 | **时间工具** | `Scripts/Core/TimeUtil.cs` | Task 3 产出。Unix 毫秒互转 + 月/日边界，7 个用例 |
+| **SQLite 接入 + 建表** | `Scripts/Data/EasyMoneyDb.cs`、`Schema.cs`、`Plugins/SQLite/link.xml` | Task 4 产出。sqlite-net-pcl 1.9.172，三张表 + 5 个索引，36 个用例全绿 |
 
 ### 未开始
 
 | 内容 | 对应计划任务 |
 |---|---|
-| SQLite 接入与建表 | Task 4（**最高风险**） |
 | 领域模型 | Task 5 |
 | 三个仓储 + 记账服务 + 校验 | Task 6、7、8、9 |
 | 筛选搜索、报表计算 | Task 10、11 |
@@ -55,17 +55,16 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 ### 关键判断
 
 计划的 Task 12-16 是「UI 基础设施 + 四个页面」。其中**界面部分已作为视觉原型提前做完**，
-但数据层与剩余 Core（Task 4-11）还没走，所以：
+但仓储与服务（Task 5-11）还没走，所以：
 
 - 界面上看到的每一个数字都来自 `DemoData.cs`，是假的
 - 按钮点了没有实际效果（保存只清空表单）
-- `Core` 程序集已有 `Money.cs` / `MoneyParser.cs` / `TimeUtil.cs`，`Library/ScriptAssemblies/`
-  下已如期出现 `EasyMoney.Core.dll`；`Data` 程序集仍**只有 asmdef、没有任何 `.cs` 文件**，
-  Unity 不会为没有脚本的程序集生成 DLL，所以没有 `EasyMoney.Data.dll`——这是正常的，
-  等 Task 4 往 Data 里放第一个 `.cs` 后就会出现
+- `Core` / `Data` 两个程序集都已有 `.cs`，`Library/ScriptAssemblies/` 下
+  `EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
+- 数据库层已能建库建表（36 个用例验证过），但**还没有任何仓储**，数据仍进不去
 
-**下一步应该从 Task 4 开始按顺序执行**，不要跳。Task 4 是最高风险的任务
-（Unity 不内置 SQLite），走不通就停下来报告，不要硬扛。
+**下一步应该从 Task 5 开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了
+（SQLite 接入成功），但它留了一个 Android 原生库的坑，必须在 Task 17 之前处理，见第 11 节。
 
 ---
 
@@ -442,7 +441,8 @@ bash Tools/run-editmode-tests.sh
 
 | 风险 | 说明 | 处置 |
 |---|---|---|
-| **Unity 不内置 SQLite** | Task 4 的最高风险点。需要手工导入 sqlite-net-pcl 及其原生依赖 DLL | 单独成一个任务；**走不通就停下来报告，不要硬扛** |
+| **Unity 不内置 SQLite** | Task 4 的最高风险点。需要手工导入 sqlite-net-pcl 及其原生依赖 DLL | ✅ 已解决（Task 4 完成），命令行测试全绿 |
+| **Android 原生库缺失** | `SQLitePCLRaw.lib.e_sqlite3` **2.1.x 全线不含 Android 的 `libe_sqlite3.so`**：实测 2.1.2 与 2.1.13 的 nupkg 里都只有 linux/osx/win。编辑器靠 win-x64 能跑，真机上会 `DllNotFoundException` | **Task 17 之前必须处理**。升级到 `sqlite-net-pcl 1.11.285`（连带 `SourceGear.sqlite3 3.53.3`，含 4 个 Android ABI）是已验证的路径；注意升级会带来 API 变化（`Batteries_V2` 不再存在） |
 | **IL2CPP 代码剥离** | 会删掉 SQLite 靠反射调用的代码，表现为真机上崩 | `link.xml` + 剥离级别设 `Minimal`，双重保护 |
 | **LIKE 通配符** | 用户搜索词里的 `%` `_` 会被当通配符 | SQL 里用 `ESCAPE '\'` 转义 |
 | **中文字体** | `FontProvider` 的系统字体候选列表可能一个都不命中，表现为方块字 | 正式发布建议自带 `Fonts/main.ttf` |
