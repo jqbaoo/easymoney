@@ -49,5 +49,17 @@ namespace EasyMoney.Core
             DateTime oNow = DateTime.Now;
             return (oNow.Year, oNow.Month);
         }
+
+        /// <summary>
+        /// 年月加减，跨年自动进位 / 借位（2026-12 加 1 个月得 2027-1，2026-1 减 1 得 2025-12）。
+        /// 「上个月 / 下个月」按钮用它，免得页面里散落一堆 DateTime 构造和进位判断。
+        /// </summary>
+        public static (int Year, int Month) AddMonths(int iYear, int iMonth, int iDelta)
+        {
+            // 日固定为 1 再借 DateTime 的进位：用 31 号会撞上「1月31日加一个月 = 3月3日」
+            // 这种日期溢出，而调用方要的只是年月
+            DateTime oResult = new DateTime(iYear, iMonth, 1).AddMonths(iDelta);
+            return (oResult.Year, oResult.Month);
+        }
     }
 }

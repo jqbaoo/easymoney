@@ -64,5 +64,31 @@ namespace EasyMoney.Tests
             Assert.AreEqual(DateTime.Now.Year, iYear);
             Assert.AreEqual(DateTime.Now.Month, iMonth);
         }
+
+        [Test]
+        public void AddMonths_WithinSameYear_KeepsYear()
+        {
+            Assert.AreEqual((2026, 10), TimeUtil.AddMonths(2026, 9, 1));
+            Assert.AreEqual((2026, 8), TimeUtil.AddMonths(2026, 9, -1));
+        }
+
+        [Test]
+        public void AddMonths_ForwardAcrossYearBoundary_RollsOverToNextYear()
+        {
+            Assert.AreEqual((2027, 1), TimeUtil.AddMonths(2026, 12, 1));
+        }
+
+        [Test]
+        public void AddMonths_BackwardAcrossYearBoundary_BorrowsFromPreviousYear()
+        {
+            Assert.AreEqual((2025, 12), TimeUtil.AddMonths(2026, 1, -1));
+        }
+
+        [Test]
+        public void AddMonths_MultipleMonths_CrossesSeveralYears()
+        {
+            Assert.AreEqual((2027, 6), TimeUtil.AddMonths(2026, 3, 15));
+            Assert.AreEqual((2024, 12), TimeUtil.AddMonths(2026, 3, -15));
+        }
     }
 }
