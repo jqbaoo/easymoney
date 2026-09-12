@@ -13,16 +13,18 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
 
 ## 当前进度（2026-09-13）
 
-**界面原型完成，Core 层就绪，数据层起步。**
+**界面原型完成，Core 层就绪，数据层过半。**
 
 - ✅ `Assets/Scripts/App/` —— UI 基础设施 + 四个页面（**用假数据撑着**）
-- ✅ **Task 1-7 完成** —— 三层程序集骨架 + 命令行测试链路 +
+- ✅ **Task 1-8 完成** —— 三层程序集骨架 + 命令行测试链路 +
   `Core`（Money / MoneyParser / TimeUtil / 领域模型与枚举 / AccountBalance）+
-  `Data`（SQLite 接入、三张表 + 5 个索引、分类仓储 + 默认分类种子、账户仓储 + 实时余额聚合）
-- ✅ **66 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
-- ❌ 账单仓储只有最小形态（`Query` 抛 `NotImplementedException`），页面上的数字进不去数据库
+  `Data`（SQLite 接入、三张表 + 5 个索引、分类仓储 + 默认分类种子、账户仓储 + 实时余额聚合、
+  账单仓储 CRUD）
+- ✅ **76 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
+- ❌ 页面上的数字还是进不去数据库 —— 记账服务（Task 9）没写，账单查询筛选（Task 10）
+  也没写，`SqliteTransactionRepository.Query` 仍抛 `NotImplementedException`
 
-计划的 17 个任务里，**Task 8-11 一步都没走**。下一步从 **Task 8**（账单仓储完整实现）
+计划的 17 个任务里，**Task 9-11 一步都没走**。下一步从 **Task 9**（记账校验与记账服务）
 开始，按顺序执行，不要跳。
 
 ⚠️ **Android 真机相关的坑，详见 `SPEC.md` 第 11 节**：

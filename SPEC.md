@@ -21,9 +21,9 @@
 
 ```
 Core 层   █████████░  92%   加 AccountBalance / TransactionQuery（Task 2-3、5、7）
-Data 层   █████░░░░░  50%   建表 + 分类仓储 + 账户仓储（Task 4、6、7）
+Data 层   ██████░░░░  60%   建表 + 分类仓储 + 账户仓储 + 账单仓储 CRUD（Task 4、6、7、8）
 App 层    ████████░░  80%   界面全在，缺数据绑定
-测试      █████████░  88%   66 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12）
+测试      █████████░  92%   76 个用例全绿（Money 7 + Parser 17 + TimeUtil 7 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10）
 打包      ░░░░░░░░░░   0%   未开始
 ```
 
@@ -43,12 +43,12 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 | **领域模型与枚举** | `Scripts/Core/Models/Enums.cs`、`Account.cs`、`Category.cs`、`Transaction.cs` | Task 5 产出。纯 POCO，**不带 SQLite 特性标注**，Data 层用手写 SQL + 列别名映射；枚举数值由 `ModelTests` 锁死 |
 | **分类仓储 + 默认分类种子** | `Scripts/Data/DefaultCategories.cs`、`ICategoryRepository.cs`、`SqliteCategoryRepository.cs` | Task 6 产出。预置 10 个支出 + 6 个收入分类；`Open()` 按「category 表为空」幂等写入 |
 | **账户仓储 + 实时余额聚合** | `Scripts/Data/IAccountRepository.cs`、`SqliteAccountRepository.cs`、`Scripts/Core/Models/AccountBalance.cs` | Task 7 产出。余额用相关子查询实时算，**不冗余存储**；同时补了账单仓储的最小形态（`Query` 待 Task 10） |
+| **账单仓储 CRUD** | `Scripts/Data/SqliteTransactionRepository.cs` | Task 8 产出。字段往返、枚举映射、边界值共 10 个用例，均针对 Task 7 已写好的实现——本任务是计划里唯一「先实现后补测试」的一个 |
 
 ### 未开始
 
 | 内容 | 对应计划任务 |
 |---|---|
-| 账单仓储完整实现（查询 / 筛选） | Task 8 |
 | 记账服务 + 校验 | Task 9 |
 | 筛选搜索、报表计算 | Task 10、11 |
 | **`AppContext.cs`** | Task 12 剩余部分 |
@@ -58,16 +58,16 @@ App 层    ████████░░  80%   界面全在，缺数据绑定
 ### 关键判断
 
 计划的 Task 12-16 是「UI 基础设施 + 四个页面」。其中**界面部分已作为视觉原型提前做完**，
-但仓储与服务（Task 8-11）还没走，所以：
+但仓储与服务（Task 8-11）还没走完，所以：
 
 - 界面上看到的每一个数字都来自 `DemoData.cs`，是假的
 - 按钮点了没有实际效果（保存只清空表单）
 - `Core` / `Data` 两个程序集都已有 `.cs`，`Library/ScriptAssemblies/` 下
   `EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
-- 分类和账户已经能真正落库（66 个用例验证过），但账单仓储只有最小形态
-  （`Query` 还没实现），页面上的数字仍然进不去数据库
+- 分类、账户、账单三类数据都已经能真正落库（76 个用例验证过），但账单查询
+  （`Query`）还是占位，记账服务、报表也都还没写，页面上的数字仍然进不去数据库
 
-**下一步应该从 Task 8 开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了：
+**下一步应该从 Task 9 开始按顺序执行**，不要跳。Task 4 这个最高风险点已经过了：
 SQLite 依赖升到了 3.x，Android 原生库补齐了 ARMv7 / ARM64 / x86 / x64 四套，
 构建目标架构也已设为 ARMv7 + ARM64。Android 侧的准备到 Task 17 之前不用再动了。
 
@@ -110,7 +110,7 @@ easymoney/
 │   ├── Scenes/                  场景（原型阶段用不到）
 │   ├── Scripts/
 │   │   ├── Core/                ✅ Money / MoneyParser / TimeUtil / Models（noEngineReferences）
-│   │   ├── Data/                ✅ EasyMoneyDb / Schema / 分类仓储 / 账户仓储（账单仓储待填）
+│   │   ├── Data/                ✅ EasyMoneyDb / Schema / 分类仓储 / 账户仓储 / 账单仓储 CRUD（Query 待填）
 │   │   └── App/                 ✅ 已有
 │   │       ├── EasyMoney.App.asmdef
 │   │       ├── AppRoot.cs
