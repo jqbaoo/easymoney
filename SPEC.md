@@ -692,6 +692,17 @@ bash Tools/run-editmode-tests.sh
 
 退出码：**0 = 全部通过，1 = 有测试失败，2 = 环境/编译错误**。
 
+⚠️ **别把脚本接进管道看退出码。** `bash Tools/run-editmode-tests.sh 2>&1 | tail -40`
+打印的 `[exited with code 0]` 是 **`tail` 的**退出码，不是脚本的——实测有一次明明失败了
+6 个用例却显示 0。真要判成败，看 `Tools/editmode-results.xml` 根节点上的
+`result` / `failed` 属性，那是 Unity 自己写的：
+
+```bash
+grep -o 'total="[0-9]*" passed="[0-9]*" failed="[0-9]*"' Tools/editmode-results.xml | head -1
+```
+
+要退出码就单独跑、别接管道，或不看退出码只看那个 XML。
+
 脚本内部封装的就是下面这条命令，两个坑都别再踩：
 
 - **不要加 `-quit`。** 实测加上它 Unity 会在跑测试之前就退出，退出码 0 但一个测试都没跑——
