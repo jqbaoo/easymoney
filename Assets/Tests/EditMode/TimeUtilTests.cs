@@ -100,5 +100,29 @@ namespace EasyMoney.Tests
             Assert.AreEqual("2026年12月", TimeUtil.FormatYearMonth(2026, 12));
             Assert.AreEqual("2027年1月", TimeUtil.FormatYearMonth(2027, 1));
         }
+
+        [Test]
+        public void FormatMonth_DoesNotPadWithZero()
+        {
+            Assert.AreEqual("9月", TimeUtil.FormatMonth(9));
+            Assert.AreEqual("1月", TimeUtil.FormatMonth(1));
+            Assert.AreEqual("12月", TimeUtil.FormatMonth(12));
+        }
+
+        [Test]
+        public void FormatYear_EndsWithNian()
+        {
+            Assert.AreEqual("2026年", TimeUtil.FormatYear(2026));
+        }
+
+        [Test]
+        public void FormatYearMonth_IsYearPlusMonth()
+        {
+            // FormatYearMonth 现在由 FormatYear + FormatMonth 拼出来。
+            // 这条钉住「拆成两个函数之后，拼回去还是原来那串」——
+            // 少了它，改动 FormatYearMonth 的实现就没有测试拦得住了
+            Assert.AreEqual("2026年9月", TimeUtil.FormatYear(2026) + TimeUtil.FormatMonth(9));
+            Assert.AreEqual("2027年1月", TimeUtil.FormatYear(2027) + TimeUtil.FormatMonth(1));
+        }
     }
 }

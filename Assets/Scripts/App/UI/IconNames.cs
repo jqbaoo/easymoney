@@ -21,6 +21,13 @@ namespace EasyMoney.App.UI
         // ── 通用 ────────────────────────────────────
         public const string CHEVRON_LEFT = "chevron_left";
         public const string CHEVRON_RIGHT = "chevron_right";
+
+        /// <summary>
+        /// 向下的小箭头，用在月份条上年月文字的右边，提示「这里能点开」。
+        /// 目前没有这张图，显示兜底字符「↓」；美术补了 chevron_down.png 就自动生效。
+        /// </summary>
+        public const string CHEVRON_DOWN = "chevron_down";
+
         public const string ADD = "icon_add";
         public const string DELETE = "icon_delete";
         public const string EDIT = "icon_edit";

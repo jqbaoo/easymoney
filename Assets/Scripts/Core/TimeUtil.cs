@@ -51,12 +51,33 @@ namespace EasyMoney.Core
         }
 
         /// <summary>
+        /// 年份文案，形如「2026年」。选择月份弹窗顶部的年份行用它。
+        /// </summary>
+        public static string FormatYear(int iYear)
+        {
+            return $"{iYear}年";
+        }
+
+        /// <summary>
+        /// 单个月份的文案，形如「9月」。
+        ///
+        /// 月份**不补零**：顶部月份条显示「2026年9月」，弹窗里的月份格子显示「9月」，
+        /// 两处必须是同一种写法——补零的话「2026年09月」和「9月」就对不上了。
+        /// </summary>
+        public static string FormatMonth(int iMonth)
+        {
+            return $"{iMonth}月";
+        }
+
+        /// <summary>
         /// 年月标题，形如「2026年9月」。账单页与报表页顶部的月份条共用，
         /// 免得两处各写一遍、慢慢长得不一样。
+        ///
+        /// 由上面两个函数拼出来，「不补零」这条约定只留在一处。
         /// </summary>
         public static string FormatYearMonth(int iYear, int iMonth)
         {
-            return $"{iYear}年{iMonth}月";
+            return $"{FormatYear(iYear)}{FormatMonth(iMonth)}";
         }
 
         /// <summary>

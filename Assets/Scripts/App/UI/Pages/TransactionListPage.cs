@@ -14,11 +14,8 @@ namespace EasyMoney.App.UI.Pages
     /// </summary>
     public class TransactionListPage : PageBase
     {
-        private const float MONTH_BAR_HEIGHT = 88f;
         private const float SUMMARY_BAR_HEIGHT = 88f;
         private const float AMOUNT_WIDTH = 210f;
-        private const float NAV_BUTTON_WIDTH = 88f;
-        private const float NAV_ICON_SIZE = 40f;
         private const float DELETE_BUTTON_WIDTH = 72f;
         private const float DELETE_ICON_SIZE = 36f;
         private const float EMPTY_HINT_HEIGHT = 200f;
@@ -29,10 +26,8 @@ namespace EasyMoney.App.UI.Pages
         /// </summary>
         private const int MAX_ROWS_PER_MONTH = 1000;
 
-        private int m_Year;
-        private int m_Month;
+        private MonthBar m_MonthBar;
 
-        private Text m_MonthLabel;
         private Text m_IncomeValue;
         private Text m_ExpenseValue;
         private Text m_NetValue;
@@ -42,70 +37,24 @@ namespace EasyMoney.App.UI.Pages
 
         public override void OnShow()
         {
-            // 首次进来才取当前年月：之后用户可能已经翻到别的月份，
-            // 每次切回来都重置会让翻页白做
-            if (m_Year == 0)
-            {
-                (m_Year, m_Month) = TimeUtil.CurrentYearMonth();
-            }
-
+            // 年月由 MonthBar 持有：它建出来就停在当前月，之后切回本页会保留用户翻到的月份，
+            // 所以这里不再需要「首次才取当前年月」那套判断
             _refresh();
         }
 
         protected override void _build()
         {
-            float fTopHeight = MONTH_BAR_HEIGHT + SUMMARY_BAR_HEIGHT + Theme.DIVIDER_HEIGHT;
+            float fTopHeight = MonthBar.HEIGHT + SUMMARY_BAR_HEIGHT + Theme.DIVIDER_HEIGHT;
 
             RectTransform oTop = UiFactory.CreateTopColumn(Root, "Top", fTopHeight);
-            _buildMonthBar(oTop);
+
+            // 月份变了就重取数——回调直接就是 _refresh
+            m_MonthBar = new MonthBar(oTop, Root, _refresh);
+
             _buildSummaryBar(oTop);
             UiFactory.CreateDivider(oTop, "Divider");
 
             _buildList(fTopHeight);
-        }
-
-        // ── 月份切换 ────────────────────────────────
-
-        private void _buildMonthBar(RectTransform oParent)
-        {
-            RectTransform oRow = UiFactory.CreateRowContainer(oParent, "MonthBar");
-            UiFactory.SetHeight(oRow, MONTH_BAR_HEIGHT);
-
-            Image oBackground = oRow.gameObject.AddComponent<Image>();
-            oBackground.color = Theme.SURFACE;
-
-            _addNavButton(oRow, "Prev", IconNames.CHEVRON_LEFT, "<", _goPreviousMonth);
-
-            m_MonthLabel = UiFactory.CreateText(oRow, "Month", string.Empty,
-                Theme.FONT_TITLE, TextAnchor.MiddleCenter, null, Theme.WEIGHT_TITLE);
-            UiFactory.SetFlexible(m_MonthLabel.rectTransform);
-
-            _addNavButton(oRow, "Next", IconNames.CHEVRON_RIGHT, ">", _goNextMonth);
-        }
-
-        private static void _addNavButton(
-            RectTransform oRow, string sName, string sIconName, string sFallbackLabel,
-            UnityEngine.Events.UnityAction oOnClick)
-        {
-            Button oButton = UiFactory.CreateButton(
-                oRow, sName, sFallbackLabel, oOnClick, Theme.TRANSPARENT, Theme.FONT_TITLE);
-            UiFactory.SetWidth(oButton.GetComponent<RectTransform>(), NAV_BUTTON_WIDTH);
-            UiFactory.PaintButton(oButton, Theme.TRANSPARENT, Theme.PRIMARY);
-
-            // 美术给了箭头图就用图，没给就是原来的 "<" ">"
-            UiFactory.ReplaceButtonLabelWithIcon(oButton, sIconName, NAV_ICON_SIZE, Theme.PRIMARY);
-        }
-
-        private void _goPreviousMonth()
-        {
-            (m_Year, m_Month) = TimeUtil.AddMonths(m_Year, m_Month, -1);
-            _refresh();
-        }
-
-        private void _goNextMonth()
-        {
-            (m_Year, m_Month) = TimeUtil.AddMonths(m_Year, m_Month, 1);
-            _refresh();
         }
 
         // ── 收支汇总 ────────────────────────────────
@@ -165,14 +114,13 @@ namespace EasyMoney.App.UI.Pages
                 return;
             }
 
-            m_MonthLabel.text = TimeUtil.FormatYearMonth(m_Year, m_Month);
-
+            // 月份条上的文字由 MonthBar 自己维护，这里只管按它的年月取数
             List<Transaction> lTransactions = oContext.Transactions.Query(new TransactionQuery
             {
                 // 左闭右开：StartOfNextMonthMs 正好是下月一号零点，
                 // 用它当右边界不用再减一毫秒
-                StartMs = TimeUtil.StartOfMonthMs(m_Year, m_Month),
-                EndMs = TimeUtil.StartOfNextMonthMs(m_Year, m_Month),
+                StartMs = TimeUtil.StartOfMonthMs(m_MonthBar.Year, m_MonthBar.Month),
+                EndMs = TimeUtil.StartOfNextMonthMs(m_MonthBar.Year, m_MonthBar.Month),
                 Limit = MAX_ROWS_PER_MONTH
             });
 

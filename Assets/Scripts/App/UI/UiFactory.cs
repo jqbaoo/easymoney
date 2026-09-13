@@ -506,6 +506,26 @@ namespace EasyMoney.App.UI
             }
         }
 
+        /// <summary>
+        /// 左右翻页的箭头按钮：透明底 + 主色图标，宽度固定。
+        /// 图标缺失时退回兜底文字——光秃秃一个箭头要是没了就没法点，
+        /// 所以这里跟「列表行首图标位」不同，兜底文字必须有。
+        ///
+        /// 月份条、选择月份弹窗的年份行都用这一种，原先三处各拼同样的四行。
+        /// </summary>
+        public static Button CreateNavButton(
+            Transform oParent, string sName, string sIconName, string sFallbackLabel,
+            float fWidth, float fIconSize, UnityAction oOnClick)
+        {
+            Button oButton = CreateButton(
+                oParent, sName, sFallbackLabel, oOnClick, Theme.TRANSPARENT, Theme.FONT_TITLE);
+            SetWidth(oButton.GetComponent<RectTransform>(), fWidth);
+            PaintButton(oButton, Theme.TRANSPARENT, Theme.PRIMARY);
+
+            ReplaceButtonLabelWithIcon(oButton, sIconName, fIconSize, Theme.PRIMARY);
+            return oButton;
+        }
+
         public static InputField CreateInput(
             Transform oParent, string sName, string sPlaceholder, int iFontSize = Theme.FONT_BODY,
             FontWeight eWeight = FontWeight.Regular)
