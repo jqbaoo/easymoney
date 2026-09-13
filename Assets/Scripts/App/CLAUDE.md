@@ -27,9 +27,17 @@ App/
     ├── PageRouter.cs       页面注册与切换
     ├── TabBar.cs           底部标签栏
     ├── MonthBar.cs         月份条（左右翻月 + 点年月文字选月），账单页与报表页共用
+    ├── DropdownButton.cs   就地下拉浮层（按钮正下方弹面板），报表页切视图用
     ├── PickerDialog.cs     通用选择弹窗（分类 / 账户 / 日期共用）
     ├── MonthPickerDialog.cs 选择月份弹窗（年份行 + 3×4 月份网格）
     ├── AccountEditDialog.cs 账户新建 / 编辑弹窗（Task 15）
+    ├── Reports/            报表主体的几种画法（见「报表视图」一节）
+    │   ├── IReportView.cs      视图接口（Mode + Render）
+    │   ├── ReportViewHost.cs   按当前模式分发，换视图先清场
+    │   ├── ReportViewParts.cs  共用零件（明细行、空态提示）
+    │   ├── BarReportView.cs    条形图
+    │   ├── DonutReportView.cs  环形图 + 环中心合计
+    │   └── DonutSprite.cs      环形贴图，逐像素程序化生成
     └── Pages/
         ├── RecordPage.cs
         ├── TransactionListPage.cs
@@ -350,6 +358,93 @@ PickerDialog.Show(Root, "选择分类", lLabels, lIcons,
 并且什么都不做，不是延迟到帧末）。所以 EditMode 测试里点到「会关弹窗」的那一下，
 必须先 `LogAssert.Expect` 声明这条错误日志，否则测试会被判失败——
 `MonthPickerDialogTests._expectEditModeDestroy` 就是这么做的。真机跑 Play 模式，没这回事。
+
+---
+
+## 报表视图（下拉切换）
+
+报表主体有几种画法（现在两种：条形图、环形图），顶上挂一个下拉切换。结构是
+「接口 + 宿主 + 各自实现」：
+
+```plantuml
+@startuml
+skinparam classAttributeIconSize 0
+
+interface IReportView {
+  + Mode : ReportViewMode
+  + Render(oContent, lItems, oType)
+}
+
+class ReportViewHost {
+  + Mode : ReportViewMode
+  + Content : RectTransform
+  + Has(oMode) : bool
+  + SetMode(oMode) : bool
+  + Render(lItems, oType)
+  - m_Views : Dictionary<ReportViewMode, IReportView>
+}
+
+class BarReportView
+class DonutReportView
+class ReportViewParts <<static>>
+class ReportPage
+class DropdownButton
+
+IReportView <|.. BarReportView
+IReportView <|.. DonutReportView
+ReportViewHost o-- IReportView : 按 Mode 分发
+ReportViewHost ..> ReportViewParts : 明细行共用
+BarReportView ..> ReportViewParts
+DonutReportView ..> ReportViewParts
+ReportPage o-- ReportViewHost
+ReportPage ..> DropdownButton : 切视图
+@enduml
+```
+
+### 新增一种视图
+
+1. `Core/Reports/ReportViewMode.cs`：枚举加一项，`ReportViews.ALL` 加一项，
+   标题常量加一个
+2. `App/UI/Reports/` 下写一个类实现 `IReportView`
+3. `ReportPage._buildBreakdownArea` 里 `new ReportViewHost(...)` 多传一个实例
+
+**页面别处不用动**——下拉选项、标题、下标映射全部来自 `ReportViews.ALL`。
+步骤 1 漏了 `ALL` 或步骤 3 漏了实现，`ReportViewHostTests.EveryModeInCatalog_HasAView`
+会红：下拉里多出一个点了没反应的选项，从界面上很难归因。
+
+⚠️ **视图之间不共用节点，`Render` 开头一律先清场**（`UiFactory.ClearChildren`）。
+视图各建各的节点、直接挂在同一个 `content` 下，不清的话新旧两批会同时参与布局——
+看着就是「两个视图叠在一起」，不报错。`ReportViewHostTests` 有两条用例钉着。
+
+### `UiFactory.DestroyObject` / `DestroyNode` / `ClearChildren`
+
+新代码要销毁节点时用这三个，**不要直接写 `Object.Destroy`**：
+
+```csharp
+UiFactory.DestroyNode(oNode.gameObject);   // 单个节点
+UiFactory.ClearChildren(oContent);         // 清空一个容器的子节点（倒着删）
+```
+
+理由是 `Object.Destroy` 在 EditMode 下**非法**——打一条 Error 并且什么都不做。
+`DestroyObject` 在 `Application.isPlaying` 为假时改走 `Object.DestroyImmediate`，
+于是「切视图要清掉旧节点」这种**销毁本身就是被测行为**的场景才验得了。
+
+⚠️ 这是对「生产代码保持 `Object.Destroy`，EditMode 的非法性由测试侧
+`LogAssert.Expect` 吸收」那条约定的一次**有意偏离**，只对新代码生效：
+约定针对的是弹窗，那里「销毁」不可观测、吸收掉就完了；这里不行。
+`PickerDialog` / `MonthPickerDialog` / `AccountEditDialog` 仍按原样不动。
+
+### 图表色板
+
+环形图按分类序号取色，用 `Theme.ChartColor(i)`（下标越界会自动回绕，负数也行）。
+**色板不从 `theme.json` 读**——它是一组要能互相区分的颜色，不是单值配色；
+`ThemePaletteTests` 有一条用例专门钉住「改 `theme.json` 不影响它」。
+
+⚠️ **环形贴图是原生对象**（`Texture2D` + `Sprite`），`DonutSprite` 每次重画前都会
+先释放上一张。切月份、切收支、切视图都会重画——不释放的话显存一路涨而且不报错。
+加新的程序化贴图时照抄这个模式。
+
+---
 
 ## 注意事项
 

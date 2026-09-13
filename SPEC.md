@@ -23,7 +23,7 @@
 Core 层   ██████████ 100%   Money / TimeUtil / 模型 / 校验 / 报表 / 账单展示投影 / 账户表单 / 报表展示（Task 2-3、5、7、9-11、14-16）
 Data 层   ██████████ 100%   SQLite / 三个仓储 / 记账服务 / 筛选（Task 4、6-11）
 App 层    ██████████ 100%   记账页 / 账单页 / 账户页 / 报表页全部通真实数据
-测试      ██████████ 100%   270 个用例全绿（Money 7 + Parser 17 + TimeUtil 15 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 16 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 11 + 筛选 18 + 报表 16 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 26 + 账户表单 13 + 报表展示 12 + 构建配置守卫 9 + 结构迁移 13 + 字体槽位 8 + 配色 5 + 月份条 10 + 月份弹窗 9）
+测试      ██████████ 100%   335 个用例全绿（Money 7 + Parser 17 + TimeUtil 15 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 16 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 11 + 筛选 18 + 报表 16 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 26 + 账户表单 13 + 报表展示 15 + 构建配置守卫 9 + 结构迁移 13 + 字体槽位 8 + 配色 10 + 月份条 10 + 月份弹窗 9 + 环形切分 14 + 视图清单 9 + 下拉列表 12 + 视图宿主 10 + 视图渲染 12）
 打包      ██████████ 100%   APK 已构建，Redmi K60 真机验收 18 项中 17 项通过
 ```
 
@@ -55,6 +55,7 @@ App 层    ██████████ 100%   记账页 / 账单页 / 账户�
 | **分类图标** | `Resources/Icons/cat_*.png`、`Data/DefaultCategories.cs`、`Data/SchemaMigrations.cs`、`App/UI/UiFactory.cs` | 计划外新增。15 个预置分类的图标接进账单行 / 报表行 / 记账页分类行 / 分类选择弹窗四处；老库的 `icon_name` 靠 v2 迁移补上。见第 7 节 |
 | **暖色纸感配色 + 卡片投影** | `Resources/theme.json`、`App/UI/ThemePalette.cs`、`App/UI/UiFactory.cs` | 计划外新增。原来是浅灰底 `#F2F3F5` 配白卡片，两者只差 13 个色阶、卡片又没有投影，整屏看着就是一片白。换成暖色纸感，卡片投影收进 `UiFactory.PaintCard` / `AddCardShadow`。配色在 `theme.json` 与 `ThemePalette.Light()` 两处，`ThemePaletteTests` 钉着一致。**Play 肉眼验收通过**（2026-09-13）。见第 7 节 |
 | **月份条抽组件 + 点年月选月份** | `App/UI/MonthBar.cs`、`App/UI/MonthPickerDialog.cs`、`Core/TimeUtil.cs`、`App/UI/UiFactory.cs` | 计划外新增。账单页与报表页的月份条原先逐字重复（连三个常量都各定义一份），收成 `MonthBar` 后两页各一行 `new MonthBar(...)`；中间的年月文字从裸 `Text` 变成可点的「文字 + `↓`」横排，点开 `MonthPickerDialog`（年份行 + 3×4 月份网格）一次跳到目标月。`TimeUtil` 新增 `FormatYear` / `FormatMonth`，`FormatYearMonth` 改为拼这两个。**弹窗与月份条首次有了 EditMode 覆盖**（19 个用例）——原先逻辑在页面里，测试够不着。**Play 肉眼验收通过**（2026-09-13） |
+| **报表环形图视图 + 下拉切换** | `Core/Reports/DonutLayout.cs`、`Core/Reports/ReportViewMode.cs`、`App/UI/DropdownButton.cs`、`App/UI/Reports/*.cs` | 计划外新增。报表页多一种画法：按占比把每一类切成扇区画成**环形图**，环中心显示合计金额；支出/收入切换旁挂一个下拉浮层切换视图，图例仍是明细列表（只是不带条形）。**视图是可扩展的**——以后再加一种，在 `ReportViews.ALL` 里挂个号、写一个 `IReportView` 实现、`ReportPage` 构造宿主时多传一个实例，页面别处不用动。环形贴图逐像素程序化生成（UGUI 没有扇形控件），色板走 `Theme.ChartColor(i)`。报表页里的明细行与条形画法一并沉进 `App/UI/Reports/`。**新增 65 个用例**（环形切分 14 + 视图清单 9 + 下拉列表 12 + 视图宿主 10 + 视图渲染 12 + 报表展示 3 + 配色 5）。⚠️ **Play 肉眼验收待做**，见 `Claude/plans/android-release-checklist.md` |
 
 ### 全部完成
 
@@ -148,9 +149,17 @@ easymoney/
 │   │           ├── SafeAreaFitter.cs
 │   │           ├── PageBase.cs / PageRouter.cs / TabBar.cs
 │   │           ├── MonthBar.cs         月份条（翻月 + 点年月选月），账单页与报表页共用
+│   │           ├── DropdownButton.cs   就地下拉浮层（按钮正下方弹面板），报表页切视图用
 │   │           ├── PickerDialog.cs     通用选择弹窗（分类 / 账户 / 日期共用）
 │   │           ├── MonthPickerDialog.cs 选择月份弹窗（年份行 + 3×4 月份网格）
 │   │           ├── AccountEditDialog.cs 账户新建 / 编辑弹窗（Task 15）
+│   │           ├── Reports/    报表主体的几种画法，见第 8 节
+│   │           │   ├── IReportView.cs      视图接口（Mode + Render）
+│   │           │   ├── ReportViewHost.cs   按当前模式分发，换视图先清场
+│   │           │   ├── ReportViewParts.cs  共用零件（明细行、空态提示）
+│   │           │   ├── BarReportView.cs    条形图（Task 16 原样搬来）
+│   │           │   ├── DonutReportView.cs  环形图 + 环中心合计
+│   │           │   └── DonutSprite.cs      环形贴图，逐像素程序化生成
 │   │           └── Pages/       RecordPage / TransactionListPage / AccountPage / ReportPage
 │   └── Tests/EditMode/          ✅ 测试程序集 + 冒烟测试
 ├── Tools/                       ✅ run-editmode-tests.sh
@@ -592,6 +601,19 @@ Resources 里没图  →  代码画一个 / 用文字符号顶替
 漏一处那块卡片就平贴在底色上，而且从代码里看不出来。现在收成一个调用。
 账单页的月份条、汇总条、标签栏、标题栏是**直角纯色条**，不是卡片，不走这条路。
 
+### 图表色板（`Theme.ChartColor(i)`）
+
+环形图按分类序号取色，走 `ThemePalette.ChartColors`（浅色 8 色，冷暖交替，
+相邻两块放一起能分得开）。取色一律用 `Theme.ChartColor(i)`，**调用方拿到的是色值、
+不拿到下标**——Core 层不许 `using UnityEngine`，所以「第几号分类该用哪个颜色」
+这个决定只能落在 App 层。
+
+⚠️ **色板刻意不进 `theme.json`。** 它是「一组要能互相区分的颜色」，不是单值配色；
+JsonUtility 解析数组要多写一层，而逐字段比对的两套配色（`theme.json` 与
+`ThemePalette.Light()`）也要跟着复杂一圈。代价是这套色板**不受 `theme.json` 覆盖**——
+`ThemePaletteTests.ChartColors_IgnoreThemeJson` 把这条决定钉住了，免得日后有人以为
+改 `theme.json` 就能换图色。
+
 ### 代码侧
 
 | 类 | 职责 |
@@ -710,7 +732,7 @@ bash Tools/run-editmode-tests.sh
 `PickerDialog`、`AppRoot` 在 EditMode 下**不会被实例化**（界面全部由代码在运行时构建，
 不走 `AppRoot.Awake`），所以对它们来说「编译通过」就是测试能给的上限。
 
-例外有两处：
+例外有三处：
 
 1. **`UiFactoryLayoutTests`**（2026-09-13 加入）。它只 `new GameObject` 摆锚点，
    断言锚点能即时决定的尺寸——`rect` 由锚点和父容器当场算出，不需要 Canvas，也不需要
@@ -721,9 +743,19 @@ bash Tools/run-editmode-tests.sh
    行为（翻月进位、回调、高亮、弹窗联动）。页面的主体部分仍然测不到。
    ⚠️ 关弹窗走的 `Object.Destroy` 在 EditMode 下**非法**（打一条 Error 且什么都不做，
    不是延迟到帧末），点到关闭按钮的用例必须先 `LogAssert.Expect` 声明这条日志。
+3. **`DropdownButtonTests` / `ReportViewHostTests` / `ReportViewRenderTests`**（2026-09-13 加入）。
+   同第 2 条的路子：报表的视图宿主、两个视图实现、下拉浮层都是可直接 `new` 的组件，
+   节点名即形状，于是「切视图会不会叠着画」「选中的还是当前项会不会白刷一次」这类
+   不报错、只画错的毛病才有断言可写。
+   ⚠️ 这条路上有一处对既有约定的**有意偏离**：`UiFactory.DestroyObject` 在
+   `Application.isPlaying` 为假时走 `Object.DestroyImmediate`。原本的约定是「生产代码
+   保持 `Object.Destroy`，EditMode 的非法性由测试侧 `LogAssert.Expect` 吸收」——
+   那条针对的是弹窗，因为那里「销毁」不可观测；而这里**「切视图要清掉旧节点」本身就是
+   被测行为**，销毁是 no-op 的话这条根本验不了。弹窗仍按原约定不动。
 
 **推论：能测的界面逻辑就往下沉成组件。** 月份条原是两页各一份的页面内代码、一条测试
-都没有，收成 `MonthBar` 后才有 19 个用例盯上。
+都没有，收成 `MonthBar` 后才有 19 个用例盯上；报表的主体同理，原先是 `ReportPage` 里的
+几个私有方法，收成 `App/UI/Reports/` 下的视图与宿主后才有 57 个用例。
 
 结论：改完界面代码，仍然必须在 Unity 里点 Play 肉眼确认。
 
