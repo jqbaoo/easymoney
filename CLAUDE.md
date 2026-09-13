@@ -246,6 +246,10 @@ bash Tools/run-editmode-tests.sh
 2. 改了代码后**在 Unity Console 确认无编译报错**。命令行编译验证经常因为
    编辑器占用而跑不了，所以这一步不能省
 3. 不要提交 `Temp/`、`Logs/`、`Library/`
+4. **别用 `git add -A` 一把梭，先 `git status` 逐个看过再 add。** Unity 跑过之后
+   会自己改写 `ProjectSettings/` 下的文件——实测构建完 `UnityConnectSettings.asset`
+   的 `m_Enabled` 被从 `0` 写成了 `1`，这次的改动跟它毫无关系，混进提交里以后
+   没人知道它为什么变了
 
 ---
 
