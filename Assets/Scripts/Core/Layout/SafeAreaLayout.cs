@@ -84,6 +84,35 @@ namespace EasyMoney.Core
             return fExtra;
         }
 
+        /// <summary>
+        /// 从两个来源里挑出导航栏高度（屏幕像素）。
+        ///
+        /// **新 API 优先，它为 0 才回退老的；两个都拿不到就是 0。**
+        ///
+        /// 为什么必须有回退：真机实测（Redmi K60 / Android 15 / 三键导航）
+        /// API 30+ 的 <c>getInsets(Type.navigationBars())</c> 返回 **0**，而 deprecated 的
+        /// <c>getSystemWindowInsetBottom()</c> 给出了正确的 **124px**。少了这一步，
+        /// 现象就是「修了跟没修一样」——`extra` 算出来恒为 0，而界面上看不出原因。
+        ///
+        /// ⚠️ **不要改成取两者的较大值。** 两个来源都可能给出与当前导航模式不符的偏大值
+        /// （手势导航时导航栏只有一条细缝），取大就会多让出一截——那是白边，同样不报错。
+        /// 新 API 优先是因为它语义最准（按 Type 取，不受 deprecated 语义影响）。
+        /// </summary>
+        public static int ResolveNavigationBarHeight(int iNewApiPx, int iLegacyPx)
+        {
+            if (iNewApiPx > 0)
+            {
+                return iNewApiPx;
+            }
+
+            if (iLegacyPx > 0)
+            {
+                return iLegacyPx;
+            }
+
+            return 0;
+        }
+
         private static float _clamp01(float fValue)
         {
             if (fValue < 0f)

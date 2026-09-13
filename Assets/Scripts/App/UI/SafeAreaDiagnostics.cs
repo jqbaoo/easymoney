@@ -19,7 +19,19 @@ namespace EasyMoney.App.UI
     {
         private const float PANEL_HEIGHT = 130f;
 
+        /// <summary>
+        /// 读数多久刷一次。
+        ///
+        /// ⚠️ <b>不是为了省 CPU，是为了不把 JNI local ref 表撑爆。</b>
+        /// 每读一次要新建五六个 AndroidJavaObject，各占一个 local ref，而本地引用表
+        /// 只有 512 项。按帧读，几秒后就是 local reference table overflow 直接崩，
+        /// 且崩得毫无线索。生产路径（SafeAreaFitter）本来就只在尺寸变化时才读，
+        /// 别让这个临时组件把那条纪律破坏掉。
+        /// </summary>
+        private const float REFRESH_SECONDS = 0.5f;
+
         private Text m_Label;
+        private float m_NextRefresh;
 
         public static void Attach(RectTransform oCanvas)
         {
@@ -49,13 +61,16 @@ namespace EasyMoney.App.UI
 
         private void Update()
         {
-            if (m_Label == null)
+            if (m_Label == null || Time.realtimeSinceStartup < m_NextRefresh)
             {
                 return;
             }
 
+            m_NextRefresh = Time.realtimeSinceStartup + REFRESH_SECONDS;
+
             Rect oSafe = Screen.safeArea;
             int iNavBar = AndroidSystemBars.NavigationBarHeightPx();
+            int iNewApi = AndroidSystemBars.NewApiNavigationBarHeightPxForDiagnostics();
             int iLegacy = AndroidSystemBars.LegacyNavigationBarHeightPxForDiagnostics();
 
             // 重算一遍「该让多少」，跟界面上实际的表现对照。
@@ -69,7 +84,7 @@ namespace EasyMoney.App.UI
             m_Label.text =
                 $"safeArea y={oSafe.y:F0} h={oSafe.height:F0} w={oSafe.width:F0}\n" +
                 $"screen {Screen.width}x{Screen.height}  " +
-                $"nav {iNavBar}/{iLegacy}  extra {fExtra:F0}";
+                $"nav {iNavBar} (new {iNewApi}/old {iLegacy})  extra {fExtra:F0}";
         }
     }
 }

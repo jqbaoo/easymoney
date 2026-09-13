@@ -187,5 +187,48 @@ namespace EasyMoney.Tests
             Assert.LessOrEqual(oAnchors.MinX, oAnchors.MaxX, "锚点倒置会让节点镜像");
             Assert.LessOrEqual(oAnchors.MinY, oAnchors.MaxY);
         }
+
+        // ── 导航栏高度取哪个来源 ────────────────────
+
+        [Test]
+        public void ResolveNavigationBarHeight_NewApiHasValue_UsesIt()
+        {
+            Assert.AreEqual(124, SafeAreaLayout.ResolveNavigationBarHeight(124, 124));
+            Assert.AreEqual(96, SafeAreaLayout.ResolveNavigationBarHeight(96, 90),
+                "两个都有值时以新 API 为准");
+        }
+
+        [Test]
+        public void ResolveNavigationBarHeight_NewApiZero_FallsBackToLegacy()
+        {
+            // 真机实测的形状：Redmi K60 / Android 15 / 三键导航下，
+            // getInsets(Type.navigationBars()) 返回 0，而 getSystemWindowInsetBottom
+            // 给出了正确的 124。少了这条回退，extra 恒为 0，现象就是「修了跟没修一样」
+            Assert.AreEqual(124, SafeAreaLayout.ResolveNavigationBarHeight(0, 124));
+        }
+
+        [Test]
+        public void ResolveNavigationBarHeight_BothZero_ReturnsZero()
+        {
+            Assert.AreEqual(0, SafeAreaLayout.ResolveNavigationBarHeight(0, 0),
+                "两条路都没值：这台设备没有导航栏，或者还没读到");
+        }
+
+        [Test]
+        public void ResolveNavigationBarHeight_NegativeValues_TreatedAsZero()
+        {
+            Assert.AreEqual(0, SafeAreaLayout.ResolveNavigationBarHeight(-1, -1),
+                "诊断读数用 -1 表示「读失败」，不能当高度用");
+            Assert.AreEqual(124, SafeAreaLayout.ResolveNavigationBarHeight(-1, 124));
+        }
+
+        [Test]
+        public void ResolveNavigationBarHeight_LegacyLargerThanNewApi_KeepsNewApi()
+        {
+            // ⚠️ 这条钉的是「不许改成取两者较大值」：手势导航下导航栏只有一条细缝，
+            // 而某些来源给的是三键的固定高度，取大就会多让出一截——那是白边，同样不报错
+            Assert.AreEqual(48, SafeAreaLayout.ResolveNavigationBarHeight(48, 124),
+                "新 API 有值时不要因为老 API 更大就改用它");
+        }
     }
 }

@@ -48,9 +48,11 @@ namespace EasyMoney.App.UI
         /// <summary>
         /// ⚠️ <b>临时，仅供本次真机验收的诊断读数用，验完连同 AppRoot 里那段读数一起删。</b>
         ///
-        /// 老 API 取到的值。生产路径按 SDK_INT 只走一条分支，这个方法是拿来交叉对照的：
-        /// 真机上两个值都对不上或者都是 0，说明读法在这个机型上不成立，而不是「这台设备
-        /// 不需要补」。非 Android 返回 -1，与「读到了 0」区分开。
+        /// 兜底取法（老 API）读到的值，与
+        /// <see cref="NewApiNavigationBarHeightPxForDiagnostics"/> 交叉对照用。
+        /// 真机上两个值要是都对不上、或者一个有一个没有，就能一眼看出走的是哪条路——
+        /// 只显示最终值的话，「正路返回 0 所以回退了」和「这台设备本来就没导航栏」
+        /// 长得一模一样。非 Android 返回 -1，与「读到了 0」区分开。
         ///
         /// 外层不带 <c>#if</c> 是为了让调用方（SafeAreaDiagnostics）不必也包一层——
         /// 那个组件的 Update 在编辑器里照样要编译。
@@ -58,7 +60,24 @@ namespace EasyMoney.App.UI
         public static int LegacyNavigationBarHeightPxForDiagnostics()
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
-            return _readLegacyNavigationBarHeightPx();
+            return _probeInsets(false);
+#else
+            return -1;
+#endif
+        }
+
+        /// <summary>
+        /// ⚠️ 临时，同上一段的用途：正路（API 30+ 的 <c>getInsets</c>）能读到多少。
+        /// 非 Android 返回 -1。
+        ///
+        /// ⚠️ <b>这两个诊断方法都必须留在这个 <c>#if</c> 块外面</b>——调用方
+        /// SafeAreaDiagnostics 的 Update 在编辑器里照样要编译，方法在块内的话
+        /// 编辑器下直接 CS0117。这个错已经犯过一次了。
+        /// </summary>
+        public static int NewApiNavigationBarHeightPxForDiagnostics()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            return _probeInsets(true);
 #else
             return -1;
 #endif
@@ -102,25 +121,62 @@ namespace EasyMoney.App.UI
             }
         }
 
+        /// <summary>
+        /// 两个来源各读一遍，挑哪一个的规则在
+        /// <see cref="SafeAreaLayout.ResolveNavigationBarHeight"/> 里（可测的纯函数）。
+        /// </summary>
         private static int _navigationBarBottom(AndroidJavaObject oInsets)
         {
-            if (_sdkInt() < 30)
+            int iNewApi = _sdkInt() >= 30 ? _insetsBottom(oInsets) : 0;
+            int iLegacy = _legacyInsetBottom(oInsets);
+
+            return SafeAreaLayout.ResolveNavigationBarHeight(iNewApi, iLegacy);
+        }
+
+        /// <summary>
+        /// API 30+ 的正路：按 Type 取导航栏的 inset。
+        ///
+        /// ⚠️ **自带 try/catch，失败只吞掉自己。** 这条路径在真机上实测会返回 0
+        /// （见 <see cref="SafeAreaLayout.ResolveNavigationBarHeight"/> 的注释），
+        /// 要是让异常冒到外层那个 catch，后面的 legacy 兜底会被一起带走，
+        /// 于是又变成「修了跟没修一样」。
+        /// </summary>
+        private static int _insetsBottom(AndroidJavaObject oInsets)
+        {
+            try
             {
-                // API 30 起标记为废弃，但一直没有移除（到 API 36 都还在），
-                // 而且零参数、不用再找一个类，做老设备的分支正合适
-                return oInsets.Call<int>("getSystemWindowInsetBottom");
+                // ⚠️ WindowInsets$Type 在 API 30 以下不存在，FindClass 会直接抛，
+                // 所以这个类只能在分支内部构造，不能提到 if 外面
+                using AndroidJavaClass oType = new AndroidJavaClass("android.view.WindowInsets$Type");
+                int iNavigationBars = oType.CallStatic<int>("navigationBars");
+
+                using AndroidJavaObject oBarInsets =
+                    oInsets.Call<AndroidJavaObject>("getInsets", iNavigationBars);
+
+                if (oBarInsets == null)
+                {
+                    return 0;
+                }
+
+                // android.graphics.Insets.bottom 是 public final int **字段**，
+                // 没有 getBottom() 方法，用 Get 不是 Call
+                return oBarInsets.Get<int>("bottom");
             }
+            catch (System.Exception oError)
+            {
+                Debug.LogWarning($"[AndroidSystemBars] getInsets 取导航栏高度失败，改用兜底取法：{oError}");
+                return 0;
+            }
+        }
 
-            // ⚠️ WindowInsets$Type 在 API 30 以下不存在，FindClass 会直接抛，
-            // 所以这个类只能在分支内部构造，不能提到 if 外面
-            using AndroidJavaClass oType = new AndroidJavaClass("android.view.WindowInsets$Type");
-            int iNavigationBars = oType.CallStatic<int>("navigationBars");
-
-            using AndroidJavaObject oBarInsets = oInsets.Call<AndroidJavaObject>("getInsets", iNavigationBars);
-
-            // android.graphics.Insets.bottom 是 public final int **字段**，
-            // 没有 getBottom() 方法，用 Get 不是 Call
-            return oBarInsets.Get<int>("bottom");
+        /// <summary>
+        /// 兜底：API 20 就有、一直被标记废弃但到 API 36 都没移除的零参数方法。
+        /// 真机上它反而比正路可靠，理由见
+        /// <see cref="SafeAreaLayout.ResolveNavigationBarHeight"/> 的注释。
+        /// </summary>
+        private static int _legacyInsetBottom(AndroidJavaObject oInsets)
+        {
+            return oInsets.Call<int>("getSystemWindowInsetBottom");
         }
 
         private static int _sdkInt()
@@ -134,7 +190,7 @@ namespace EasyMoney.App.UI
             return s_SdkInt;
         }
 
-        private static int _readLegacyNavigationBarHeightPx()
+        private static int _probeInsets(bool bNewApi)
         {
             try
             {
@@ -150,7 +206,13 @@ namespace EasyMoney.App.UI
                 using AndroidJavaObject oDecorView = oWindow.Call<AndroidJavaObject>("getDecorView");
                 using AndroidJavaObject oInsets = oDecorView.Call<AndroidJavaObject>("getRootWindowInsets");
 
-                return oInsets == null ? -1 : oInsets.Call<int>("getSystemWindowInsetBottom");
+                if (oInsets == null)
+                {
+                    return -1;
+                }
+
+                // 调用方（诊断读数）按刷新间隔限流，不是每帧都走这里
+                return bNewApi && _sdkInt() >= 30 ? _insetsBottom(oInsets) : _legacyInsetBottom(oInsets);
             }
             catch (System.Exception oError)
             {
