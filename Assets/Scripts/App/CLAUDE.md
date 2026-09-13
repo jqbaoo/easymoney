@@ -26,7 +26,9 @@ App/
     ├── PageBase.cs         页面抽象基类
     ├── PageRouter.cs       页面注册与切换
     ├── TabBar.cs           底部标签栏
+    ├── MonthBar.cs         月份条（左右翻月 + 点年月文字选月），账单页与报表页共用
     ├── PickerDialog.cs     通用选择弹窗（分类 / 账户 / 日期共用）
+    ├── MonthPickerDialog.cs 选择月份弹窗（年份行 + 3×4 月份网格）
     ├── AccountEditDialog.cs 账户新建 / 编辑弹窗（Task 15）
     └── Pages/
         ├── RecordPage.cs
@@ -200,7 +202,14 @@ AmountText` 往 `Text` 里塞。理由很实在：EditMode 测试根本跑不到
 管构成标题、占比文案与条形宽度（`ReportFormTests`）。
 
 页面之间重复的写法也该往上收：月份标题原先账单页与报表页各拼一遍，现在统一走
-`TimeUtil.FormatYearMonth`。
+`TimeUtil.FormatYearMonth`。同一条月份条（左右箭头 + 年月文字）原先两页各写一份，
+**连三个常量都各定义一遍**，现在已经收成 `App/UI/MonthBar.cs`——记账页与报表页各
+`new MonthBar(oTop, Root, _refresh)` 一行，年月由它持有，页面通过 `m_MonthBar.Year` /
+`.Month` 取数。
+
+⚠️ 收成组件还有一层好处：**页面里的代码 EditMode 测试够不着，组件够得着**。
+月份条的翻页、跨年进位、文案、点开弹窗选月，现在有 `MonthBarTests` 10 个用例盯着
+（在这之前一条都没有）。往页面里加逻辑前，先想想能不能这样提到组件里。
 
 弹窗里还有个容易写错的点：**不要就地改传进来的 `Account`**。它是引用类型，就地改会让
 「点取消」变成改了一半的假取消——表单状态放局部变量，点保存再组装一个新对象写库。
@@ -324,6 +333,23 @@ PickerDialog.Show(Root, "选择分类", lLabels, lIcons,
   让它认识「分类图标」这个概念是错的耦合。页面解析好名字传进来
 - 一旦传了列表，**所有行都建图标位**，跟当前这项有没有图无关——否则同一弹窗里
   有图的项和没图的项文字左边缘会错开
+
+### 三个弹窗怎么分工
+
+| 弹窗 | 形状 | 什么时候用 |
+|---|---|---|
+| `PickerDialog` | **不定长的一列选项** + 滚动，当前项打勾 | 分类 / 账户 / 日期 / 类型——选项多寡不定 |
+| `MonthPickerDialog` | **固定的 3×4 月份网格** + 顶部年份翻页 | 只给「选到某年某月」用，通常由 `MonthBar` 拉起 |
+| `AccountEditDialog` | 表单（输入框 + 类型分段 + 保存/取消） | 账户的新建与编辑 |
+
+别把月份网格塞进 `PickerDialog`——「不定长滚动列表」与「固定网格 + 年份翻页」
+是两种形状，硬塞会把两边都搞乱。`MonthPickerDialog` 也**不并进 `MonthBar`**：
+`MonthBar` 是常驻的条，弹窗是随用随建的覆盖层，生命周期不一样。
+
+⚠️ **关弹窗一律走 `Object.Destroy`，它在 EditMode 下是非法的**（直接打一条 Error
+并且什么都不做，不是延迟到帧末）。所以 EditMode 测试里点到「会关弹窗」的那一下，
+必须先 `LogAssert.Expect` 声明这条错误日志，否则测试会被判失败——
+`MonthPickerDialogTests._expectEditModeDestroy` 就是这么做的。真机跑 Play 模式，没这回事。
 
 ## 注意事项
 

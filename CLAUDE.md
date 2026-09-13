@@ -20,7 +20,7 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   四个页面 + Android 打包
   （`Core`：Money / TimeUtil / 模型 / 校验 / 报表 / 快捷金额 / 账单展示投影 / 账户表单 / 报表展示；
   `Data`：SQLite / 三个仓储 / 记账服务 / 多维筛选；`App`：`AppContext` / 记账页 / 账单页 / 账户页 / 报表页）
-- ✅ **243 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
+- ✅ **270 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
 - ✅ 标签 **`data-layer-complete`**（业务逻辑层封顶）、**`mvp-complete`**
 - ✅ **APK 构建成功**（`bash Tools/build-android.sh` → `Builds/EasyMoney.apk`，29 MB），
   真机 18 项验收通过 17 项
@@ -39,6 +39,15 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   焦糖棕主色，卡片统一加一层投影（`UiFactory.PaintCard` / `AddCardShadow`）。
   配色在 `theme.json` 和 `ThemePalette.Light()` 两处，`ThemePaletteTests` 钉着一致。
   ⚠️ **尚未 Play 肉眼验收**——配色和投影是纯视觉的，EditMode 测不到
+- ✅ **月份条抽组件 + 点年月选月份**（2026-09-13）—— 账单页和报表页的月份条
+  原先逐字重复（连 `MONTH_BAR_HEIGHT` / `NAV_BUTTON_WIDTH` / `NAV_ICON_SIZE`
+  三个常量都各定义一份），收成 `App/UI/MonthBar.cs`，两页各一行 `new MonthBar(...)`；
+  中间的年月文字从裸 `Text` 变成可点的「文字 + `↓`」，点开 `MonthPickerDialog`
+  （年份行 + 3×4 月份网格）一次跳到目标月。
+  ⚠️ **顺手多了一条教训**：月份条原来在页面里，一条测试都没有；收成组件后
+  `MonthBarTests` + `MonthPickerDialogTests` 共 19 个用例才够得着它——
+  **能测的界面逻辑就往下沉成组件**
+  ⚠️ **尚未 Play 肉眼验收**——弹窗布局、遮罩、加了箭头后整组是否仍居中，EditMode 测不到
 
 **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
 `ITransactionRepository` 等于绕过校验。
@@ -58,6 +67,11 @@ Task 14 抽的是 `Core/Statements/StatementBuilder.cs`（按本地日期分组 
 名称兜底），Task 15 抽的是 `Core/Accounts/AccountForm.cs`（类型标签 / 名称与初始
 余额校验），Task 16 抽的是 `Core/Reports/ReportForm.cs`（构成标题 / 占比文案 /
 条形宽度钳位），页面只管取数和渲染。
+
+**规则能抽成纯函数就抽，抽不成纯函数的就收成组件**——组件不是页面，EditMode 里
+`new` 得出来、节点名就是它的形状，也就测得了。月份条（`App/UI/MonthBar.cs`）是
+后一条路的先例：原先两页各一份、零测试，收成组件后 19 个用例盯上了它的翻月进位、
+回调与弹窗联动。**先问「这段逻辑能不能离开页面」，再问「该放 Core 还是该做组件」。**
 
 ⚠️ **反向验证会暴露测试自身的洞，别把「预测失败数对上了」当成通过。** Task 15 注入
 4 个假 bug 后失败数确实是 5，但对不上预测的那 5 个：`Validate_EmptyBalance_MeansZero`

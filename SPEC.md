@@ -23,7 +23,7 @@
 Core 层   ██████████ 100%   Money / TimeUtil / 模型 / 校验 / 报表 / 账单展示投影 / 账户表单 / 报表展示（Task 2-3、5、7、9-11、14-16）
 Data 层   ██████████ 100%   SQLite / 三个仓储 / 记账服务 / 筛选（Task 4、6-11）
 App 层    ██████████ 100%   记账页 / 账单页 / 账户页 / 报表页全部通真实数据
-测试      ██████████ 100%   248 个用例全绿（Money 7 + Parser 17 + TimeUtil 12 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 16 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 11 + 筛选 18 + 报表 16 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 26 + 账户表单 13 + 报表展示 12 + 构建配置守卫 9 + 结构迁移 13 + 字体槽位 8 + 配色 5）
+测试      ██████████ 100%   270 个用例全绿（Money 7 + Parser 17 + TimeUtil 15 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 16 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 11 + 筛选 18 + 报表 16 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 26 + 账户表单 13 + 报表展示 12 + 构建配置守卫 9 + 结构迁移 13 + 字体槽位 8 + 配色 5 + 月份条 10 + 月份弹窗 9）
 打包      ██████████ 100%   APK 已构建，Redmi K60 真机验收 18 项中 17 项通过
 ```
 
@@ -54,6 +54,7 @@ App 层    ██████████ 100%   记账页 / 账单页 / 账户�
 
 | **分类图标** | `Resources/Icons/cat_*.png`、`Data/DefaultCategories.cs`、`Data/SchemaMigrations.cs`、`App/UI/UiFactory.cs` | 计划外新增。15 个预置分类的图标接进账单行 / 报表行 / 记账页分类行 / 分类选择弹窗四处；老库的 `icon_name` 靠 v2 迁移补上。见第 7 节 |
 | **暖色纸感配色 + 卡片投影** | `Resources/theme.json`、`App/UI/ThemePalette.cs`、`App/UI/UiFactory.cs` | 计划外新增。原来是浅灰底 `#F2F3F5` 配白卡片，两者只差 13 个色阶、卡片又没有投影，整屏看着就是一片白。换成暖色纸感，卡片投影收进 `UiFactory.PaintCard` / `AddCardShadow`。配色在 `theme.json` 与 `ThemePalette.Light()` 两处，`ThemePaletteTests` 钉着一致。⚠️ **尚未 Play 肉眼验收**。见第 7 节 |
+| **月份条抽组件 + 点年月选月份** | `App/UI/MonthBar.cs`、`App/UI/MonthPickerDialog.cs`、`Core/TimeUtil.cs`、`App/UI/UiFactory.cs` | 计划外新增。账单页与报表页的月份条原先逐字重复（连三个常量都各定义一份），收成 `MonthBar` 后两页各一行 `new MonthBar(...)`；中间的年月文字从裸 `Text` 变成可点的「文字 + `↓`」横排，点开 `MonthPickerDialog`（年份行 + 3×4 月份网格）一次跳到目标月。`TimeUtil` 新增 `FormatYear` / `FormatMonth`，`FormatYearMonth` 改为拼这两个。**弹窗与月份条首次有了 EditMode 覆盖**（19 个用例）——原先逻辑在页面里，测试够不着 |
 
 ### 全部完成
 
@@ -146,7 +147,9 @@ easymoney/
 │   │           ├── AssetPaths.cs / AssetProvider.cs / IconNames.cs
 │   │           ├── SafeAreaFitter.cs
 │   │           ├── PageBase.cs / PageRouter.cs / TabBar.cs
+│   │           ├── MonthBar.cs         月份条（翻月 + 点年月选月），账单页与报表页共用
 │   │           ├── PickerDialog.cs     通用选择弹窗（分类 / 账户 / 日期共用）
+│   │           ├── MonthPickerDialog.cs 选择月份弹窗（年份行 + 3×4 月份网格）
 │   │           ├── AccountEditDialog.cs 账户新建 / 编辑弹窗（Task 15）
 │   │           └── Pages/       RecordPage / TransactionListPage / AccountPage / ReportPage
 │   └── Tests/EditMode/          ✅ 测试程序集 + 冒烟测试
@@ -183,6 +186,8 @@ package "EasyMoney.Core  (noEngineReferences: true)" #E8F5E9 {
     +{static} long StartOfMonthMs(int, int)
     +{static} long StartOfNextMonthMs(int, int)
     +{static} (int,int) CurrentYearMonth()
+    +{static} string FormatYear(int)
+    +{static} string FormatMonth(int)
     +{static} string FormatYearMonth(int, int)
     +{static} (int,int) AddMonths(int, int, int)
   }
@@ -309,7 +314,15 @@ package "EasyMoney.App" #FFF3E0 {
   class PageBase
   class PageRouter
   class TabBar
+  class MonthBar {
+    +{static} float HEIGHT
+    +int Year
+    +int Month
+  }
   class PickerDialog
+  class MonthPickerDialog {
+    +{static} void Show(RectTransform, int, int, Action<int,int>)
+  }
   class UiFactory
   class Theme
   class AssetProvider
@@ -343,12 +356,19 @@ PageBase <|-- ReportPage
 RecordPage ..> UiFactory
 TransactionListPage ..> UiFactory
 TransactionListPage ..> StatementBuilder : 分组与文案规则
+TransactionListPage --> MonthBar : 年月由它持有
 AccountPage ..> UiFactory
 AccountPage ..> AccountEditDialog : 添加 / 编辑
 AccountEditDialog ..> AccountForm : 表单规则
 AccountEditDialog ..> PickerDialog : 选类型
 ReportPage ..> ReportForm : 占比文案与条形宽度
 ReportPage ..> UiFactory
+ReportPage --> MonthBar : 年月由它持有
+MonthBar ..> UiFactory
+MonthBar ..> MonthPickerDialog : 点年月文字拉起
+MonthBar ..> TimeUtil : 切月进位 / 年月文案
+MonthPickerDialog ..> UiFactory
+MonthPickerDialog ..> TimeUtil : 年份与月份文案
 UiFactory ..> Theme
 UiFactory ..> AssetProvider
 UiFactory ..> SpriteFactory
@@ -609,6 +629,12 @@ Theme.Apply(ThemePalette.Dark());   // 界面会自动整体重建
 （本轮改造前页面里散落过 `">"` `"<"` `"+ 添加账户"` 这类硬编码符号，已经全部消除。
 发现新的硬编码就该挪进 `Theme` 或 `IconNames`。）
 
+⚠️ **兜底文字只能是字体子集里真有的字。** 字体按「GB2312 汉字 + ASCII + 中文标点
++ 货币符号」子集化（7594 字，脚本 `D:\font-tmp\subset.py`），挑错的字符**代码不报错、
+测试也测不出来，真机上就是一片空白**——备注里的 emoji 是同一个坑。已实测：
+`↓` `∨` `ˇ` `<` `>` 在子集里；`▾` `▼` `▽` `‹` `›` `«` `»` **都不在**。
+月份条那个下拉提示的兜底 `↓` 就是这么挑出来的。
+
 ---
 
 ## 9. 命名与编码规范（用户强制要求）
@@ -684,10 +710,20 @@ bash Tools/run-editmode-tests.sh
 `PickerDialog`、`AppRoot` 在 EditMode 下**不会被实例化**（界面全部由代码在运行时构建，
 不走 `AppRoot.Awake`），所以对它们来说「编译通过」就是测试能给的上限。
 
-唯一的例外是 `UiFactoryLayoutTests`（2026-09-13 加入）。它只 `new GameObject` 摆锚点，
-断言锚点能即时决定的尺寸——`rect` 由锚点和父容器当场算出，不需要 Canvas，也不需要
-`LayoutRebuilder`，所以 EditMode 下跑得动也不飘。**布局组算出的高度依赖一次真实的
-布局重建，不在这里测**，别往里加那类断言。
+例外有两处：
+
+1. **`UiFactoryLayoutTests`**（2026-09-13 加入）。它只 `new GameObject` 摆锚点，
+   断言锚点能即时决定的尺寸——`rect` 由锚点和父容器当场算出，不需要 Canvas，也不需要
+   `LayoutRebuilder`，所以 EditMode 下跑得动也不飘。**布局组算出的高度依赖一次真实的
+   布局重建，不在这里测**，别往里加那类断言。
+2. **`MonthBarTests` / `MonthPickerDialogTests`**（2026-09-13 加入）。界面组件**不是页面**，
+   只要不经过 `AppRoot` 就能直接 `new` 出来，节点名是它们对外的形状，按名字取节点即可断言
+   行为（翻月进位、回调、高亮、弹窗联动）。页面的主体部分仍然测不到。
+   ⚠️ 关弹窗走的 `Object.Destroy` 在 EditMode 下**非法**（打一条 Error 且什么都不做，
+   不是延迟到帧末），点到关闭按钮的用例必须先 `LogAssert.Expect` 声明这条日志。
+
+**推论：能测的界面逻辑就往下沉成组件。** 月份条原是两页各一份的页面内代码、一条测试
+都没有，收成 `MonthBar` 后才有 19 个用例盯上。
 
 结论：改完界面代码，仍然必须在 Unity 里点 Play 肉眼确认。
 
