@@ -32,8 +32,13 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   记账页分类行 / 分类选择弹窗四处。图标名是**数据**（存在 `category.icon_name` 里），
   所以新装的库走 `DefaultCategories` 种子、**老库走 v2 迁移补**，两条路都得改，
   只改一边会有一半用户看不到图标。
-  ⚠️ 这一版动了 `SCHEMA_VERSION`（1 → 2），**真机上要验的是「老库升级后图标出现」**，
-  不只是全新安装能显示
+  这一版动了 `SCHEMA_VERSION`（1 → 2），老库靠迁移补上（覆盖路径不再真机验收，
+  见下面「验收」）
+- ✅ **暖色纸感配色 + 卡片投影**（2026-09-13）—— 原来是浅灰底 `#F2F3F5` 配白卡片，
+  两者只差 13 个色阶、卡片又没有投影，整屏看着就是一片白。换成燕麦米白底 + 暖白卡片 +
+  焦糖棕主色，卡片统一加一层投影（`UiFactory.PaintCard` / `AddCardShadow`）。
+  配色在 `theme.json` 和 `ThemePalette.Light()` 两处，`ThemePaletteTests` 钉着一致。
+  ⚠️ **尚未 Play 肉眼验收**——配色和投影是纯视觉的，EditMode 测不到
 
 **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
 `ITransactionRepository` 等于绕过校验。
@@ -118,11 +123,20 @@ Task 14 抽的是 `Core/Statements/StatementBuilder.cs`（按本地日期分组 
 - 尺寸字号一律来自 `Theme.cs` 的 `const`
 - 颜色一律通过 `Theme.XXX` 取，页面里不许出现 `new Color(...)` 字面量
 - 图标名一律用 `IconNames.XXX`，不许写字符串
+- **卡片底一律用 `UiFactory.PaintCard`**，别自己拼 `Image` + `Sliced` + `SURFACE`——
+  那段样板在三个页面各抄过一遍，加投影时漏一处，那块卡片就平贴在底色上，
+  而且从代码里看不出来
+- 卡片色和页面底色只差十几个色阶，层次是靠投影交代的。**改配色别把 `shadow` 调没了**
 
 ### 资源
 - 全项目**只有 `AssetProvider` 能碰 `Resources.Load`**
 - 资源缺失时返回 `null`，调用方走代码兜底，**不抛异常、不给占位图**
 - 换资源只改 `Assets/Resources/` 下的文件，**不改代码**
+
+### 验收
+- **真机验收一律装全新的，不跑覆盖安装那条路径。** 迁移代码（`SchemaMigrator` +
+  `SchemaMigrations.ALL`）照旧要写、要有测试——它防的是老库 `no such column`
+  崩溃，不是可选项——但「升级上来的老库」不再列进真机验收清单
 
 ---
 

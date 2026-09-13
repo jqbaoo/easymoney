@@ -112,21 +112,32 @@ ASCII + 中文标点 + 货币符号」共 7594 字。**超出这个范围的生�
 
 ```json
 {
-  "background":  "#F2F3F5",
-  "surface":     "#FFFFFF",
-  "primary":     "#307AE8",
-  "expense":     "#E03E3E",
-  "income":      "#2EA05C",
-  "textPrimary": "#1F2126",
-  "textWeak":    "#8A8F99",
-  "divider":     "#E6E8EB",
-  "barTrack":    "#E6E8EB",
-  "scrim":       "#00000073"
+  "background":  "#F2ECE2",
+  "surface":     "#FFFCF6",
+  "primary":     "#A9714B",
+  "expense":     "#C0523C",
+  "income":      "#4F8A5B",
+  "textPrimary": "#2B2620",
+  "textWeak":    "#8A8177",
+  "divider":     "#E7DFD2",
+  "barTrack":    "#E7DFD2",
+  "scrim":       "#00000073",
+  "shadow":      "#46311C1A"
 }
 ```
 
+当前是**暖色纸感**：燕麦米白的底、暖白的卡片、焦糖棕的主色。底色和卡片色只差
+十几个色阶，两者之间的边界靠 `shadow` 那层投影交代——**别把 shadow 调没了**，
+不然整页会糊成一片白。
+
 格式 `#RRGGBB` 或 `#RRGGBBAA`。**可以只写想改的项**，没写的自动用默认值。
 格式不合法也只是该项退回默认，不会崩。
+
+⚠️ **这个文件和 `ThemePalette.Light()` 是同一份配色的两个副本。** 运行时由
+`theme.json` 覆盖代码里的值，所以改了这里不改代码，平时看不出问题——只有当
+`theme.json` 缺失或解析失败、`Light()` 那套露脸时才会突然变样。
+`ThemePaletteTests.ShippedThemeJson_MatchesLightPalette` 逐字段钉着两者一致，
+**改配色时两处都要改**（深色配色只在 `ThemePalette.Dark()` 里，不受这个文件影响）。
 
 深色模式：`ThemePalette.Dark()` 已就绪，调 `Theme.Apply(ThemePalette.Dark())`
 界面会自动重建。目前还没接切换入口（等设置页）。

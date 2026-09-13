@@ -272,6 +272,33 @@ UiFactory.SetIconSlot(oSlot, IconNames.ForCategory(oCategory?.IconName), Theme.T
 
 ---
 
+## 卡片
+
+列表行、账户行、报表行这些「圆角卡片底」统一用 `UiFactory.PaintCard`：
+
+```csharp
+UiFactory.PaintCard(oRow);   // 圆角 + 卡片色 + 一层投影
+```
+
+**别自己写 `AddComponent<Image>` + `SpriteFactory.Card()` + `Sliced`**——这段样板
+曾经在三个页面里各抄一遍，加投影时就得改三处，漏一处那块卡片就平贴在底色上，
+而且从代码里完全看不出来。
+
+投影走 `UiFactory.AddCardShadow`（UGUI 的 `Shadow` 组件），画在**节点之外**，
+不动任何布局尺寸。把投影烘进底图是不行的：九宫格的 border 必须连它一起包住，
+图被拉伸到节点尺寸时卡片本体就比节点小一圈，行高、内边距、行间距全得跟着重量一遍。
+代价是 `Shadow` 只偏移不模糊、边缘偏硬——想要柔和投影就给美术一张 `card.png`，
+`AssetProvider` 会优先用图。
+
+⚠️ **卡片色和页面底色只差十几个色阶**（暖色纸感就是这么设计的），两者的边界
+全靠这层投影交代。调整用 `Theme.SHADOW` / `Theme.SHADOW_OFFSET`，
+色值来自 `Resources/theme.json` 的 `shadow` 键。
+
+**并不是所有白底都该有投影**：账单页的月份条、汇总条是直角纯色条，标签栏和标题栏
+也是——它们是「栏」不是「卡片」，`PaintCard` 只给真正的卡片用。
+
+---
+
 ## 选择弹窗
 
 「弹一个列表让用户挑」的交互统一走 `PickerDialog`，不要各写一套：

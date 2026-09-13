@@ -23,7 +23,7 @@
 Core 层   ██████████ 100%   Money / TimeUtil / 模型 / 校验 / 报表 / 账单展示投影 / 账户表单 / 报表展示（Task 2-3、5、7、9-11、14-16）
 Data 层   ██████████ 100%   SQLite / 三个仓储 / 记账服务 / 筛选（Task 4、6-11）
 App 层    ██████████ 100%   记账页 / 账单页 / 账户页 / 报表页全部通真实数据
-测试      ██████████ 100%   243 个用例全绿（Money 7 + Parser 17 + TimeUtil 12 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 16 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 11 + 筛选 18 + 报表 16 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 26 + 账户表单 13 + 报表展示 12 + 构建配置守卫 9 + 结构迁移 13 + 字体槽位 8）
+测试      ██████████ 100%   248 个用例全绿（Money 7 + Parser 17 + TimeUtil 12 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 16 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 11 + 筛选 18 + 报表 16 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 26 + 账户表单 13 + 报表展示 12 + 构建配置守卫 9 + 结构迁移 13 + 字体槽位 8 + 配色 5）
 打包      ██████████ 100%   APK 已构建，Redmi K60 真机验收 18 项中 17 项通过
 ```
 
@@ -53,6 +53,7 @@ App 层    ██████████ 100%   记账页 / 账单页 / 账户�
 | **报表页** | `App/UI/Pages/ReportPage.cs`、`Core/Reports/ReportForm.cs` | Task 16 产出。月份切换 + 收支汇总 + 支出/收入分类占比条形图。**展示规则抽在 Core 的 `ReportForm` 里**（构成标题、占比文案、条形宽度钳位），月份格式统一走 `TimeUtil.FormatYearMonth`。`DemoData.cs` 已随之删除 |
 
 | **分类图标** | `Resources/Icons/cat_*.png`、`Data/DefaultCategories.cs`、`Data/SchemaMigrations.cs`、`App/UI/UiFactory.cs` | 计划外新增。15 个预置分类的图标接进账单行 / 报表行 / 记账页分类行 / 分类选择弹窗四处；老库的 `icon_name` 靠 v2 迁移补上。见第 7 节 |
+| **暖色纸感配色 + 卡片投影** | `Resources/theme.json`、`App/UI/ThemePalette.cs`、`App/UI/UiFactory.cs` | 计划外新增。原来是浅灰底 `#F2F3F5` 配白卡片，两者只差 13 个色阶、卡片又没有投影，整屏看着就是一片白。换成暖色纸感，卡片投影收进 `UiFactory.PaintCard` / `AddCardShadow`。配色在 `theme.json` 与 `ThemePalette.Light()` 两处，`ThemePaletteTests` 钉着一致。⚠️ **尚未 Play 肉眼验收**。见第 7 节 |
 
 ### 全部完成
 
@@ -479,6 +480,10 @@ SQL 怎么写——v2 的三个条件里 `icon_name = ''` 和 `ELSE icon_name` �
 `..._DoesNotOverwriteExistingIcon`（钉住可重跑性）、
 `..._MatchesFreshInstallSeed`（升级路径与全新安装到达同一状态）。
 
+⚠️ **但覆盖安装不再是验收项。** 迁移该写、该测——它防的是老库 `no such column`
+崩溃，不是可选项——只是「升级上来的老库」不再列进真机验收清单：**真机一律装全新的**。
+上面那四条用例已经把升级路径的行为钉在测试里，不必每次真机再走一遍。
+
 ---
 
 ## 7. 资源层（美术换图用）
@@ -499,13 +504,13 @@ Resources 里没图  →  代码画一个 / 用文字符号顶替
 |---|---|---|
 | `Icons/<名字>.png` | 图标 | 文字符号（`<` `>` `+`）或纯文字标签 |
 | `Icons/<名字>_on.png` | 标签栏选中态（可选） | 把普通图标染成主色 |
-| `Sprites/card.png` | 卡片九宫格底图 | 程序化生成圆角矩形 |
+| `Sprites/card.png` | 卡片九宫格底图（投影是代码画的，不在这张图里） | 程序化生成圆角矩形 |
 | `Sprites/button.png` | 按钮九宫格底图 | 复用 `card.png` |
 | `Fonts/main.otf` | 主字体 Regular | 系统字体 → Unity 内置字体 |
 | `Fonts/main_medium.otf` | 主字体 Medium（金额、标题） | 退回 Regular |
 | `Fonts/main_bold.otf` | 主字体 Bold（标签栏选中、主按钮） | 退回 Regular |
 | `Fonts/LICENSE-NotoSansSC.txt` | 字体许可证（OFL 1.1 要求随分发） | —— |
-| `theme.json` | 配色 | 内置浅色主题 |
+| `theme.json` | 浅色配色，运行时覆盖 `ThemePalette.Light()` | 内置浅色主题 |
 
 字体槽位名→字重的映射、以及缺文件时的回退链，在 `Core/Typography/FontSlots.cs`
 （纯逻辑，`FontSlotsTests` 盯着）。改动字重分配只需改 `Theme.cs` 里的
@@ -543,6 +548,29 @@ Resources 里没图  →  代码画一个 / 用文字符号顶替
 `Defaults_IconNames_ResolveToExistingResources`（每个名字都能解析到真实资源，
 这条同时盯住「Data 写错了」「常量改名了」「PNG 漏放了」三种事故）
 与 `CategoryIconMigration_MatchesFreshInstallSeed`（升级与全新安装一致）。
+
+### 配色与卡片投影
+
+浅色配色存了两份：`Resources/theme.json`（运行时覆盖）和 `ThemePalette.Light()`
+（`theme.json` 缺失或解析失败时的兜底）。**两者不一致平时看不出来**——界面用的
+是 `theme.json` 那套，只有兜底路径才会露脸。
+`ThemePaletteTests.ShippedThemeJson_MatchesLightPalette` 逐字段钉着它们一致，
+**改配色时两处都要改**。深色配色只在 `ThemePalette.Dark()` 里，不受 `theme.json` 影响。
+
+当前是**暖色纸感**（燕麦米白底 `#F2ECE2` + 暖白卡片 `#FFFCF6` + 焦糖棕 `#A9714B`）。
+底色和卡片色只差十几个色阶，**两者的边界靠卡片那层投影交代**，所以 `shadow` 别调没了。
+支出红 / 收入绿也跟着暖化了：原来的纯红 `#E03E3E` 放在米白底上会「燥」。
+
+投影由 `UiFactory.AddCardShadow` 画（UGUI 的 `Shadow` 组件，偏移 `Theme.SHADOW_OFFSET`），
+**画在节点之外，不动任何布局尺寸**。不烘进底图的原因：九宫格的 border 必须连投影
+一起包住，那张图被拉伸到节点尺寸时卡片本体就比节点小一圈，行高、内边距、行间距
+全得跟着重量一遍。代价是只偏移、不模糊，边缘偏硬——想要柔和投影就给美术一张
+`card.png`，`AssetProvider` 会优先用图。
+
+⚠️ **卡片底一律走 `UiFactory.PaintCard`。** 原本「`AddComponent<Image>` + `Card()` +
+`Sliced` + `SURFACE`」这四行在账单行 / 账户行 / 报表行各抄了一遍，加投影就得改三处，
+漏一处那块卡片就平贴在底色上，而且从代码里看不出来。现在收成一个调用。
+账单页的月份条、汇总条、标签栏、标题栏是**直角纯色条**，不是卡片，不走这条路。
 
 ### 代码侧
 
