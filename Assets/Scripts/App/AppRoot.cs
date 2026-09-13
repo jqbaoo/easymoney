@@ -52,6 +52,13 @@ namespace EasyMoney.App
             _openDatabase();
 
             _ensureEventSystem();
+
+            // 启动时调一次：Android 15 强制 edge-to-edge 之后导航栏是没有底色的浮层，
+            // 图标颜色交给系统定，而 Unity 那套主题传下来的是「画白图标」——
+            // 白图标落在浅色底上就是隐形。详见 AndroidSystemBars 的注释。
+            // 放 Awake 而不是 _buildSkeleton 里：换配色会重建界面树，但系统栏外观与它无关
+            AndroidSystemBars.EnsureNavigationBarUsable();
+
             _buildSkeleton();
             _buildPages();
 

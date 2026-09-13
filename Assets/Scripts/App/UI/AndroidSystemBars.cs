@@ -52,6 +52,39 @@ namespace EasyMoney.App.UI
         }
 
         /// <summary>
+        /// 让系统导航栏**看得见、留得住**。启动时调一次即可。
+        ///
+        /// 为什么需要：Android 15 强制 edge-to-edge 之后，导航栏变成了**没有底色的浮层**，
+        /// 图标颜色交给系统按 <c>windowLightNavigationBar</c> 决定——而 Unity 生成的
+        /// <c>BaseUnityTheme</c> 在 API 31+ 继承的是
+        /// <c>android:Theme.Holo.Light.NoActionBar.Fullscreen</c>，Holo 是 API 27 之前的东西，
+        /// **压根没有这个属性**，取默认值 <c>false</c> = 画**白色**图标。
+        /// 白图标落在本项目的燕麦米白底色上就是隐形。
+        ///
+        /// 真机上的现象正是这个：底部空出 124px 什么都没有，而读数
+        /// <c>nav 124</c> 明明说导航栏占着地方——**它不是被藏起来了，是看不见**。
+        /// （真被藏起来的话读数会变 0，底部那 124px 会被内容吃掉、标签栏直接贴到屏幕最底。）
+        ///
+        /// 所以这里做两件事：把图标改成深色（我们的底是浅色）；再明确要求系统**显示**
+        /// 导航栏、且**不要自动隐藏**——底部那 124px 是留出来了的，收走就成了空白。
+        ///
+        /// ⚠️ <b>只在 API 30+ 动手。</b> Android 11 以下不强制 edge-to-edge，导航栏是
+        /// **不透明的黑条**，白图标配黑底本来就清楚——在那里设「浅色导航栏」会把图标
+        /// 变成黑图标画黑底，比不设更糟。
+        /// </summary>
+        public static void EnsureNavigationBarUsable()
+        {
+#if UNITY_ANDROID
+            if (Application.isEditor)
+            {
+                return;
+            }
+
+            _ensureNavigationBarUsable();
+#endif
+        }
+
+        /// <summary>
         /// ⚠️ <b>临时，仅供本次真机验收的诊断读数用，验完连同 AppRoot 里那段读数一起删。</b>
         ///
         /// 兜底取法（老 API）读到的值，与
@@ -99,6 +132,28 @@ namespace EasyMoney.App.UI
 #endif
         }
 
+        /// <summary>
+        /// ⚠️ 临时，诊断用：系统现在**认为**导航栏可见吗。1 = 可见，0 = 不可见，
+        /// -1 = 非 Android / 读失败。
+        ///
+        /// 为什么要单独报这个：`nav 124` 只说明「导航栏占着 124px」，说不出它**有没有
+        /// 被画出来**。「系统把它藏了」和「画了但图标看不见」在截图里一模一样，
+        /// 只能靠这个数区分——而这两种情况要改的代码完全不同。
+        /// </summary>
+        public static int NavigationBarVisibleForDiagnostics()
+        {
+#if UNITY_ANDROID
+            if (Application.isEditor)
+            {
+                return -1;
+            }
+
+            return _probeNavigationBarVisible();
+#else
+            return -1;
+#endif
+        }
+
 #if UNITY_ANDROID
         // ⚠️ 全文件一律用 #if UNITY_ANDROID + 运行时 Application.isEditor 判断，
         // **不要写成 #if UNITY_ANDROID && !UNITY_EDITOR**。
@@ -116,21 +171,34 @@ namespace EasyMoney.App.UI
         /// <summary>SDK_INT 是常量，读一次记下来，省掉每次调用新建一个 AndroidJavaClass。</summary>
         private static int s_SdkInt = -1;
 
+        /// <summary>
+        /// activity → window → decorView → rootWindowInsets。
+        ///
+        /// ⚠️ <b>调用方负责释放返回值</b>——它是个 <c>AndroidJavaObject</c>，占一个
+        /// JNI local ref，不能就这么丢掉。拿到的也可能是 <c>null</c>（视图还没 attach
+        /// 到窗口，或者 inset 还没分发下来），调用方各自决定那算「读不到」还是「不用让」。
+        /// </summary>
+        private static AndroidJavaObject _rootWindowInsets()
+        {
+            using AndroidJavaClass oUnityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+            using AndroidJavaObject oActivity = oUnityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+
+            if (oActivity == null)
+            {
+                return null;
+            }
+
+            using AndroidJavaObject oWindow = oActivity.Call<AndroidJavaObject>("getWindow");
+            using AndroidJavaObject oDecorView = oWindow.Call<AndroidJavaObject>("getDecorView");
+
+            return oDecorView.Call<AndroidJavaObject>("getRootWindowInsets");
+        }
+
         private static int _readNavigationBarHeightPx()
         {
             try
             {
-                using AndroidJavaClass oUnityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
-                using AndroidJavaObject oActivity = oUnityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
-
-                if (oActivity == null)
-                {
-                    return 0;
-                }
-
-                using AndroidJavaObject oWindow = oActivity.Call<AndroidJavaObject>("getWindow");
-                using AndroidJavaObject oDecorView = oWindow.Call<AndroidJavaObject>("getDecorView");
-                using AndroidJavaObject oInsets = oDecorView.Call<AndroidJavaObject>("getRootWindowInsets");
+                using AndroidJavaObject oInsets = _rootWindowInsets();
 
                 if (oInsets == null)
                 {
@@ -147,6 +215,92 @@ namespace EasyMoney.App.UI
                 // 真机上「修了跟没修一样」就无从排查了
                 Debug.LogWarning($"[AndroidSystemBars] 读导航栏高度失败，按 0 处理：{oError}");
                 return 0;
+            }
+        }
+
+        /// <summary>
+        /// 把导航栏图标改成深色，并要求系统显示它、别自动隐藏。
+        /// 为什么只在 API 30+ 做、做之前是什么样子，见
+        /// <see cref="EnsureNavigationBarUsable"/> 的注释。
+        /// </summary>
+        private static void _ensureNavigationBarUsable()
+        {
+            if (_sdkInt() < 30)
+            {
+                return;
+            }
+
+            try
+            {
+                using AndroidJavaClass oUnityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+                using AndroidJavaObject oActivity = oUnityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+
+                if (oActivity == null)
+                {
+                    return;
+                }
+
+                using AndroidJavaObject oWindow = oActivity.Call<AndroidJavaObject>("getWindow");
+                using AndroidJavaObject oController = oWindow.Call<AndroidJavaObject>("getInsetsController");
+
+                if (oController == null)
+                {
+                    return;
+                }
+
+                // WindowInsetsController 是接口，APPEARANCE_* / BEHAVIOR_* 是它上面的常量。
+                // 读常量而不是写死 0x10 / 1，理由同 navigationBars()：
+                // 字面量的含义改了不会有任何报错，只会悄悄失效
+                using AndroidJavaClass oControllerClass =
+                    new AndroidJavaClass("android.view.WindowInsetsController");
+
+                int iLightNavBars = oControllerClass.GetStatic<int>("APPEARANCE_LIGHT_NAVIGATION_BARS");
+                int iBehaviorDefault = oControllerClass.GetStatic<int>("BEHAVIOR_DEFAULT");
+
+                using AndroidJavaClass oType = new AndroidJavaClass("android.view.WindowInsets$Type");
+                int iNavBars = oType.CallStatic<int>("navigationBars");
+
+                // 深色图标：我们的底是浅色的，默认那套白图标画上去等于没有
+                oController.Call("setSystemBarsAppearance", iLightNavBars, iLightNavBars);
+
+                // 别自动隐藏。底部那 124px 是按「导航栏在」留出来的，
+                // 系统把导航栏收走，留出来的就成了一块纯空白
+                oController.Call("setSystemBarsBehavior", iBehaviorDefault);
+                oController.Call("show", iNavBars);
+            }
+            catch (System.Exception oError)
+            {
+                // 失败就退回系统默认外观——不影响记账，但要在日志里留痕：
+                // 否则真机上「还是看不见」和「压根没走到这里」分不出来
+                Debug.LogWarning($"[AndroidSystemBars] 设置导航栏外观失败，按系统默认处理：{oError}");
+            }
+        }
+
+        private static int _probeNavigationBarVisible()
+        {
+            if (_sdkInt() < 30)
+            {
+                return -1;
+            }
+
+            try
+            {
+                using AndroidJavaObject oInsets = _rootWindowInsets();
+
+                if (oInsets == null)
+                {
+                    return -1;
+                }
+
+                using AndroidJavaClass oType = new AndroidJavaClass("android.view.WindowInsets$Type");
+                int iNavBars = oType.CallStatic<int>("navigationBars");
+
+                return oInsets.Call<bool>("isVisible", iNavBars) ? 1 : 0;
+            }
+            catch (System.Exception oError)
+            {
+                Debug.LogWarning($"[AndroidSystemBars] 读导航栏可见性失败：{oError}");
+                return -1;
             }
         }
 
@@ -223,17 +377,7 @@ namespace EasyMoney.App.UI
         {
             try
             {
-                using AndroidJavaClass oUnityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
-                using AndroidJavaObject oActivity = oUnityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
-
-                if (oActivity == null)
-                {
-                    return -1;
-                }
-
-                using AndroidJavaObject oWindow = oActivity.Call<AndroidJavaObject>("getWindow");
-                using AndroidJavaObject oDecorView = oWindow.Call<AndroidJavaObject>("getDecorView");
-                using AndroidJavaObject oInsets = oDecorView.Call<AndroidJavaObject>("getRootWindowInsets");
+                using AndroidJavaObject oInsets = _rootWindowInsets();
 
                 if (oInsets == null)
                 {

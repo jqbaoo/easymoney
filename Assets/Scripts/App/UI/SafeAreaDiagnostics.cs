@@ -79,6 +79,7 @@ namespace EasyMoney.App.UI
             int iNavBar = AndroidSystemBars.NavigationBarHeightPx();
             int iNewApi = AndroidSystemBars.NewApiNavigationBarHeightPxForDiagnostics();
             int iLegacy = AndroidSystemBars.LegacyNavigationBarHeightPxForDiagnostics();
+            int iVisible = AndroidSystemBars.NavigationBarVisibleForDiagnostics();
 
             // 重算一遍「该让多少」，跟界面上实际的表现对照。
             // 故意调的是同一个纯函数，这样读数反映的是算出来的结果而不是拍的数
@@ -88,10 +89,12 @@ namespace EasyMoney.App.UI
 
             float fExtra = oAnchors.MinY * Screen.height - oSafe.y;
 
+            // vis：系统认为导航栏可不可见（1 可见 / 0 不可见 / -1 读不到）。
+            // 光看 nav 分不出「系统藏了」和「画了但看不见」，这两个数要一起看
             m_Label.text =
                 $"safeArea y={oSafe.y:F0} h={oSafe.height:F0} w={oSafe.width:F0}\n" +
                 $"screen {Screen.width}x{Screen.height}  " +
-                $"nav {iNavBar} (new {iNewApi}/old {iLegacy})  extra {fExtra:F0}";
+                $"nav {iNavBar} (new {iNewApi}/old {iLegacy})  vis {iVisible}  extra {fExtra:F0}";
         }
     }
 }
