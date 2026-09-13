@@ -23,7 +23,7 @@
 Core 层   ██████████ 100%   Money / TimeUtil / 模型 / 校验 / 报表 / 账单展示投影 / 账户表单 / 报表展示（Task 2-3、5、7、9-11、14-16）
 Data 层   ██████████ 100%   SQLite / 三个仓储 / 记账服务 / 筛选（Task 4、6-11）
 App 层    ██████████ 100%   记账页 / 账单页 / 账户页 / 报表页全部通真实数据
-测试      ██████████ 100%   220 个用例全绿（Money 7 + Parser 17 + TimeUtil 12 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 11 + 筛选 18 + 报表 13 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 21 + 账户表单 13 + 报表展示 12 + 构建配置守卫 9 + 结构迁移 9）
+测试      ██████████ 100%   228 个用例全绿（Money 7 + Parser 17 + TimeUtil 12 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 11 + 筛选 18 + 报表 13 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 21 + 账户表单 13 + 报表展示 12 + 构建配置守卫 9 + 结构迁移 9 + 字体槽位 8）
 打包      ██████████ 100%   APK 已构建，Redmi K60 真机验收 18 项中 17 项通过
 ```
 
@@ -126,11 +126,11 @@ easymoney/
 │   ├── Resources/               资源（美术换图只碰这里，见第 7 节）
 │   │   ├── Icons/               图标
 │   │   ├── Sprites/             卡片 / 按钮九宫格底图
-│   │   ├── Fonts/               字体
+│   │   ├── Fonts/               字体（main / main_medium / main_bold 三档字重）
 │   │   └── theme.json           配色
 │   ├── Scenes/                  场景（原型阶段用不到）
 │   ├── Scripts/
-│   │   ├── Core/                ✅ Money / MoneyParser / TimeUtil / Models / Queries / ValidationResult / TransactionValidator / Reports / Statements / Accounts（noEngineReferences）
+│   │   ├── Core/                ✅ Money / MoneyParser / TimeUtil / Models / Queries / ValidationResult / TransactionValidator / Reports / Statements / Accounts / Typography（noEngineReferences）
 │   │   ├── Data/                ✅ EasyMoneyDb / Schema / 三个仓储 / TransactionService / 账单筛选
 │   │   └── App/                 ✅ 已有
 │   │       ├── EasyMoney.App.asmdef
@@ -481,8 +481,16 @@ Resources 里没图  →  代码画一个 / 用文字符号顶替
 | `Icons/<名字>_on.png` | 标签栏选中态（可选） | 把普通图标染成主色 |
 | `Sprites/card.png` | 卡片九宫格底图 | 程序化生成圆角矩形 |
 | `Sprites/button.png` | 按钮九宫格底图 | 复用 `card.png` |
-| `Fonts/main.ttf` | 主字体 | 系统字体 → Unity 内置字体 |
+| `Fonts/main.otf` | 主字体 Regular | 系统字体 → Unity 内置字体 |
+| `Fonts/main_medium.otf` | 主字体 Medium（金额、标题） | 退回 Regular |
+| `Fonts/main_bold.otf` | 主字体 Bold（标签栏选中、主按钮） | 退回 Regular |
+| `Fonts/LICENSE-NotoSansSC.txt` | 字体许可证（OFL 1.1 要求随分发） | —— |
 | `theme.json` | 配色 | 内置浅色主题 |
+
+字体槽位名→字重的映射、以及缺文件时的回退链，在 `Core/Typography/FontSlots.cs`
+（纯逻辑，`FontSlotsTests` 盯着）。改动字重分配只需改 `Theme.cs` 里的
+`WEIGHT_AMOUNT` / `WEIGHT_TITLE` / `WEIGHT_BODY` / `WEIGHT_STRONG` 四个语义常量，
+页面代码不出现 `FontWeight.XXX` 字面量。
 
 完整清单（每个图标的文件名、显示尺寸、分类 slug 表、九宫格 border 怎么切）
 见 **`Claude/资源替换指南.md`**。
@@ -638,8 +646,11 @@ bash Tools/run-editmode-tests.sh
 | **IL2CPP 代码剥离** | 会删掉 SQLite 靠反射调用的代码，表现为真机上崩 | `link.xml` + 剥离级别设 `Minimal`，双重保护 |
 | ~~LIKE 通配符~~ | 用户搜索词里的 `%` `_` 会被当通配符 | ✅ **已解决**（Task 10）。`_escapeLike` 先转义反斜杠、再转义 `%` 和 `_`，SQL 侧配 `ESCAPE '\'`。`Keyword_EscapesLikeWildcards` 守着 |
 | **SQLite-net 参数按出现顺序绑定** | `_buildWhere` 里 `lClauses.Add` 与 `lArgs.Add` 一旦错位，SQLite 不会报错，只会**静默筛出错误的行**——比崩溃更难发现 | 加条件时两者必须成对书写，顺序严格一致。排序、分页参数（Limit/Offset）必须拼在 `_buildWhere` 返回之后 |
-| **中文字体** | `FontProvider` 的系统字体候选列表可能一个都不命中，表现为方块字 | 正式发布建议自带 `Fonts/main.ttf` |
-| **emoji 显示为空白** | 真机实测：备注里填 emoji 渲染成空白。根因同上——`FontProvider` 的候选全是中文字体，**都不含 emoji 字形**，而 legacy `Text` 在字形缺失时不跨字体回退 | **已定性为纯渲染问题，数据没丢**。依据是把写入链路三段都证干净了（仓储 `Note_SupportsChineseAndEmoji`、服务 `Save_KeepsEmojiNoteIntact`、投影 `BuildRow_EmojiNote_KeepsItWholeAsTitle`），且全项目没有按 `char` 截断的代码。要支持得自带 emoji 字体 + 换 TextMeshPro，**当前判断为不值得做** |
+| ~~中文字体依赖机型~~ | `FontProvider` 的系统字体候选列表可能一个都不命中，表现为方块字；命中了也不保证各机型字形一致 | ✅ **已解决**。自带 Noto Sans SC 三档字重（OFL 1.1，可随 APK 分发），字形不再看 ROM 脸色。子集化到「GB2312 汉字 + ASCII + 中文标点 + 货币符号」7594 字符，三档合计 5.7 MB |
+| **字重槽位名写错是静默故障** | Medium 指到 bold 的文件不会报任何错，只会让字重错位，EditMode 跑不到页面，只能真机肉眼看出来 | 映射与回退链抽成 Core 纯函数 `FontSlots`，`FontSlotsTests` 逐个打表钉住（含「三档槽位名互不相同」）。偏离预期的反向验证已做：注入 2 个假 bug → 恰好 3 个用例变红，且**名字对得上** |
+| **`FontWeight` 与 TMP 撞名** | `TMPro.FontWeight` 与 `UnityEngine.TextCore.LowLevel.FontWeight` 都存在且都含 `Regular/Medium/Bold`。当前无冲突（全项目无 `using TMPro`，枚举在 `EasyMoney.Core` 下），但 `EasyMoney.App.asmdef` 已引用 `Unity.TextMeshPro` | 将来谁为 TMP 加 `using TMPro;` 会触发 CS0104 歧义。加 `using` 前先确认是否有 `FontWeight` 的裸引用，有就写全限定名 |
+| **子集字体的缺字风险** | 子集只裁了 7594 字，超出 GB2312 的人名生僻字（喆、昇、犇）会渲染成方块 | 已按 7594 走。真机遇到再扩到「通用规范汉字表」8105 字（约 2.2 MB/档），`D:\font-tmp\subset.py` 是子集脚本 |
+| **emoji 显示为空白** | 真机实测：备注里填 emoji 渲染成空白。根因同上——候选字体全是中文字体（含自带的 Noto Sans SC），**都不含 emoji 字形**，而 legacy `Text` 在字形缺失时不跨字体回退 | **已定性为纯渲染问题，数据没丢**。依据是把写入链路三段都证干净了（仓储 `Note_SupportsChineseAndEmoji`、服务 `Save_KeepsEmojiNoteIntact`、投影 `BuildRow_EmojiNote_KeepsItWholeAsTitle`），且全项目没有按 `char` 截断的代码。要支持得自带 emoji 字体 + 换 TextMeshPro，**当前判断为不值得做**。注意 Unity 的 legacy `Font` 与 TMP 3.0.7 **都不支持彩色 emoji 字体**（CBDT/CBLC、COLR/CPAL 均不认），换 TMP 也只在用单色 emoji 字体时才有效 |
 | **APK 里仍有 INTERNET 权限** | 已设 `Internet Access: Not Required`，测试也是绿的，但 `aapt dump badging` 实测包里仍有该权限。根因是 `com.unity.modules.unitywebrequest` 模块自己声明，manifest merger 合并进来，`ForceInternetPermission` 拦不住 | 单机 App 用不到，属瑕疵。要真正去掉需自定义 `Assets/Plugins/Android/AndroidManifest.xml` + `tools:node="remove"`——自定义 manifest 是构建失败高发区，单独一轮做 |
 | **adb 连不上真机** | Task 17 验收时 USB（线缆只有电源线芯）与无线调试（路由器 AP 隔离）双双失败，最后靠手动传 APK 完成验收，**没有 logcat 佐证** | 下次接设备前先确认线能传数据、路由器没开客户端隔离。另：platform-tools v31.0.2+ 需 `ADB_MDNS_OPENSCREEN=1` 才能 `adb pair` |
 | **编辑器占用** | 命令行跑测试或构建时，另一个 Unity 实例不能打开同一项目 | 跑之前先关编辑器；两个脚本都会以退出码 2 报出这个错误 |

@@ -20,10 +20,14 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   四个页面 + Android 打包
   （`Core`：Money / TimeUtil / 模型 / 校验 / 报表 / 快捷金额 / 账单展示投影 / 账户表单 / 报表展示；
   `Data`：SQLite / 三个仓储 / 记账服务 / 多维筛选；`App`：`AppContext` / 记账页 / 账单页 / 账户页 / 报表页）
-- ✅ **220 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
+- ✅ **228 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
 - ✅ 标签 **`data-layer-complete`**（业务逻辑层封顶）、**`mvp-complete`**
 - ✅ **APK 构建成功**（`bash Tools/build-android.sh` → `Builds/EasyMoney.apk`，29 MB），
   真机 18 项验收通过 17 项
+- ✅ **字体风格升级**（2026-09-13）—— 自带 Noto Sans SC 三档字重（Regular / Medium /
+  Bold，OFL 1.1，子集化后合计 5.7 MB），全站建立字重层次，**字形不再依赖机型 ROM**。
+  字重→槽位映射抽在 `Core/Typography/FontSlots.cs`，`FontSlotsTests` 8 个用例钉着。
+  ⚠️ **尚未重新打 APK**——包体预计从 ~29 MB 涨到 ~35 MB，真机复验待做
 
 **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
 `ITransactionRepository` 等于绕过校验。

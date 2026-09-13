@@ -18,7 +18,7 @@ App/
     ├── ThemePalette.cs     配色对象，含 Light() / Dark() / FromJson()
     ├── UiFactory.cs        ★ 所有 UI 构件的工厂
     ├── SpriteFactory.cs    卡片 / 按钮底图（资源优先，程序化兜底）
-    ├── FontProvider.cs     字体（Resources → 系统 → 内置）
+    ├── FontProvider.cs     字体（按字重解析：Resources → 系统 → 内置）
     ├── AssetPaths.cs       资源路径常量
     ├── AssetProvider.cs    唯一的 Resources.Load 入口
     ├── IconNames.cs        图标名常量
@@ -122,6 +122,40 @@ UiFactory.SetFlexible(right);         // 吃掉剩余
 **3. `Theme` 的颜色是属性，不是字段。**
 `Theme.PRIMARY` 每次访问都会走一层属性转发。构建 UI 时无所谓，
 但别放在每帧执行的循环里。
+
+---
+
+---
+
+## 字重怎么给（★ 别写 `FontWeight.XXX` 字面量）
+
+`UiFactory` 每个建 Text 的工厂方法（`CreateText` / `CreateButton` / `CreateIconOrText` /
+`CreateIconTextButton` / `CreateTabButton` / `CreateInput`）**末尾**都有一个
+
+```csharp
+FontWeight eWeight = FontWeight.Regular
+```
+
+参数，往后加是为了不破坏全站约 60 个位置参数调用点。**页面里一律传 `Theme.WEIGHT_*`**，
+不写字面量——理由同「页面里不许出现写死的颜色字号」：
+
+| 语义常量 | 值 | 用在哪 |
+|---|---|---|
+| `Theme.WEIGHT_AMOUNT` | Medium | 金额数字（记账框、总资产、列表行金额、各类汇总） |
+| `Theme.WEIGHT_TITLE` | Medium | 标题（页标题、月份、弹窗标题） |
+| `Theme.WEIGHT_STRONG` | Bold | 主操作按钮（保存、添加账户） |
+| `Theme.WEIGHT_BODY` | Regular | 正文与次要说明 **（就是默认值，不用显式传）** |
+
+⚠️ **金额输入框的占位符和可编辑文本是两个 `Text`，共用同一个 `iFontSize`。**
+`UiFactory.CreateInput` 会把字重一起给到两边；自己另建 InputField 时忘了给
+placeholder，就会出现「一聚焦占位符变粗、一输入又变细」的跳动。
+
+⚠️ **`fontStyle` 不要再写。** 全项目唯一写过它的 `TabBar` 已改成切换真字体文件——
+Unity 的合成粗体是给笔画描边，小字号中文会糊。缺字体文件时 `FontProvider` 退回
+Regular，不会退回合成粗体。
+
+`FontProvider.Resolve(FontWeight)` 按字重缓存；`Reset()` 清缓存（改完资源配置后调）。
+字重→槽位名的映射在 `Core/Typography/FontSlots.cs`，`FontSlotsTests` 盯着。
 
 ---
 

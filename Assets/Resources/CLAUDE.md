@@ -13,7 +13,7 @@
 Assets/Resources/
 ├── Icons/          图标（PNG，透明底）
 ├── Sprites/        卡片 / 按钮九宫格底图
-├── Fonts/          字体
+├── Fonts/          字体（main / main_medium / main_bold 三档字重）
 └── theme.json      配色
 ```
 
@@ -30,10 +30,38 @@ Assets/Resources/
 | `Icons/<名字>_on.png` | 标签栏选中态（可选） | 把普通图标染成主色 |
 | `Sprites/card.png` | 卡片九宫格底图 | 程序化生成圆角矩形 |
 | `Sprites/button.png` | 按钮九宫格底图 | 复用 `card.png` |
-| `Fonts/main.ttf` | 主字体 | 系统字体 → Unity 内置字体 |
+| `Fonts/main.otf` | 主字体 Regular（正文、次要说明） | 系统字体 → Unity 内置字体 |
+| `Fonts/main_medium.otf` | 主字体 Medium（金额、标题） | 退回 Regular |
+| `Fonts/main_bold.otf` | 主字体 Bold（标签栏选中、主按钮） | 退回 Regular |
+| `Fonts/LICENSE-NotoSansSC.txt` | 字体许可证 | —— |
 | `theme.json` | 配色 | 内置浅色主题 |
 
 资源名常量在 `Assets/Scripts/App/UI/AssetPaths.cs` 和 `IconNames.cs`。
+
+---
+
+## 字体
+
+当前是 **Noto Sans SC**（思源黑体同源），SIL OFL 1.1，可商用、可随 APK 分发——
+所以这三份许可证文件**必须跟着走**，删了就是许可证违约。
+
+文件名后缀 `.otf` 不影响引用：`Resources.Load` 不看扩展名，代码里仍然叫
+`main` / `main_medium` / `main_bold`。
+
+**导入后 Inspector 里 `Character` 保持默认的 `Dynamic`。** 改成 `Unicode`
+会尝试烘焙全字符集——卡死编辑器，包体也会爆炸。
+
+三档字重合计约 5.7 MB，是 APK 里最大的一块资源。**砍掉 Bold 能省 1.9 MB**，
+但标签栏选中态和两个主按钮会退回 Regular，层次靠字号硬撑。
+
+换字体只改这个目录，不动代码：槽位名由 `Core/Typography/FontSlots.cs` 定义，
+字重分配由 `Theme.cs` 的四个语义常量（`WEIGHT_AMOUNT` / `WEIGHT_TITLE` /
+`WEIGHT_BODY` / `WEIGHT_STRONG`）决定。字体文件缺失时逐级回退，不会崩也不会变方块
+（回退到系统字体那一级为止）。
+
+子集化脚本在 `D:\font-tmp\subset.py`（fonttools），裁的是「GB2312 汉字 +
+ASCII + 中文标点 + 货币符号」共 7594 字。**超出这个范围的生僻字会渲染成方块**，
+要补就改脚本重跑。
 
 ---
 
