@@ -161,6 +161,13 @@ UiFactory.SetFlexible(right);         // 吃掉剩余
 导航栏高度只能从 `AndroidSystemBars` 取，并且**不要改成每帧调用**：每读一次要新建
 若干个 `AndroidJavaObject`，各占一个 JNI local ref，而本地引用表只有 512 项。
 
+导航栏的**图标颜色**也要管：Android 15 的导航栏是没有底色的浮层，图标颜色由系统按
+`windowLightNavigationBar` 定，而 Unity 生成的主题继承自 `Holo.Light`——**Holo 是
+API 27 之前的东西，没有这个属性**，默认 false = 画白图标。白图标落在本项目的燕麦米白
+底色上就是隐形，界面上看着像「底部空了一块」。所以 `AppRoot.Awake` 里要调一次
+`AndroidSystemBars.EnsureNavigationBarUsable()`。**只在 API 30+ 做**——Android 11
+以下的导航栏还是不透明黑条，在那里设「浅色导航栏」会把图标变成黑图标画黑底。
+
 ---
 
 ## 平台相关代码：用 `#if UNITY_ANDROID`，别用 `#if UNITY_ANDROID && !UNITY_EDITOR`

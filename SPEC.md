@@ -669,6 +669,11 @@ Theme.Apply(ThemePalette.Dark());   // 界面会自动整体重建
     现象就是「修了跟没修一样」，而界面上看不出原因。⚠️ **不要改成取两者较大值**：
     两个来源都可能给出与当前导航模式不符的偏大值（手势导航下导航栏只有一条细缝），
     取大就会多让出一截白边，同样不报错
+  - **导航栏的外观要在启动时主动设一次**：`AndroidSystemBars.EnsureNavigationBarUsable()`
+    （`AppRoot.Awake` 里调用）。Android 15 的导航栏是没有底色的浮层，图标颜色交给系统按
+    `windowLightNavigationBar` 决定，而 Unity 那套主题传下来的是「画白图标」——白图标落在
+    燕麦米白底上就是隐形，底部那 124px 看着就是一块空白。**只在 API 30+ 动手**，
+    理由见第 11 节
   - **内缩会让安全区高度归零时放弃内缩**：高度成 0 会让标题栏、标签栏、内容区
     （按上下两个高度算，还会算出负数）全塌，整屏空白且不报错
   - 全局 `Background` 挂 Canvas 上、**不进 SafeArea**——安全区一缩，导航栏那条就没人
@@ -888,6 +893,7 @@ grep -o 'total="[0-9]*" passed="[0-9]*" failed="[0-9]*"' Tools/editmode-results.
 | **改表结构会砸掉用户数据** | 建表全是 `CREATE TABLE IF NOT EXISTS`，对已有的表等于什么都不做。给旧表加列，升级上来的老库会 `no such column`——是崩溃，不是降级。第一版已装在真机上且有真实数据 | ✅ **已解决**。`SchemaMigrator` + `SchemaMigrations.ALL`，`EasyMoneyDb.Open()` 时按版本补跑缺失的迁移。改结构走三步，见第 6 节。机制行为有 9 个测试钉着 |
 | **`.bat` 里写中文会让 cmd 解析器错位** | 含 UTF-8 多字节字符的 `.bat`，即使加了 `chcp 65001`，cmd 的批处理解析器也会错位：字符被从中间劈开，碎片被当成命令执行。`build-apk.bat` 第一版因此打印了「构建成功」但**什么都没构建** | `build-apk.bat` 保持纯 ASCII，中文交给 `.sh` 输出。成功判定改成看产物在不在，不看退出码 |
 | **`Screen.safeArea` 不含 Android 导航栏** | Unity 2022.3 的已知缺陷 UUM-121413：targetSdk 35 的应用在 Android 15 上被强制 edge-to-edge（窗口铺满整屏、导航栏变成浮层），而 `safeArea` 仍然报告全屏，于是底部内容被导航栏盖住。**只在 Unity 6.1 修复，因为是 breaking change 没有回移 2022**，本项目升不上去。真机实测坐实：1080×2400 的机器上 `safeArea` 是 `y=0 h=2310`——排掉的 90px 全在顶部（状态栏），底部贴着屏幕最底 | 已在代码里补：底部按「导航栏高度 − `safeArea.y`」的**差额**内缩，见第 8 节。`SafeAreaLayoutTests` 16 个用例钉着，其中两条幂等用例正是这个缺陷的形状——**改成无条件减导航栏高度会在 Android 13/14 上多出一条白边** |
+| **导航栏图标是白的，画在浅色底上等于隐形** | Unity 生成的 `BaseUnityTheme` 在 API 31+ 继承 `android:Theme.Holo.Light.NoActionBar.Fullscreen`，而 **Holo 是 API 27 之前的东西，压根没有 `windowLightNavigationBar` 属性**，取默认值 `false` = 让系统画**白色图标**。Android 15 之前不显形（导航栏是不透明黑条，白图标配黑底正好），edge-to-edge 把导航栏变成没有底色的浮层之后才暴露——白图标落在燕麦米白底上就是看不见。真机现象：底部空出 124px 什么都没有，而读数 `nav 124` 说明系统认为导航栏正占着那 124px（真被藏起来会变 0） | 启动时经 `WindowInsetsController` 设 `APPEARANCE_LIGHT_NAVIGATION_BARS`（深色图标）+ `show(navigationBars())` + `BEHAVIOR_DEFAULT`（别自动隐藏），见 `App/UI/AndroidSystemBars.EnsureNavigationBarUsable()`。**只在 API 30+ 动手**——Android 11 以下还是不透明黑条，在那里设「浅色导航栏」会变成黑图标画黑底。诊断读数里的 `vis` 位就是用来分「系统藏了」和「画了但看不见」的 |
 | **`getInsets(Type.navigationBars())` 在某些机器上返回 0** | API 30+ 的正路取法在真机上可能是哑的。实测（Redmi K60 / Android 15 / 三键导航）正路返回 **0**，而 deprecated 的 `getSystemWindowInsetBottom()` 给出正确的 **124px**。第一版修复因为只读正路，`extra` 恒为 0，**现象就是「修了跟没修一样」**——而界面上完全看不出原因，得靠临时读数才能区分「JNI 读不到」和「设备不需要补」 | 见第 8 节：两个来源都读，新 API 优先、**它为 0 才回退老的**（`SafeAreaLayout.ResolveNavigationBarHeight`）。⚠️ **不要改成取两者较大值**，那会在手势导航下多让出一截白边。**这个坑能发现，全靠当轮塞进包里的临时诊断读数**——「修了没效果」这类现象，读数比反复试快得多 |
 | **`targetSdkVersion = AndroidApiLevelAuto` 是不定时炸弹** | Auto 解析成「本机装的最高 android-XX」，当前解析为 35（`aapt2 dump badging` 实测）。某天本机装上 android-36，targetSdk 会**静默**跟着涨——而这个项目的安全区适配是按 35 的行为写的，Android 16 起 `windowOptOutEdgeToEdgeEnforcement` 被忽略，届时没有退路 | 本轮不动它（降 targetSdk 能退出 edge-to-edge，但那是拿「一条系统行为」换「少一次适配」，且和 Unity 后续版本的行为背道而驰）。**真治本是升 Unity 6.1+**。`AndroidPlayerSettingsTests.TargetSdkVersion_IsAutomatic` 记着当前是 Auto——改它之前先读这条 |
 

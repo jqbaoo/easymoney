@@ -82,9 +82,15 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   `getSystemWindowInsetBottom()` 才给出正确的 124px。已加回退——**新 API 优先，
   它为 0 才用老的**（**不许改成取较大值**，手势导航下会多让出一截白边）。
   这条教训值钱：**「修了没效果」时塞一行读数进包，比反复试快得多**
+  ⚠️ **第二版仍有毛病，但换了个**：位置对了，底部却空出 124px。读数 `nav 124` 说明系统
+  认为导航栏**正占着**那 124px——**不是被藏了，是图标看不见**。根因同样在 Unity 生成的
+  主题里：`BaseUnityTheme` 继承 `Holo.Light`，而 **Holo 是 API 27 之前的东西，没有
+  `windowLightNavigationBar` 属性**，默认 false = 画白图标；白图标落在燕麦米白底上就是隐形。
+  Android 15 之前不显形（导航栏是不透明黑条），是 edge-to-edge 才让它暴露。
+  修法：启动时设深色图标 + `show()` + `BEHAVIOR_DEFAULT`（只在 API 30+）
   ⚠️ **这条 Play 验不了**——编辑器里 safeArea 全屏、导航栏恒 0，改动完全不可见，
   只能真机验；本轮 APK 里带了一行临时诊断读数辅助定位，**验完要删**
-  ⏳ **第二轮真机验收待做**，清单见 `Claude/plans/android-release-checklist.md`
+  ⏳ **第三轮真机验收待做**，清单见 `Claude/plans/android-release-checklist.md`
 
 **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
 `ITransactionRepository` 等于绕过校验。
