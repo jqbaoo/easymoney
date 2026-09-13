@@ -1,3 +1,4 @@
+using EasyMoney.Core;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -75,7 +76,8 @@ namespace EasyMoney.App.UI
         /// </summary>
         public static RectTransform CreateIconOrText(
             Transform oParent, string sName, string sIconName, string sFallbackText,
-            float fSize, int iFontSize, Color? oColor = null)
+            float fSize, int iFontSize, Color? oColor = null,
+            FontWeight eWeight = FontWeight.Regular)
         {
             Image oIcon = CreateIcon(oParent, sName, sIconName, fSize, oColor);
             if (oIcon != null)
@@ -84,7 +86,7 @@ namespace EasyMoney.App.UI
             }
 
             Text oText = CreateText(oParent, sName, sFallbackText, iFontSize,
-                TextAnchor.MiddleCenter, oColor);
+                TextAnchor.MiddleCenter, oColor, eWeight);
 
             // 兜底文字也当成一个方框参与布局，跟图标占同样宽，
             // 免得美术换图后两边版式对不上。
@@ -93,13 +95,18 @@ namespace EasyMoney.App.UI
             return oText.rectTransform;
         }
 
+        /// <summary>
+        /// 创建一个文本。字重参数放在参数表末尾并带默认值——全站调用点大多用位置参数，
+        /// 放中间会全线破坏，放末尾才能让已有调用一行都不用改。
+        /// </summary>
         public static Text CreateText(
             Transform oParent, string sName, string sContent, int iFontSize,
-            TextAnchor oAnchor = TextAnchor.MiddleLeft, Color? oColor = null)
+            TextAnchor oAnchor = TextAnchor.MiddleLeft, Color? oColor = null,
+            FontWeight eWeight = FontWeight.Regular)
         {
             RectTransform oRect = CreateNode(oParent, sName);
             Text oText = oRect.gameObject.AddComponent<Text>();
-            oText.font = FontProvider.Resolve();
+            oText.font = FontProvider.Resolve(eWeight);
             oText.text = sContent;
             oText.fontSize = iFontSize;
             oText.alignment = oAnchor;
@@ -247,7 +254,8 @@ namespace EasyMoney.App.UI
 
         public static Button CreateButton(
             Transform oParent, string sName, string sLabel, UnityAction oOnClick,
-            Color? oColor = null, int iFontSize = Theme.FONT_BODY)
+            Color? oColor = null, int iFontSize = Theme.FONT_BODY,
+            FontWeight eWeight = FontWeight.Regular)
         {
             Image oBackground = CreatePanel(
                 oParent, sName, oColor ?? Theme.PRIMARY, bRounded: true, SpriteFactory.Button());
@@ -261,7 +269,7 @@ namespace EasyMoney.App.UI
             }
 
             Text oLabel = CreateText(oBackground.transform, "Label", sLabel, iFontSize,
-                TextAnchor.MiddleCenter, Theme.WHITE);
+                TextAnchor.MiddleCenter, Theme.WHITE, eWeight);
             Stretch(oLabel.rectTransform);
 
             return oButton;
@@ -275,7 +283,7 @@ namespace EasyMoney.App.UI
         public static Button CreateIconTextButton(
             Transform oParent, string sName, string sIconName, string sLabel, UnityAction oOnClick,
             Color? oColor = null, Color? oLabelColor = null, int iFontSize = Theme.FONT_BODY,
-            string sFallbackLabel = null)
+            string sFallbackLabel = null, FontWeight eWeight = FontWeight.Regular)
         {
             Color oForeground = oLabelColor ?? Theme.WHITE;
 
@@ -294,7 +302,7 @@ namespace EasyMoney.App.UI
             {
                 string sPlain = string.IsNullOrEmpty(sFallbackLabel) ? sLabel : sFallbackLabel;
                 Text oPlainText = CreateText(oBackground.transform, LABEL_NODE, sPlain, iFontSize,
-                    TextAnchor.MiddleCenter, oForeground);
+                    TextAnchor.MiddleCenter, oForeground, eWeight);
                 Stretch(oPlainText.rectTransform);
                 return oButton;
             }
@@ -307,7 +315,8 @@ namespace EasyMoney.App.UI
             oLayout.childForceExpandWidth = false;
 
             CreateIcon(oRow, ICON_NODE, sIconName, iFontSize * 1.2f, oForeground);
-            CreateText(oRow, LABEL_NODE, sLabel, iFontSize, TextAnchor.MiddleLeft, oForeground);
+            CreateText(oRow, LABEL_NODE, sLabel, iFontSize, TextAnchor.MiddleLeft, oForeground,
+                eWeight);
 
             return oButton;
         }
@@ -317,7 +326,8 @@ namespace EasyMoney.App.UI
         /// 图标缺失时只剩文字，依然居中，版式不会塌。
         /// </summary>
         public static Button CreateTabButton(
-            Transform oParent, string sName, string sIconName, string sLabel, UnityAction oOnClick)
+            Transform oParent, string sName, string sIconName, string sLabel, UnityAction oOnClick,
+            FontWeight eWeight = FontWeight.Regular)
         {
             Image oBackground = CreatePanel(oParent, sName, Theme.TRANSPARENT);
 
@@ -338,7 +348,7 @@ namespace EasyMoney.App.UI
             CreateIcon(oColumn, ICON_NODE, sIconName, Theme.TAB_ICON_SIZE, Theme.TEXT_WEAK);
 
             Text oLabel = CreateText(oColumn, LABEL_NODE, sLabel, Theme.FONT_TINY,
-                TextAnchor.MiddleCenter, Theme.TEXT_WEAK);
+                TextAnchor.MiddleCenter, Theme.TEXT_WEAK, eWeight);
             SetHeight(oLabel.rectTransform, Theme.TAB_LABEL_HEIGHT);
 
             return oButton;
@@ -407,15 +417,19 @@ namespace EasyMoney.App.UI
         }
 
         public static InputField CreateInput(
-            Transform oParent, string sName, string sPlaceholder, int iFontSize = Theme.FONT_BODY)
+            Transform oParent, string sName, string sPlaceholder, int iFontSize = Theme.FONT_BODY,
+            FontWeight eWeight = FontWeight.Regular)
         {
             Image oBackground = CreatePanel(oParent, sName, Theme.TRANSPARENT);
 
-            Text oText = CreateText(oBackground.transform, "Text", string.Empty, iFontSize);
+            // 占位符和可编辑文本是两个 Text，字重必须一起给——
+            // 只管一个的话，输入框一聚焦就会看到字重跳变
+            Text oText = CreateText(oBackground.transform, "Text", string.Empty, iFontSize,
+                TextAnchor.MiddleLeft, null, eWeight);
             Stretch(oText.rectTransform);
 
             Text oPlaceholderText = CreateText(oBackground.transform, "Placeholder", sPlaceholder,
-                iFontSize, TextAnchor.MiddleLeft, Theme.TEXT_WEAK);
+                iFontSize, TextAnchor.MiddleLeft, Theme.TEXT_WEAK, eWeight);
             Stretch(oPlaceholderText.rectTransform);
 
             InputField oInput = oBackground.gameObject.AddComponent<InputField>();

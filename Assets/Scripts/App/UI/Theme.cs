@@ -1,4 +1,5 @@
 using System;
+using EasyMoney.Core;
 using UnityEngine;
 
 namespace EasyMoney.App.UI
@@ -56,6 +57,21 @@ namespace EasyMoney.App.UI
         public const int FONT_BODY = 32;
         public const int FONT_CAPTION = 26;
         public const int FONT_TINY = 22;
+
+        // ── 字重（按语义分配，页面里不要直接写 FontWeight.XXX）──
+        // 和字号一样，改这里就能全站生效。
+
+        /// <summary>金额数字。全 App 最重要的信息，Medium 让它压得住又不至于笨重。</summary>
+        public const FontWeight WEIGHT_AMOUNT = FontWeight.Medium;
+
+        /// <summary>标题：页面标题、月份条、弹窗标题。</summary>
+        public const FontWeight WEIGHT_TITLE = FontWeight.Medium;
+
+        /// <summary>正文与次要说明。也是 CreateText 的默认字重，所以页面通常不用显式传。</summary>
+        public const FontWeight WEIGHT_BODY = FontWeight.Regular;
+
+        /// <summary>最强强调：主按钮、标签栏选中态。用得越少越有力。</summary>
+        public const FontWeight WEIGHT_STRONG = FontWeight.Bold;
 
         // ── 颜色（转发给当前配色方案）─────────────────
 

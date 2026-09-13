@@ -77,7 +77,7 @@ namespace EasyMoney.App.UI.Pages
             _addNavButton(oRow, "Prev", IconNames.CHEVRON_LEFT, "<", _goPreviousMonth);
 
             m_MonthLabel = UiFactory.CreateText(oRow, "Month", string.Empty,
-                Theme.FONT_TITLE, TextAnchor.MiddleCenter);
+                Theme.FONT_TITLE, TextAnchor.MiddleCenter, null, Theme.WEIGHT_TITLE);
             UiFactory.SetFlexible(m_MonthLabel.rectTransform);
 
             _addNavButton(oRow, "Next", IconNames.CHEVRON_RIGHT, ">", _goNextMonth);
@@ -141,7 +141,7 @@ namespace EasyMoney.App.UI.Pages
             oCaptionElement.flexibleWidth = 0f;
 
             Text oValueText = UiFactory.CreateText(oCell, "Value", "0.00",
-                Theme.FONT_BODY, TextAnchor.MiddleLeft, oColor);
+                Theme.FONT_BODY, TextAnchor.MiddleLeft, oColor, Theme.WEIGHT_AMOUNT);
             UiFactory.SetFlexible(oValueText.rectTransform);
 
             return oValueText;
@@ -263,7 +263,8 @@ namespace EasyMoney.App.UI.Pages
             UiFactory.SetHeight(oSubtitle.rectTransform, 40f);
 
             Text oAmount = UiFactory.CreateText(oRow, "Amount", oStatementRow.AmountText,
-                Theme.FONT_TITLE, TextAnchor.MiddleRight, _amountColor(oStatementRow.Type));
+                Theme.FONT_TITLE, TextAnchor.MiddleRight, _amountColor(oStatementRow.Type),
+                Theme.WEIGHT_AMOUNT);
             UiFactory.SetWidth(oAmount.rectTransform, AMOUNT_WIDTH);
 
             _addDeleteButton(oRow, oStatementRow.Transaction);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using EasyMoney.Core;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -65,7 +66,7 @@ namespace EasyMoney.App.UI
             UiFactory.AnchorTop(oTitle, TITLE_HEIGHT);
 
             Text oTitleText = UiFactory.CreateText(oTitle, "Text", sTitle,
-                Theme.FONT_TITLE, TextAnchor.MiddleCenter);
+                Theme.FONT_TITLE, TextAnchor.MiddleCenter, null, Theme.WEIGHT_TITLE);
             UiFactory.Stretch(oTitleText.rectTransform);
 
             return oPanel;

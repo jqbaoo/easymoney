@@ -80,7 +80,7 @@ namespace EasyMoney.App.UI.Pages
             _addNavButton(oRow, "Prev", IconNames.CHEVRON_LEFT, "<", _goPreviousMonth);
 
             m_MonthLabel = UiFactory.CreateText(oRow, "Month", string.Empty,
-                Theme.FONT_TITLE, TextAnchor.MiddleCenter);
+                Theme.FONT_TITLE, TextAnchor.MiddleCenter, null, Theme.WEIGHT_TITLE);
             UiFactory.SetFlexible(m_MonthLabel.rectTransform);
 
             _addNavButton(oRow, "Next", IconNames.CHEVRON_RIGHT, ">", _goNextMonth);
@@ -139,7 +139,7 @@ namespace EasyMoney.App.UI.Pages
             UiFactory.SetHeight(oCaption.rectTransform, 50f);
 
             Text oValue = UiFactory.CreateText(oCell, "Value", "0.00",
-                Theme.FONT_TITLE, TextAnchor.MiddleCenter, oColor);
+                Theme.FONT_TITLE, TextAnchor.MiddleCenter, oColor, Theme.WEIGHT_AMOUNT);
             UiFactory.SetHeight(oValue.rectTransform, 70f);
 
             return oValue;

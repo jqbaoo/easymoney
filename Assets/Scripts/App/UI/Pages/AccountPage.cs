@@ -65,7 +65,7 @@ namespace EasyMoney.App.UI.Pages
             oCaption.rectTransform.sizeDelta = new Vector2(0f, 40f);
 
             m_TotalLabel = UiFactory.CreateText(oHeader.transform, "Total", "0.00",
-                Theme.FONT_HERO, TextAnchor.MiddleCenter, Theme.WHITE);
+                Theme.FONT_HERO, TextAnchor.MiddleCenter, Theme.WHITE, Theme.WEIGHT_AMOUNT);
             UiFactory.Stretch(m_TotalLabel.rectTransform);
         }
 
@@ -172,7 +172,8 @@ namespace EasyMoney.App.UI.Pages
 
             Text oBalanceText = UiFactory.CreateText(oRow, "Balance", oAccountBalance.Balance.ToString(),
                 Theme.FONT_TITLE, TextAnchor.MiddleRight,
-                oAccountBalance.Balance.Cents < 0 ? Theme.EXPENSE : Theme.TEXT);
+                oAccountBalance.Balance.Cents < 0 ? Theme.EXPENSE : Theme.TEXT,
+                Theme.WEIGHT_AMOUNT);
             UiFactory.SetWidth(oBalanceText.rectTransform, BALANCE_WIDTH);
 
             _addEditButton(oRow, oAccount);
@@ -237,7 +238,8 @@ namespace EasyMoney.App.UI.Pages
         {
             // 有 icon_add.png 就是「图标 + 添加账户」，没有就退回「+ 添加账户」
             Button oAdd = UiFactory.CreateIconTextButton(Root, "AddAccount", IconNames.ADD, "添加账户",
-                _showAddDialog, Theme.PRIMARY, Theme.WHITE, Theme.FONT_TITLE, "+ 添加账户");
+                _showAddDialog, Theme.PRIMARY, Theme.WHITE, Theme.FONT_TITLE, "+ 添加账户",
+                Theme.WEIGHT_STRONG);
 
             RectTransform oRect = oAdd.GetComponent<RectTransform>();
             oRect.anchorMin = new Vector2(0f, 0f);

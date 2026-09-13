@@ -161,7 +161,10 @@ namespace EasyMoney.App.UI.Pages
             Text oLabel = UiFactory.CreateText(oRow, "Label", "金额", Theme.FONT_BODY);
             UiFactory.SetWidth(oLabel.rectTransform, LABEL_WIDTH);
 
-            m_AmountInput = UiFactory.CreateInput(oRow, "AmountInput", "0.00", Theme.FONT_HERO);
+            // 金额是这一页的主角。字重同时管住占位符和实际输入，
+            // 免得聚焦那一刻看到 "0.00" 和刚敲的数字粗细不一样
+            m_AmountInput = UiFactory.CreateInput(oRow, "AmountInput", "0.00", Theme.FONT_HERO,
+                Theme.WEIGHT_AMOUNT);
             UiFactory.SetFlexible(m_AmountInput.GetComponent<RectTransform>());
             m_AmountInput.textComponent.alignment = TextAnchor.MiddleRight;
             m_AmountInput.contentType = InputField.ContentType.DecimalNumber;
@@ -324,7 +327,7 @@ namespace EasyMoney.App.UI.Pages
         private void _buildSaveButton(RectTransform oBody)
         {
             Button oSave = UiFactory.CreateButton(oBody, "Save", "保存", _onSave,
-                Theme.PRIMARY, Theme.FONT_TITLE);
+                Theme.PRIMARY, Theme.FONT_TITLE, Theme.WEIGHT_STRONG);
             UiFactory.SetHeight(oSave.GetComponent<RectTransform>(), Theme.BUTTON_HEIGHT);
         }
 

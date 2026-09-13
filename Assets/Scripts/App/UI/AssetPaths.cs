@@ -20,7 +20,13 @@ namespace EasyMoney.App.UI
 
         // ── 具名资源 ────────────────────────────────
 
-        /// <summary>主字体。放进 Fonts/main.ttf 即自动生效。</summary>
+        /// <summary>
+        /// 主字体的 Regular 档。放进 Fonts/main.otf 即自动生效。
+        ///
+        /// Medium / Bold 两档的槽位名（main_medium / main_bold）不在这里，
+        /// 在 <c>Core/Typography/FontSlots.cs</c>——字重到槽位的映射是要被测试打表的纯逻辑，
+        /// 放在 Core 才测得到。这里只留 Regular 这个「什么都不传时用哪个」的基准名。
+        /// </summary>
         public const string MAIN_FONT = "main";
 
         /// <summary>卡片底图（九宫格）。放进 Sprites/card.png 即自动生效。</summary>

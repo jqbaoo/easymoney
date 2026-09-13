@@ -69,10 +69,11 @@ namespace EasyMoney.App.UI
                     () => _toggleArchive(oOverlay, oAccount, oContext), Theme.BACKGROUND, Theme.EXPENSE);
             }
 
+            // 保存是这一屏的主操作，用 Bold 和旁边的「取消」「归档」拉开
             _addButton(oButtons, "Save", "保存",
                 () => _save(oOverlay, oAccount, bIsNew, oNameInput, oBalanceInput,
                     oMessage, oSelectedType, oContext),
-                Theme.PRIMARY, Theme.WHITE);
+                Theme.PRIMARY, Theme.WHITE, Theme.WEIGHT_STRONG);
         }
 
         // ── 面板骨架 ────────────────────────────────
@@ -105,7 +106,8 @@ namespace EasyMoney.App.UI
             oFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             Text oTitle = UiFactory.CreateText(oPanel, "Title",
-                bIsNew ? "添加账户" : "编辑账户", Theme.FONT_TITLE, TextAnchor.MiddleCenter);
+                bIsNew ? "添加账户" : "编辑账户", Theme.FONT_TITLE, TextAnchor.MiddleCenter,
+                null, Theme.WEIGHT_TITLE);
             UiFactory.SetHeight(oTitle.rectTransform, TITLE_HEIGHT);
 
             return oPanel;
@@ -183,10 +185,10 @@ namespace EasyMoney.App.UI
 
         private static void _addButton(
             RectTransform oRow, string sName, string sLabel, UnityEngine.Events.UnityAction oOnClick,
-            Color oBackground, Color oLabelColor)
+            Color oBackground, Color oLabelColor, FontWeight eWeight = FontWeight.Regular)
         {
             Button oButton = UiFactory.CreateButton(
-                oRow, sName, sLabel, oOnClick, oBackground, Theme.FONT_BODY);
+                oRow, sName, sLabel, oOnClick, oBackground, Theme.FONT_BODY, eWeight);
             UiFactory.SetFlexible(oButton.GetComponent<RectTransform>());
             UiFactory.PaintButton(oButton, oBackground, oLabelColor);
         }

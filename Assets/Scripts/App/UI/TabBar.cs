@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using EasyMoney.Core;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -64,7 +65,13 @@ namespace EasyMoney.App.UI
                 if (m_Labels[i] != null)
                 {
                     m_Labels[i].color = oColor;
-                    m_Labels[i].fontStyle = bSelected ? FontStyle.Bold : FontStyle.Normal;
+
+                    // 换成真 Bold 字体，不再让 Unity 合成粗体：合成粗体是给笔画描边，
+                    // 在标签栏这个 22px 字号上会糊成一团。SetSelected 每次翻页都会跑，
+                    // 所以这里给的字重是最终生效的那一份，创建时传什么都会被覆盖。
+                    m_Labels[i].font = FontProvider.Resolve(
+                        bSelected ? FontWeight.Bold : FontWeight.Regular);
+                    m_Labels[i].fontStyle = FontStyle.Normal;
                 }
 
                 _paintIcon(i, bSelected, oColor);

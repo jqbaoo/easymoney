@@ -1,12 +1,16 @@
+using System.Collections.Generic;
+using EasyMoney.Core;
 using UnityEngine;
 
 namespace EasyMoney.App.UI
 {
     /// <summary>
-    /// 字体解析，三级回退：
-    ///   1. Assets/Resources/Fonts/main.ttf —— 美术/设计给了字体就用它，保证跨机型一致
-    ///   2. 系统里的中文字体 —— 按平台逐个尝试，不必往包里塞字体文件
-    ///   3. Unity 内置字体 —— 最后兜底（可能是方块字，但至少不崩）
+    /// 字体解析，按字重分层。
+    ///
+    /// 每档字重先试自己的字体文件（Assets/Resources/Fonts/），
+    /// Medium / Bold 缺失时按 Core 的 <see cref="FontSlots.FallbackChain"/> 退回 Regular；
+    /// Regular 再缺失才落到系统字体，最后是 Unity 内置字体。
+    /// 掉一档字重总比掉字好，掉字体总比崩好。
     /// </summary>
     public static class FontProvider
     {
@@ -26,37 +30,70 @@ namespace EasyMoney.App.UI
             "Arial Unicode MS"
         };
 
-        private static Font s_Cached;
+        // 按字重分别缓存。同一档字重的解析结果在整个进程内复用。
+        private static readonly Dictionary<FontWeight, Font> s_Cache =
+            new Dictionary<FontWeight, Font>();
 
+        /// <summary>取 Regular 字重的字体。等价于 <c>Resolve(FontWeight.Regular)</c>。</summary>
         public static Font Resolve()
         {
-            if (s_Cached != null)
+            return Resolve(FontWeight.Regular);
+        }
+
+        /// <summary>取指定字重的字体。</summary>
+        public static Font Resolve(FontWeight eWeight)
+        {
+            if (s_Cache.TryGetValue(eWeight, out Font oCached) && oCached != null)
             {
-                return s_Cached;
+                return oCached;
             }
 
-            // 1. 项目自带字体优先
-            Font oCustom = AssetProvider.Font(AssetPaths.MAIN_FONT);
-            if (oCustom != null)
+            Font oFont = _resolveByChain(eWeight);
+            s_Cache[eWeight] = oFont;
+            return oFont;
+        }
+
+        /// <summary>
+        /// 清掉字体缓存，下次 Resolve 时重新解析。
+        ///
+        /// 连 AssetProvider 的缓存一起清：那边会把「文件不存在」的 null 也缓存下来，
+        /// 只清这里的话，之后新放进 Fonts/ 的字体依然拿不到。
+        /// </summary>
+        public static void Reset()
+        {
+            s_Cache.Clear();
+            AssetProvider.ClearCache();
+        }
+
+        /// <summary>沿回退链逐档试自带字体，全都落空才去要系统字体。</summary>
+        private static Font _resolveByChain(FontWeight eWeight)
+        {
+            foreach (FontWeight eCandidate in FontSlots.FallbackChain(eWeight))
             {
-                s_Cached = oCustom;
-                return s_Cached;
+                Font oFont = AssetProvider.Font(FontSlots.SlotOf(eCandidate));
+                if (oFont != null)
+                {
+                    return oFont;
+                }
             }
 
-            // 2. 系统字体
+            return _resolveSystemFont();
+        }
+
+        /// <summary>自带字体一个都没放时的兜底：系统字体 → Unity 内置字体。</summary>
+        private static Font _resolveSystemFont()
+        {
             foreach (string sName in FONT_CANDIDATES)
             {
                 Font oFont = Font.CreateDynamicFontFromOSFont(sName, SAMPLE_SIZE);
                 if (oFont != null && oFont.dynamic)
                 {
-                    s_Cached = oFont;
-                    return s_Cached;
+                    return oFont;
                 }
             }
 
-            // 3. 兜底：Unity 内置字体。2022 起叫 LegacyRuntime.ttf（旧版是 Arial.ttf）。
-            s_Cached = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            return s_Cached;
+            // 2022 起叫 LegacyRuntime.ttf（旧版是 Arial.ttf）。
+            return Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         }
     }
 }

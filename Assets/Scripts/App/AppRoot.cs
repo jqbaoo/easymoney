@@ -180,7 +180,7 @@ namespace EasyMoney.App
             UiFactory.AnchorTop(oHeader.rectTransform, Theme.HEADER_HEIGHT);
 
             m_HeaderTitle = UiFactory.CreateText(oHeader.transform, "Title", "EasyMoney",
-                Theme.FONT_TITLE, TextAnchor.MiddleCenter);
+                Theme.FONT_TITLE, TextAnchor.MiddleCenter, null, Theme.WEIGHT_TITLE);
             UiFactory.Stretch(m_HeaderTitle.rectTransform);
 
             Image oDivider = UiFactory.CreatePanel(oHeader.transform, "Divider", Theme.DIVIDER);
