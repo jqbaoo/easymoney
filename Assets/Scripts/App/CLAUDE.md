@@ -244,9 +244,31 @@ UiFactory.CreateIconTextButton(parent, "Add", IconNames.ADD, "添加账户", onC
 
 // 把已有按钮的文字标签换成图标
 UiFactory.ReplaceButtonLabelWithIcon(oButton, IconNames.CHEVRON_LEFT, 40f, Theme.PRIMARY);
+
+// 列表行首的图标位：有图放图，没图留一个等宽空位（不画）
+Image oSlot = UiFactory.CreateIconSlot(oRow, "Icon",
+    IconNames.ForCategory(oStatementRow.CategoryIconName),
+    Theme.CATEGORY_ICON_SIZE, Theme.TEXT_WEAK);
+UiFactory.SetIconSlot(oSlot, IconNames.ForCategory(oCategory?.IconName), Theme.TEXT_WEAK);
 ```
 
 有了图标之后要改按钮配色，用 `UiFactory.GetButtonIcon(oButton)` 拿到 Image。
+
+**`CreateIconSlot` / `SetIconSlot` 与 `CreateIconOrText` 的分工**：
+
+| | 没图标时 | 返回 | 用来 |
+|---|---|---|---|
+| `CreateIconOrText` | 建一个 Text 显示兜底文字 | `RectTransform` | 翻页箭头、行尾 chevron——光秃秃一个箭头没了就没法点 |
+| `CreateIconSlot` | 整格透明，**位置留着** | `Image` | 列表行首——宁可空一格，也不能让各行文字左边缘参差不齐 |
+
+`CreateIconSlot` 返回 `Image` 而不是 `RectTransform`，是为了能**就地换图**：
+记账页选中分类后要往同一格里填图，若改成重建节点，`Destroy` 延迟到帧末，
+新旧两个节点会在同一帧的布局里各占一格。要换图一律走 `SetIconSlot`，不要自己
+`Destroy` + 重建。
+
+分类图标名是**数据**（存在 `category.icon_name`），解析一律用
+`IconNames.ForCategory(...)`——它会检查资源真实存在，找不到返回 `null`，
+`SetIconSlot` 拿到 `null` 就把整格调透明。
 
 ---
 
@@ -262,6 +284,19 @@ PickerDialog.Show(Root, "选择分类", lLabels, iIndex => { _pick(lCategories[i
 - 第四个参数是选中回调，拿到的是**下标**，不是对象——调用方自己索引回原列表
 - 第五个参数是列表为空时的文案，省略则显示「暂无可选项」
 - 弹窗挂在传入的父节点下（通常就是页面 `Root`），选完或取消后自行销毁
+
+要带图标的重载，把图标名列表插在选项列表后面：
+
+```csharp
+PickerDialog.Show(Root, "选择分类", lLabels, lIcons,
+    iIndex => _pickCategory(lCategories[iIndex]), "还没有分类，请先去「账户」页检查");
+```
+
+- 图标名列表可以是 `null`（走原重载，不建图标位），元素也可以是 `null`（该项留空位）
+- **解析放调用方，不放 PickerDialog**：它是分类/账户/日期/类型共用的通用弹窗，
+  让它认识「分类图标」这个概念是错的耦合。页面解析好名字传进来
+- 一旦传了列表，**所有行都建图标位**，跟当前这项有没有图无关——否则同一弹窗里
+  有图的项和没图的项文字左边缘会错开
 
 ## 注意事项
 

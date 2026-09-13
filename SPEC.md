@@ -23,7 +23,7 @@
 Core 层   ██████████ 100%   Money / TimeUtil / 模型 / 校验 / 报表 / 账单展示投影 / 账户表单 / 报表展示（Task 2-3、5、7、9-11、14-16）
 Data 层   ██████████ 100%   SQLite / 三个仓储 / 记账服务 / 筛选（Task 4、6-11）
 App 层    ██████████ 100%   记账页 / 账单页 / 账户页 / 报表页全部通真实数据
-测试      ██████████ 100%   228 个用例全绿（Money 7 + Parser 17 + TimeUtil 12 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 13 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 11 + 筛选 18 + 报表 13 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 21 + 账户表单 13 + 报表展示 12 + 构建配置守卫 9 + 结构迁移 9 + 字体槽位 8）
+测试      ██████████ 100%   243 个用例全绿（Money 7 + Parser 17 + TimeUtil 12 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 16 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 11 + 筛选 18 + 报表 16 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 26 + 账户表单 13 + 报表展示 12 + 构建配置守卫 9 + 结构迁移 13 + 字体槽位 8）
 打包      ██████████ 100%   APK 已构建，Redmi K60 真机验收 18 项中 17 项通过
 ```
 
@@ -51,6 +51,8 @@ App 层    ██████████ 100%   记账页 / 账单页 / 账户�
 | **账单列表页** | `App/UI/Pages/TransactionListPage.cs`、`Core/Statements/*.cs` | Task 14 产出。按月查看 + 收支汇总 + 按天分组 + 删除。**展示规则抽在 Core 的 `StatementBuilder` 里**（本地日期分组、金额正负号、名称兜底），页面只做取数与渲染 |
 | **账户管理页** | `App/UI/Pages/AccountPage.cs`、`App/UI/AccountEditDialog.cs`、`Core/Accounts/*.cs` | Task 15 产出。总资产 + 各账户实时余额 + 添加 / 编辑 / 归档 / 恢复。**表单规则抽在 Core 的 `AccountForm` 里**（名称去空白后非空、余额留空按 0、允许负数），新建与编辑共用一套弹窗。比计划多做了「显示已归档」开关——计划里的归档是单向的，点错一次就找不回来 |
 | **报表页** | `App/UI/Pages/ReportPage.cs`、`Core/Reports/ReportForm.cs` | Task 16 产出。月份切换 + 收支汇总 + 支出/收入分类占比条形图。**展示规则抽在 Core 的 `ReportForm` 里**（构成标题、占比文案、条形宽度钳位），月份格式统一走 `TimeUtil.FormatYearMonth`。`DemoData.cs` 已随之删除 |
+
+| **分类图标** | `Resources/Icons/cat_*.png`、`Data/DefaultCategories.cs`、`Data/SchemaMigrations.cs`、`App/UI/UiFactory.cs` | 计划外新增。15 个预置分类的图标接进账单行 / 报表行 / 记账页分类行 / 分类选择弹窗四处；老库的 `icon_name` 靠 v2 迁移补上。见第 7 节 |
 
 ### 全部完成
 
@@ -459,6 +461,24 @@ CREATE INDEX idx_category_kind ON category(kind);
 机制本身的行为都被测试钉着：全新库直接盖章、老库按版本升序补跑、已走过的版本不重跑、
 跨版本升级不跳步、降级不盖章也不跑迁移、同一版本内失败整体回滚。
 
+**「迁移」不只指改表结构，补数据也算。** 判据是「新装的库天然就对，老库不对」——
+v2 就是这一类：第一版 `DefaultCategories` 把预置分类的 `icon_name` 填成了空字符串，
+新装的库走种子代码天然带图标名，已经装在真机上的库只能靠迁移把这段数据补上。
+所以上面第 3 步要连**种子**一起改（结构改 `Schema.cs`，数据改 `DefaultCategories`），
+否则两条路各自到达的状态不一样。
+
+⚠️ **数据迁移要写成可以安全重跑的形式。** `SchemaMigrator` 的版本戳是**盖在每个
+版本的事务之外**的，真机上「迁移已提交、盖章前进程被杀」是会发生的（系统回收、
+用户强杀），下次启动这一版会重跑。对 `ALTER TABLE` 那是事故，对数据回填则取决于
+SQL 怎么写——v2 的三个条件里 `icon_name = ''` 和 `ELSE icon_name` 正是为此存在：
+重跑时已有图标名的行不会被覆盖回去，清单之外的行也不会被动。
+
+真实迁移的用例在 `SchemaMigrationTests` 后半部分（前半部分用合成迁移驱动机制本身）：
+`CategoryIconMigration_BackfillsLegacyDatabase`（老库补上了）、
+`..._LeavesUserCategoriesAlone`（用户自建的同名分类不动）、
+`..._DoesNotOverwriteExistingIcon`（钉住可重跑性）、
+`..._MatchesFreshInstallSeed`（升级路径与全新安装到达同一状态）。
+
 ---
 
 ## 7. 资源层（美术换图用）
@@ -494,6 +514,35 @@ Resources 里没图  →  代码画一个 / 用文字符号顶替
 
 完整清单（每个图标的文件名、显示尺寸、分类 slug 表、九宫格 border 怎么切）
 见 **`Claude/资源替换指南.md`**。
+
+### 分类图标怎么接
+
+分类的图标名是**数据**：存在 `category.icon_name` 列里（值形如 `cat_food`），
+不是代码里按分类名硬编码的映射——将来「分类管理」页要让用户自己改，代码管不着。
+这一点决定了图标要接四层：
+
+| 层 | 做什么 |
+|---|---|
+| `Data/DefaultCategories.cs` | 新装的库：种子数据带上图标名 |
+| `Data/SchemaMigrations.cs` | 老的库：v2 迁移按分类名把 `icon_name` 补上 |
+| `Core/StatementBuilder`、`Core/ReportCalculator` | 投影与聚合时把图标名从分类表带出来（`StatementRow.CategoryIconName`、`CategoryBreakdownItem.IconName`） |
+| `App` 各页面 | 用 `IconNames.ForCategory(名字)` 解析成**真实存在**的资源名，交给 `UiFactory.CreateIconSlot` 画出来 |
+
+⚠️ **解析放页面，不放 `PickerDialog`。** 那个弹窗是分类 / 账户 / 日期 / 账户类型
+共用的，让它认识「分类图标」是没必要的耦合。页面把解析好的名字列表传进去，
+元素可以是 `null`（该项没图标）。反过来，`lIconNames` 传 `null` 时弹窗**一格都不建**——
+否则账户、日期那几个弹窗每行都会平白多出一格左缩进。
+
+⚠️ **`CreateIconSlot` 固定占一格，没图标就整格透明**，不会跳过不建。用户自建的
+分类没有图标名，那一格若干脆不建，这行的文字会往左顶，跟上下行的左边缘参差不齐。
+它返回 `Image` 而不是 `RectTransform`，是因为记账页的分类行选中分类后要**就地换图**——
+换节点的话同帧内新旧两个节点会在布局里各占一格。
+
+图标名这份对照表在四个地方各存了一份（迁移 SQL、`DefaultCategories`、`IconNames`
+常量、PNG 文件名），编译器一个都管不了。两道网兜着：
+`Defaults_IconNames_ResolveToExistingResources`（每个名字都能解析到真实资源，
+这条同时盯住「Data 写错了」「常量改名了」「PNG 漏放了」三种事故）
+与 `CategoryIconMigration_MatchesFreshInstallSeed`（升级与全新安装一致）。
 
 ### 代码侧
 
@@ -574,6 +623,25 @@ bash Tools/run-editmode-tests.sh
 - **`-testResults` 不要指向 `Temp/`。** Unity 退出时会清理 `Temp/` 目录，结果文件会被删掉
   （实测：文件在 10 秒时写入成功、2.7KB，进程结束后消失），脚本会把它误判成「编译错误」。
   所以产物统一放 `Tools/`，并已在 `.gitignore` 里忽略 `Tools/*.log`、`Tools/*.xml`。
+- **Unity 跑完测试经常不自己退出。** 实测多次：结果文件已经写完、测试也全绿了，
+  但 `Unity.exe` 进程仍驻留（实测 1.6 GB），于是脚本一直停在等待那一行，
+  看起来像卡死。这时**别再起第二次**——项目被占着，第二个实例会崩在
+  `HandleProjectAlreadyOpenInAnotherInstance`，脚本报退出码 2，**长得跟编译错误一样**，
+  很容易白查半天。
+
+  判断顺序：先看 `Tools/editmode-results.xml` 在不在（在 = 这一轮其实已经跑完了），
+  再清掉残留的 batchmode 进程。
+
+  ```bash
+  tasklist | grep -i unity          # 拿进程号
+  taskkill //PID <pid> //F
+  ```
+
+  哪个才是残留：用
+  `powershell -Command "Get-CimInstance Win32_Process -Filter \"ProcessId=<pid>\" | Select CommandLine"`
+  看命令行，带 `-batchmode … -runTests` 的是。命令行**为空**的多半是 Unity Hub 的
+  残留（十几 MB），不占项目，可以不管。**别凭进程名一律杀**——用户自己开着的编辑器
+  也长这样，杀了会丢未保存的改动。
 
 ```bash
 "/d/unity/unity2022/2022.3.53f1c1/Editor/Unity.exe" \
@@ -653,7 +721,7 @@ bash Tools/run-editmode-tests.sh
 | **emoji 显示为空白** | 真机实测：备注里填 emoji 渲染成空白。根因同上——候选字体全是中文字体（含自带的 Noto Sans SC），**都不含 emoji 字形**，而 legacy `Text` 在字形缺失时不跨字体回退 | **已定性为纯渲染问题，数据没丢**。依据是把写入链路三段都证干净了（仓储 `Note_SupportsChineseAndEmoji`、服务 `Save_KeepsEmojiNoteIntact`、投影 `BuildRow_EmojiNote_KeepsItWholeAsTitle`），且全项目没有按 `char` 截断的代码。要支持得自带 emoji 字体 + 换 TextMeshPro，**当前判断为不值得做**。注意 Unity 的 legacy `Font` 与 TMP 3.0.7 **都不支持彩色 emoji 字体**（CBDT/CBLC、COLR/CPAL 均不认），换 TMP 也只在用单色 emoji 字体时才有效 |
 | **APK 里仍有 INTERNET 权限** | 已设 `Internet Access: Not Required`，测试也是绿的，但 `aapt dump badging` 实测包里仍有该权限。根因是 `com.unity.modules.unitywebrequest` 模块自己声明，manifest merger 合并进来，`ForceInternetPermission` 拦不住 | 单机 App 用不到，属瑕疵。要真正去掉需自定义 `Assets/Plugins/Android/AndroidManifest.xml` + `tools:node="remove"`——自定义 manifest 是构建失败高发区，单独一轮做 |
 | **adb 连不上真机** | Task 17 验收时 USB（线缆只有电源线芯）与无线调试（路由器 AP 隔离）双双失败，最后靠手动传 APK 完成验收，**没有 logcat 佐证** | 下次接设备前先确认线能传数据、路由器没开客户端隔离。另：platform-tools v31.0.2+ 需 `ADB_MDNS_OPENSCREEN=1` 才能 `adb pair` |
-| **编辑器占用** | 命令行跑测试或构建时，另一个 Unity 实例不能打开同一项目 | 跑之前先关编辑器；两个脚本都会以退出码 2 报出这个错误 |
+| **编辑器占用 / 残留的 batchmode 进程** | 命令行跑测试或构建时，另一个 Unity 实例不能打开同一项目。除了用户开着的编辑器，**上一次跑完却没退出的 batchmode 进程**同样会占着项目（实测多次：结果都写完了、进程仍驻留 1.6 GB），而它报出来的错是 `HandleProjectAlreadyOpenInAnotherInstance`，看起来像编译错误 | 跑之前先确认没有 Unity 实例；脚本以退出码 2 报出。清理办法见第 10 节——**先看结果文件在不在**，别急着当编译错误查 |
 | **命令行测试的静默失败** | `-quit` 会让 Unity 跳过测试直接退出（退出码 0）；`Temp/` 下的结果文件会被 Unity 退出时清理 | 两个坑都已规避并写进脚本，见第 10 节 |
 | **`Assets/Resources/` 下的东西都会进 APK** | 放进去的每张图都算包体。应用图标源图一度放在 `Assets/Resources/Icons/AppIcon/`，等于把 47 张 PNG 白打进包里 | 图标源图已移到 `Assets/AppIcons/`（自动打包够不着），只在 Player Settings 里引用 |
 | **改表结构会砸掉用户数据** | 建表全是 `CREATE TABLE IF NOT EXISTS`，对已有的表等于什么都不做。给旧表加列，升级上来的老库会 `no such column`——是崩溃，不是降级。第一版已装在真机上且有真实数据 | ✅ **已解决**。`SchemaMigrator` + `SchemaMigrations.ALL`，`EasyMoneyDb.Open()` 时按版本补跑缺失的迁移。改结构走三步，见第 6 节。机制行为有 9 个测试钉着 |

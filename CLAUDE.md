@@ -20,7 +20,7 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   四个页面 + Android 打包
   （`Core`：Money / TimeUtil / 模型 / 校验 / 报表 / 快捷金额 / 账单展示投影 / 账户表单 / 报表展示；
   `Data`：SQLite / 三个仓储 / 记账服务 / 多维筛选；`App`：`AppContext` / 记账页 / 账单页 / 账户页 / 报表页）
-- ✅ **228 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
+- ✅ **243 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
 - ✅ 标签 **`data-layer-complete`**（业务逻辑层封顶）、**`mvp-complete`**
 - ✅ **APK 构建成功**（`bash Tools/build-android.sh` → `Builds/EasyMoney.apk`，29 MB），
   真机 18 项验收通过 17 项
@@ -28,6 +28,12 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   Bold，OFL 1.1，子集化后合计 5.7 MB），全站建立字重层次，**字形不再依赖机型 ROM**。
   字重→槽位映射抽在 `Core/Typography/FontSlots.cs`，`FontSlotsTests` 8 个用例钉着。
   ⚠️ **尚未重新打 APK**——包体预计从 ~29 MB 涨到 ~35 MB，真机复验待做
+- ✅ **分类图标接入**（2026-09-13）—— 15 个预置分类的图标接进账单行 / 报表行 /
+  记账页分类行 / 分类选择弹窗四处。图标名是**数据**（存在 `category.icon_name` 里），
+  所以新装的库走 `DefaultCategories` 种子、**老库走 v2 迁移补**，两条路都得改，
+  只改一边会有一半用户看不到图标。
+  ⚠️ 这一版动了 `SCHEMA_VERSION`（1 → 2），**真机上要验的是「老库升级后图标出现」**，
+  不只是全新安装能显示
 
 **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
 `ITransactionRepository` 等于绕过校验。
@@ -132,12 +138,18 @@ bash Tools/run-editmode-tests.sh
 
 退出码：**0 = 全部通过，1 = 有测试失败，2 = 环境/编译错误**。
 
-⚠️ 两个已实测的坑，写死在脚本里了，别绕过脚本手敲命令：
+⚠️ 三个已实测的坑，前两个写死在脚本里了，别绕过脚本手敲命令：
 
 - **不要加 `-quit`** —— 它会让 Unity 在跑测试之前就退出，退出码 0 但一个测试都没跑，
   是静默失败
 - **`-testResults` 不要指向 `Temp/`** —— Unity 退出时会清理 `Temp/` 目录，结果文件
   会被删掉（实测写入成功后又消失），脚本会误判成编译错误
+- **Unity 跑完测试经常不自己退出**，脚本就一直等着（实测多次，进程驻留 1.6 GB）。
+  这时别再起第二次：项目被占着，第二个实例崩在
+  `HandleProjectAlreadyOpenInAnotherInstance`，报退出码 2，**看起来跟编译错误一样**。
+  先看 `Tools/editmode-results.xml` 在不在（在 = 这轮已经跑完了），再清残留进程——
+  用 `Get-CimInstance Win32_Process` 看命令行，**只杀带 `-batchmode … -runTests` 的那个**，
+  用户自己开着的编辑器也长得一样，杀了会丢未保存的改动
 
 详见 `SPEC.md` 第 10 节。
 
