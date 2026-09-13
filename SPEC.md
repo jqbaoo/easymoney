@@ -23,7 +23,7 @@
 Core 层   ██████████ 100%   Money / TimeUtil / 模型 / 校验 / 报表 / 账单展示投影 / 账户表单 / 报表展示（Task 2-3、5、7、9-11、14-16）
 Data 层   ██████████ 100%   SQLite / 三个仓储 / 记账服务 / 筛选（Task 4、6-11）
 App 层    ██████████ 100%   记账页 / 账单页 / 账户页 / 报表页全部通真实数据
-测试      ██████████ 100%   335 个用例全绿（Money 7 + Parser 17 + TimeUtil 15 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 16 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 11 + 筛选 18 + 报表 16 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 26 + 账户表单 13 + 报表展示 15 + 构建配置守卫 9 + 结构迁移 13 + 字体槽位 8 + 配色 10 + 月份条 10 + 月份弹窗 9 + 环形切分 14 + 视图清单 9 + 下拉列表 12 + 视图宿主 10 + 视图渲染 12）
+测试      ██████████ 100%   347 个用例全绿（Money 7 + Parser 17 + TimeUtil 15 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 16 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 11 + 筛选 18 + 报表 16 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 26 + 账户表单 13 + 报表展示 15 + 构建配置守卫 9 + 结构迁移 13 + 字体槽位 8 + 配色 10 + 选中态配色 7 + 月份条 10 + 月份弹窗 9 + 环形切分 14 + 视图清单 9 + 下拉列表 12 + 视图宿主 10 + 视图渲染 17）
 打包      ██████████ 100%   APK 已构建，Redmi K60 真机验收 18 项中 17 项通过
 ```
 
@@ -52,6 +52,7 @@ App 层    ██████████ 100%   记账页 / 账单页 / 账户�
 | **账户管理页** | `App/UI/Pages/AccountPage.cs`、`App/UI/AccountEditDialog.cs`、`Core/Accounts/*.cs` | Task 15 产出。总资产 + 各账户实时余额 + 添加 / 编辑 / 归档 / 恢复。**表单规则抽在 Core 的 `AccountForm` 里**（名称去空白后非空、余额留空按 0、允许负数），新建与编辑共用一套弹窗。比计划多做了「显示已归档」开关——计划里的归档是单向的，点错一次就找不回来 |
 | **报表页** | `App/UI/Pages/ReportPage.cs`、`Core/Reports/ReportForm.cs` | Task 16 产出。月份切换 + 收支汇总 + 支出/收入分类占比条形图。**展示规则抽在 Core 的 `ReportForm` 里**（构成标题、占比文案、条形宽度钳位），月份格式统一走 `TimeUtil.FormatYearMonth`。`DemoData.cs` 已随之删除 |
 
+| **环形图图例 + 收入 tab 字色修复 + 记账页保留选项** | `App/UI/TogglePalette.cs`、`App/UI/Reports/ReportViewParts.cs`、`App/UI/Pages/RecordPage.cs` | 计划外。环形图明细行**最左**加一个图例色点（在分类图标之前），颜色按**行号**取 `Theme.ChartColor`——跟扇区同一套，跟 CategoryId 走的话删掉一个分类颜色就整体错位。修掉报表页「收入构成」未选中时白底白字：根因是同一段配色样板在报表页与记账页各抄一遍、抄反了一个三元分支，收成 `TogglePalette` 后调用方传的是「选没选中」，这类抄错不可能再犯（`TogglePaletteTests` 7 条，其中两条用 **WCAG 对比度**而不是「等于某个常量」——「两色各自合法、配在一起看不见」正是这个 bug 的形状）。记账页保存后**只清金额与备注**，类型/账户/分类/日期留着。⚠️ 记账页这条**没有测试覆盖**（`_onSave` 要连着数据库才走得完），改由 Play 验 |
 | **分类图标** | `Resources/Icons/cat_*.png`、`Data/DefaultCategories.cs`、`Data/SchemaMigrations.cs`、`App/UI/UiFactory.cs` | 计划外新增。15 个预置分类的图标接进账单行 / 报表行 / 记账页分类行 / 分类选择弹窗四处；老库的 `icon_name` 靠 v2 迁移补上。见第 7 节 |
 | **暖色纸感配色 + 卡片投影** | `Resources/theme.json`、`App/UI/ThemePalette.cs`、`App/UI/UiFactory.cs` | 计划外新增。原来是浅灰底 `#F2F3F5` 配白卡片，两者只差 13 个色阶、卡片又没有投影，整屏看着就是一片白。换成暖色纸感，卡片投影收进 `UiFactory.PaintCard` / `AddCardShadow`。配色在 `theme.json` 与 `ThemePalette.Light()` 两处，`ThemePaletteTests` 钉着一致。**Play 肉眼验收通过**（2026-09-13）。见第 7 节 |
 | **月份条抽组件 + 点年月选月份** | `App/UI/MonthBar.cs`、`App/UI/MonthPickerDialog.cs`、`Core/TimeUtil.cs`、`App/UI/UiFactory.cs` | 计划外新增。账单页与报表页的月份条原先逐字重复（连三个常量都各定义一份），收成 `MonthBar` 后两页各一行 `new MonthBar(...)`；中间的年月文字从裸 `Text` 变成可点的「文字 + `↓`」横排，点开 `MonthPickerDialog`（年份行 + 3×4 月份网格）一次跳到目标月。`TimeUtil` 新增 `FormatYear` / `FormatMonth`，`FormatYearMonth` 改为拼这两个。**弹窗与月份条首次有了 EditMode 覆盖**（19 个用例）——原先逻辑在页面里，测试够不着。**Play 肉眼验收通过**（2026-09-13） |
@@ -608,6 +609,12 @@ Resources 里没图  →  代码画一个 / 用文字符号顶替
 不拿到下标**——Core 层不许 `using UnityEngine`，所以「第几号分类该用哪个颜色」
 这个决定只能落在 App 层。
 
+环形图的明细行最左有一个**图例色点**（`Theme.CHART_DOT_SIZE`，圆点底图来自
+`SpriteFactory.Circle()`），颜色按行号取同一套槽位——环上没有文字，颜色与分类的
+对应全靠它。色点跟**行号**走而不是 `CategoryId`：扇区就是这么取色的
+（`DonutLayout` 里 `SeriesIndex = i`），跟 `CategoryId` 走的话中间删掉一个分类
+颜色就整体错位了，而环和行都还在、只是对不上，从界面上很难归因。
+
 ⚠️ **色板刻意不进 `theme.json`。** 它是「一组要能互相区分的颜色」，不是单值配色；
 JsonUtility 解析数组要多写一层，而逐字段比对的两套配色（`theme.json` 与
 `ThemePalette.Light()`）也要跟着复杂一圈。代价是这套色板**不受 `theme.json` 覆盖**——
@@ -650,6 +657,18 @@ Theme.Apply(ThemePalette.Dark());   // 界面会自动整体重建
 
 （本轮改造前页面里散落过 `">"` `"<"` `"+ 添加账户"` 这类硬编码符号，已经全部消除。
 发现新的硬编码就该挪进 `Theme` 或 `IconNames`。）
+
+⚠️ **「选中 / 未选中」这套配色一律走 `TogglePalette`**（`Background(bSelected)` /
+`Label(bSelected)` / `Apply(oButton, bSelected)`），别自己拼三元表达式。报表页的
+「支出/收入构成」与记账页的「支出/收入/转账」都用它。
+
+这条不是洁癖：那段样板原先在两处各抄一遍，抄第二遍时把收入按钮未选中态的
+「暖白底 + 深字」写成了「暖白底 + 白字」——不报错、不崩溃、当时也没有测试，
+只是那个按钮看上去「没有文字」。收成一处之后，调用方传的是「选没选中」
+而不是两组颜色，这类抄错结构性地不可能再犯。
+
+⚠️ 选择月份弹窗的格子**不走这里**：它的未选中底用页面底色而不是卡片色
+（弹窗本身就是卡片，格子再用卡片色就分不出来了），是另一种场景。
 
 ⚠️ **兜底文字只能是字体子集里真有的字。** 字体按「GB2312 汉字 + ASCII + 中文标点
 + 货币符号」子集化（7594 字，脚本 `D:\font-tmp\subset.py`），挑错的字符**代码不报错、

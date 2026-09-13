@@ -26,6 +26,7 @@ App/
     ├── PageBase.cs         页面抽象基类
     ├── PageRouter.cs       页面注册与切换
     ├── TabBar.cs           底部标签栏
+    ├── TogglePalette.cs    「选中 / 未选中」配色的唯一出处（报表页收支切换、记账页类型分段）
     ├── MonthBar.cs         月份条（左右翻月 + 点年月文字选月），账单页与报表页共用
     ├── DropdownButton.cs   就地下拉浮层（按钮正下方弹面板），报表页切视图用
     ├── PickerDialog.cs     通用选择弹窗（分类 / 账户 / 日期共用）
@@ -72,6 +73,18 @@ public class XxxPage : PageBase
 ```csharp
 _register(TABS[2].Key, new XxxPage());
 ```
+
+⚠️ **`OnShow()` 不只是「切到本页」，它还是「数据变了」的回调。** `AppRoot` 订阅了
+`DataChanged`，收到通知会把当前页重走一遍 `OnShow()`——**包括页面自己刚保存完喊的那一声**。
+所以在 `OnShow` 里无条件重置表单是错的：用户刚选好的分类、账户会被自己那次保存冲掉。
+
+`RecordPage` 是这么处理的：`m_Initialized` 让**首次**进入才做整页重置，之后 `OnShow`
+只补「还没选」的项（顺带兜住「新装的库里没有账户，去建完再切回来」那个场景）。
+保存成功后也只清金额与备注，类型 / 账户 / 分类 / 日期都留着——「连着记几笔同类账」
+（一天几笔餐饮）时那几项通常一样，每笔都要重选一遍很烦。
+
+⚠️ 这条行为**没有测试覆盖**：`_onSave` 要连着 `AppContext` 和数据库才走得完，
+EditMode 够不着。不为它造测不了的抽象，改由 Play 肉眼验收。
 
 ---
 
@@ -221,6 +234,33 @@ AmountText` 往 `Text` 里塞。理由很实在：EditMode 测试根本跑不到
 
 弹窗里还有个容易写错的点：**不要就地改传进来的 `Account`**。它是引用类型，就地改会让
 「点取消」变成改了一半的假取消——表单状态放局部变量，点保存再组装一个新对象写库。
+
+---
+
+## 选中态配色：一律走 TogglePalette
+
+「一排按钮，选中的那个高亮」这种控件（报表页的支出/收入构成、记账页的支出/收入/转账）
+一律用：
+
+```csharp
+TogglePalette.Apply(m_ExpenseTab, bExpense);
+TogglePalette.Apply(m_IncomeTab, !bExpense);
+```
+
+**别自己拼 `bSelected ? Theme.PRIMARY : Theme.SURFACE` 那种三元表达式。**
+
+这不是洁癖。原先那段样板在报表页与记账页各抄了一遍，抄第二遍时把收入按钮未选中态的
+「暖白底 + 深字」写成了「暖白底 + 白字」——不报错、不崩溃、当时也没有测试，
+只是那个按钮看上去「**没有文字**」。收成一处之后，调用方传的是「选没选中」而不是
+两组颜色，这类抄错结构性地不可能再犯。
+
+`TogglePaletteTests` 钉着这套规则，其中两条用 **WCAG 对比度**（AA 对 UI 组件要求
+3:1）而不是「等于某个常量」——「底色和字色各自都合法、配在一起却看不见」正是这个
+bug 的形状，只断言常量的话把两个常量一起写错就漏过去了。写新配色时沿用这个断言方式。
+
+⚠️ **选择月份弹窗（`MonthPickerDialog`）的格子不走这里**：它的未选中底用页面底色
+而不是卡片色——弹窗本身就是卡片，格子再用卡片色就分不出来了。那是另一种场景，
+不是这条规则漏了一个调用方。
 
 ---
 
@@ -439,6 +479,16 @@ UiFactory.ClearChildren(oContent);         // 清空一个容器的子节点（�
 环形图按分类序号取色，用 `Theme.ChartColor(i)`（下标越界会自动回绕，负数也行）。
 **色板不从 `theme.json` 读**——它是一组要能互相区分的颜色，不是单值配色；
 `ThemePaletteTests` 有一条用例专门钉住「改 `theme.json` 不影响它」。
+
+⚠️ **色点（图例）必须跟行号取色，不能跟 `CategoryId`。** 环上没有文字，颜色与分类
+的对应全靠明细行最左那个小圆点（`ReportViewParts` 的 `Dot` 节点，圆底图来自
+`SpriteFactory.Circle()`）。而扇区是按行号取色的（`DonutLayout` 里 `SeriesIndex = i`）——
+色点要是跟着 `CategoryId` 走，中间删掉一个分类，颜色就整体错位了，环和行都还在、
+只是对不上，从界面上很难归因。`ReportViewRenderTests` 有一条专门拿 `CategoryId` 77/88
+的输入钉这个。
+
+`AddRow` 的 `iSeriesIndex` 传负数表示这个视图不要图例。条形图传的就是 `-1`：
+它的条统一用收支红绿、不按分类分色，旁边再来个按分类变的色点会跟条的颜色对不上。
 
 ⚠️ **环形贴图是原生对象**（`Texture2D` + `Sprite`），`DonutSprite` 每次重画前都会
 先释放上一张。切月份、切收支、切视图都会重画——不释放的话显存一路涨而且不报错。
