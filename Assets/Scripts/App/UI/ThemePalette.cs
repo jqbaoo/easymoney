@@ -35,6 +35,18 @@ namespace EasyMoney.App.UI
         /// </summary>
         public Color Shadow { get; private set; }
 
+        /// <summary>
+        /// 分类色板，按顺序取给环形图的扇区用（<see cref="Theme.ChartColor"/> 负责回绕）。
+        ///
+        /// 刻意**不开放 theme.json 覆盖**：它是一组颜色而不是一个，JsonUtility 解析
+        /// 数组还要多一层长度校验，而设计改配色的入口本来就有 theme.json 那 11 个键，
+        /// 收益不抵成本。要改就改这里。
+        ///
+        /// 相邻两块的颜色拉开了冷暖——分类按金额降序排，相邻两项的金额最接近、
+        /// 在环上也挨着，同色系排在一起会糊成一片。
+        /// </summary>
+        public Color[] ChartColors { get; private set; }
+
         public static ThemePalette Light()
         {
             return new ThemePalette
@@ -54,7 +66,20 @@ namespace EasyMoney.App.UI
                 Divider = _hex("#E7DFD2"),
                 BarTrack = _hex("#E7DFD2"),
                 Scrim = _hex("#00000073"),
-                Shadow = _hex("#46311C1A")
+                Shadow = _hex("#46311C1A"),
+                // 砖红起手，与支出红同源，整圈跟暖色纸感的底子是一路的。
+                // 冷暖交替排：相邻两块在环上挨着，同色系排一起会糊成一片
+                ChartColors = new[]
+                {
+                    _hex("#C0523C"),
+                    _hex("#4F8A5B"),
+                    _hex("#D98E4A"),
+                    _hex("#5B8C9E"),
+                    _hex("#A9714B"),
+                    _hex("#7A6A9B"),
+                    _hex("#B4677A"),
+                    _hex("#8A8177")
+                }
             };
         }
 
@@ -74,13 +99,27 @@ namespace EasyMoney.App.UI
                 Divider = _hex("#2A2D32"),
                 BarTrack = _hex("#2A2D32"),
                 Scrim = _hex("#000000A6"),
-                Shadow = _hex("#0000003D")
+                Shadow = _hex("#0000003D"),
+                // 深色下饱和度要抬一档，否则整圈会显得脏
+                ChartColors = new[]
+                {
+                    _hex("#E0705C"),
+                    _hex("#5FB47C"),
+                    _hex("#E8A961"),
+                    _hex("#6FA8BC"),
+                    _hex("#D19A6E"),
+                    _hex("#9A8ABC"),
+                    _hex("#D0859A"),
+                    _hex("#9A9CA1")
+                }
             };
         }
 
         /// <summary>
         /// 从 JSON 覆盖默认浅色主题。字段缺省或格式不合法时，该项退回默认值——
         /// 这样 theme.json 里只写想改的那几个颜色也能工作。
+        ///
+        /// ChartColors 不在这张表里，它跟着 Light() 走（见该属性的说明）。
         /// </summary>
         public static ThemePalette FromJson(string sJson)
         {

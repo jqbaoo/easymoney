@@ -18,6 +18,14 @@ namespace EasyMoney.Tests
         /// <summary>颜色分量的容差。1/255 ≈ 0.0039，取略大一点。</summary>
         private const float TOLERANCE = 0.004f;
 
+        [SetUp]
+        public void SetUp()
+        {
+            // 分类色板是从 Theme.Palette 取的，先把当前配色钉成浅色，
+            // 免得受别的测试类留下的状态影响
+            Theme.Apply(ThemePalette.Light());
+        }
+
         [Test]
         public void FromJson_ShadowOverride_Applies()
         {
@@ -90,6 +98,67 @@ namespace EasyMoney.Tests
             ThemePalette oDark = ThemePalette.Dark();
 
             Assert.Greater(oDark.Shadow.a, 0f, "深色主题的投影不能是全透明的");
+        }
+
+        // ── 分类色板（环形图）────────────────────────
+
+        [Test]
+        public void ChartColors_LightAreOpaqueAndDistinct()
+        {
+            Color[] lColors = ThemePalette.Light().ChartColors;
+
+            Assert.GreaterOrEqual(lColors.Length, 6, "分类色太少的话，几个分类就会开始撞色");
+
+            for (int i = 0; i < lColors.Length; i++)
+            {
+                Assert.AreEqual(1f, lColors[i].a, TOLERANCE, "色板里不该有半透明的颜色");
+
+                // 相邻两块在环上挨着，颜色一样就分不出边界了
+                Color oNext = lColors[(i + 1) % lColors.Length];
+                float fDistance = Mathf.Abs(lColors[i].r - oNext.r)
+                    + Mathf.Abs(lColors[i].g - oNext.g)
+                    + Mathf.Abs(lColors[i].b - oNext.b);
+                Assert.Greater(fDistance, 0.05f, $"第 {i} 号和下一号颜色几乎一样");
+            }
+        }
+
+        [Test]
+        public void ChartColors_Dark_IsNotEmpty()
+        {
+            Color[] lColors = ThemePalette.Dark().ChartColors;
+
+            Assert.IsNotNull(lColors);
+            Assert.Greater(lColors.Length, 0, "深色配色也得有一套分类色");
+        }
+
+        [Test]
+        public void ChartColors_AreNotTakenFromThemeJson()
+        {
+            // 色板刻意不开放 theme.json 覆盖（见 ThemePalette.ChartColors 的说明），
+            // 所以只改那 11 个键的 theme.json 不该把色板冲掉
+            ThemePalette oPalette = ThemePalette.FromJson("{ \"primary\": \"#123456\" }");
+
+            Assert.AreEqual(ThemePalette.Light().ChartColors.Length, oPalette.ChartColors.Length,
+                "theme.json 里没有 chartColors 键，色板要原样跟着 Light()");
+        }
+
+        [Test]
+        public void ChartColor_WrapsAroundAtPaletteLength()
+        {
+            Color[] lColors = ThemePalette.Light().ChartColors;
+
+            // 色板长度固定，分类数由用户定——十几个分类很常见，只能回绕
+            Assert.AreEqual(lColors[0], Theme.ChartColor(lColors.Length));
+            Assert.AreEqual(lColors[1], Theme.ChartColor(lColors.Length + 1));
+        }
+
+        [Test]
+        public void ChartColor_NegativeIndex_WrapsToTheEnd()
+        {
+            Color[] lColors = ThemePalette.Light().ChartColors;
+
+            // C# 的取余会保留负号，不补这一下就会拿 -1 去索引，直接抛异常
+            Assert.AreEqual(lColors[lColors.Length - 1], Theme.ChartColor(-1));
         }
 
         private static void _assertSame(string sField, Color oFromFile, Color oDefault)

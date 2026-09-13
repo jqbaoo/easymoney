@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace EasyMoney.Core
 {
     /// <summary>
@@ -34,9 +36,35 @@ namespace EasyMoney.Core
         }
 
         /// <summary>
+        /// 构成里各项金额之和。环形图中心显示的就是它。
+        ///
+        /// 刻意从这几项自己加起来，而不是从汇总条那个数抄——环形图的中心数字
+        /// 和它围的那一圈本的就是同一笔账，分开算迟早会出现「中心 1200、扇形加起来 1180」
+        /// 这种自相矛盾的画面。
+        /// </summary>
+        public static Money BreakdownTotal(IList<CategoryBreakdownItem> lItems)
+        {
+            if (lItems == null)
+            {
+                return Money.Zero;
+            }
+
+            long iTotalCents = 0;
+            foreach (CategoryBreakdownItem oItem in lItems)
+            {
+                iTotalCents += oItem.Total.Cents;
+            }
+
+            return Money.FromCents(iTotalCents);
+        }
+
+        /// <summary>
         /// 条形填充占轨道的宽度比例，钳在 0~1。
         /// 比值本身是 decimal 除法算出来的，正常不会越界；钳一道是为了
         /// 万一数据坏掉时条形不会画到轨道外面去——锚点越界不会报错，只会画歪。
+        ///
+        /// 环形图的扇区张角（DonutLayout）用的也是这一条——同样是「0~1 的比值」，
+        /// 两处各写一份迟早会分叉。
         /// </summary>
         public static decimal BarWidthRatio(decimal dRatio)
         {

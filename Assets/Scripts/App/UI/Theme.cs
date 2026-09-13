@@ -141,5 +141,30 @@ namespace EasyMoney.App.UI
         // 这两个与主题无关，固定值。
         public static readonly Color WHITE = Color.white;
         public static readonly Color TRANSPARENT = new Color(0f, 0f, 0f, 0f);
+
+        /// <summary>
+        /// 按槽位取分类色，给环形图的扇区用。
+        ///
+        /// 下标回绕而不是越界：色板长度是固定的（现在 8 个），分类数却由用户自己定，
+        /// 十几个分类很常见。回绕的代价是两个分类撞色——比整个界面崩掉强得多。
+        /// </summary>
+        public static Color ChartColor(int iIndex)
+        {
+            Color[] lColors = Palette.ChartColors;
+
+            // 配色方案没配色板也不能返回个 null 出去，那样环形图会整块变透明
+            if (lColors == null || lColors.Length == 0)
+            {
+                return PRIMARY;
+            }
+
+            int iWrapped = iIndex % lColors.Length;
+            if (iWrapped < 0)
+            {
+                iWrapped += lColors.Length;
+            }
+
+            return lColors[iWrapped];
+        }
     }
 }

@@ -31,6 +31,60 @@ namespace EasyMoney.App.UI
             return oRect;
         }
 
+        /// <summary>
+        /// 销毁一个 UnityEngine 对象（节点、贴图、Sprite 都行）。
+        ///
+        /// 播放时走 <c>Object.Destroy</c>，编辑模式下必须走 <c>DestroyImmediate</c>：
+        /// EditMode 里 <c>Object.Destroy</c> 是**非法**的——它打一条 Error 然后
+        /// **什么都不做**（不是延迟到帧末），于是「刷新前先清空旧节点」这类行为
+        /// 在测试里根本验不了，验出来的永远是「新旧两批叠在一起」。
+        /// 收在这里，新的组件就不用各自再写一遍这个分支。
+        ///
+        /// ⚠️ 已有的 PickerDialog / MonthPickerDialog 仍然用 <c>Object.Destroy</c>：
+        /// 它们的测试是按「声明那条 Error 日志」写的（见 MonthBarTests），
+        /// 动它们等于把那批用例一起推翻，不在这次改动范围内。
+        /// </summary>
+        public static void DestroyObject(Object oObject)
+        {
+            if (oObject == null)
+            {
+                return;
+            }
+
+            if (Application.isPlaying)
+            {
+                Object.Destroy(oObject);
+            }
+            else
+            {
+                Object.DestroyImmediate(oObject);
+            }
+        }
+
+        /// <summary>销毁一个节点。参数收窄成 GameObject，免得调用方到处写 .gameObject。</summary>
+        public static void DestroyNode(GameObject oNode)
+        {
+            DestroyObject(oNode);
+        }
+
+        /// <summary>
+        /// 清空容器的所有子节点。列表刷新一律「先清后建」，别想着复用旧行——
+        /// 数据行数一变，复用逻辑就得跟着长，而它长在页面里没人测得到。
+        /// </summary>
+        public static void ClearChildren(RectTransform oParent)
+        {
+            if (oParent == null)
+            {
+                return;
+            }
+
+            // 倒着删：正着删的话每删一个，后面所有兄弟的下标都会往前挪
+            for (int i = oParent.childCount - 1; i >= 0; i--)
+            {
+                DestroyNode(oParent.GetChild(i).gameObject);
+            }
+        }
+
         public static Image CreatePanel(
             Transform oParent, string sName, Color oColor, bool bRounded = false, Sprite oSprite = null)
         {

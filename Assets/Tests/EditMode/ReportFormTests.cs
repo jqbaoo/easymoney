@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using EasyMoney.Core;
 using NUnit.Framework;
 
@@ -69,6 +70,33 @@ namespace EasyMoney.Tests
             Assert.AreEqual("6.00  (2.6%)", ReportForm.BreakdownValueText(Money.FromCents(600), 0.026m));
         }
 
+        // ── 构成合计（环形图中心那个数）──────────────
+
+        [Test]
+        public void BreakdownTotal_SumsEveryItem()
+        {
+            Money oTotal = ReportForm.BreakdownTotal(new List<CategoryBreakdownItem>
+            {
+                _item(1200),
+                _item(300),
+                _item(50)
+            });
+
+            Assert.AreEqual(Money.FromCents(1550), oTotal);
+        }
+
+        [Test]
+        public void BreakdownTotal_EmptyList_IsZero()
+        {
+            Assert.AreEqual(Money.Zero, ReportForm.BreakdownTotal(new List<CategoryBreakdownItem>()));
+        }
+
+        [Test]
+        public void BreakdownTotal_Null_IsZero()
+        {
+            Assert.AreEqual(Money.Zero, ReportForm.BreakdownTotal(null));
+        }
+
         // ── 条形宽度 ────────────────────────────────
 
         [Test]
@@ -94,6 +122,13 @@ namespace EasyMoney.Tests
         public void BarWidthRatio_AboveOne_BecomesOne()
         {
             Assert.AreEqual(1m, ReportForm.BarWidthRatio(1.5m));
+        }
+
+        // ── 辅助 ────────────────────────────────────
+
+        private static CategoryBreakdownItem _item(long iCents)
+        {
+            return new CategoryBreakdownItem { Total = Money.FromCents(iCents) };
         }
     }
 }

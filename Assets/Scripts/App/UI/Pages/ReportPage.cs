@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using EasyMoney.App.UI.Reports;
 using EasyMoney.Core;
 using UnityEngine;
 using UnityEngine.UI;
@@ -6,21 +7,20 @@ using UnityEngine.UI;
 namespace EasyMoney.App.UI.Pages
 {
     /// <summary>
-    /// 报表。顶部月份切换与收支汇总，下面按分类列出占比。
+    /// 报表。顶部月份切换与收支汇总，下面按当前视图列出占比。
     ///
     /// 与账单页同源：同一套月份边界、同一个仓储查询，汇总走 <see cref="ReportCalculator"/>，
-    /// 展示规则（构成标题、占比文案、条形宽度）在 <see cref="ReportForm"/> 里。
-    /// 页面只做「取数 → 交给 Core 算 → 填充界面」，不写任何业务判断。
-    ///
-    /// 条形图用「轨道 + 填充」两层 Image 实现，靠填充层的 anchorMax.x 表达占比，
-    /// 比引入图表库轻得多，也够用。
+    /// 展示规则（构成标题、占比文案、条形宽度）在 <see cref="ReportForm"/> 里，
+    /// 「这一版到底建出什么节点」在 Reports/ 下那几个视图里。
+    /// 页面只做「取数 → 交给 Core 算 → 交给视图画」，自己不写任何展示规则。
     /// </summary>
     public class ReportPage : PageBase
     {
         private const float SUMMARY_HEIGHT = 180f;
         private const float TOGGLE_HEIGHT = 88f;
-        private const float VALUE_WIDTH = 280f;
-        private const float EMPTY_HINT_HEIGHT = 200f;
+
+        /// <summary>视图下拉的宽度。要放下「条形图」三个字加一个箭头。</summary>
+        private const float VIEW_DROPDOWN_WIDTH = 220f;
 
         /// <summary>
         /// 一次取一个月来算报表，不做分页。TransactionQuery 的默认 Limit 只有 50，
@@ -34,9 +34,11 @@ namespace EasyMoney.App.UI.Pages
         private Text m_IncomeValue;
         private Text m_ExpenseValue;
         private Text m_NetValue;
-        private RectTransform m_BreakdownContent;
         private Button m_ExpenseTab;
         private Button m_IncomeTab;
+
+        /// <summary>主体那块的画法。换视图是换它，页面不参与。</summary>
+        private ReportViewHost m_ViewHost;
 
         public override string Title => "报表";
 
@@ -59,7 +61,7 @@ namespace EasyMoney.App.UI.Pages
             _buildSummary(oTop);
             _buildToggle(oTop);
 
-            _buildBreakdownList(fTopHeight);
+            _buildBreakdownArea(fTopHeight);
         }
 
         // ── 收支汇总 ────────────────────────────────
@@ -96,7 +98,7 @@ namespace EasyMoney.App.UI.Pages
             return oValue;
         }
 
-        // ── 支出 / 收入 切换 ─────────────────────────
+        // ── 支出 / 收入 切换 + 视图下拉 ──────────────
 
         private void _buildToggle(RectTransform oParent)
         {
@@ -115,7 +117,41 @@ namespace EasyMoney.App.UI.Pages
                 () => _setBreakdownType(TxType.Income), Theme.SURFACE, Theme.FONT_BODY);
             UiFactory.SetFlexible(m_IncomeTab.GetComponent<RectTransform>());
 
+            _buildViewDropdown(oRow);
+
             _paintTabs();
+        }
+
+        /// <summary>
+        /// 视图下拉。选项与文案都来自 <see cref="ReportViews.ALL"/>——以后新增一种视图，
+        /// 在 Core 里挂个号、写一个 <see cref="IReportView"/> 实现就够了，这个方法不用改。
+        /// </summary>
+        private void _buildViewDropdown(RectTransform oRow)
+        {
+            List<string> lTitles = new List<string>();
+            foreach (ReportViewMode oMode in ReportViews.ALL)
+            {
+                lTitles.Add(ReportViews.Title(oMode));
+            }
+
+            // 不留字段引用：按钮的 onClick 挂在本实例的方法上，只要那个按钮还活着，
+            // 这个对象就不会被回收（留个字段反而会招来「赋值了没读过」的编译警告）
+            new DropdownButton(oRow, Root, lTitles, ReportViews.DefaultIndex,
+                _pickView, VIEW_DROPDOWN_WIDTH);
+        }
+
+        private void _pickView(int iIndex)
+        {
+            if (m_ViewHost == null || iIndex < 0 || iIndex >= ReportViews.ALL.Length)
+            {
+                return;
+            }
+
+            // 只有真的换了视图才重刷——选中的还是当前那项时下拉自己就把面板收了
+            if (m_ViewHost.SetMode(ReportViews.ALL[iIndex]))
+            {
+                _refresh();
+            }
         }
 
         private void _setBreakdownType(TxType oType)
@@ -134,17 +170,21 @@ namespace EasyMoney.App.UI.Pages
 
             UiFactory.PaintButton(m_IncomeTab,
                 bExpense ? Theme.SURFACE : Theme.PRIMARY,
-                bExpense ? Theme.TEXT : Theme.WHITE);
+                bExpense ? Theme.WHITE : Theme.TEXT);
         }
 
         // ── 分类占比 ────────────────────────────────
 
-        private void _buildBreakdownList(float fTopHeight)
+        private void _buildBreakdownArea(float fTopHeight)
         {
             RectTransform oArea = UiFactory.CreateNode(Root, "BreakdownArea");
             UiFactory.StretchWithInsets(oArea, fTopHeight, 0f);
 
-            UiFactory.CreateScroll(oArea, "Scroll", out m_BreakdownContent);
+            UiFactory.CreateScroll(oArea, "Scroll", out RectTransform oContent);
+
+            // 两种画法都先挂上，下拉里选哪个就画哪个。视图自己建节点、自己渲染，
+            // 页面只管把算好的数据递过去
+            m_ViewHost = new ReportViewHost(oContent, new BarReportView(), new DonutReportView());
         }
 
         private void _refresh()
@@ -168,8 +208,8 @@ namespace EasyMoney.App.UI.Pages
 
             _paintTabs();
 
-            _renderBreakdown(ReportCalculator.BuildBreakdown(
-                lTransactions, m_BreakdownType, oContext.Categories.GetAll()));
+            m_ViewHost.Render(ReportCalculator.BuildBreakdown(
+                lTransactions, m_BreakdownType, oContext.Categories.GetAll()), m_BreakdownType);
         }
 
         private void _refreshSummary(PeriodSummary oSummary)
@@ -180,98 +220,6 @@ namespace EasyMoney.App.UI.Pages
 
             // 结余为负，说明这个月是倒贴的，标红一眼能看出来
             m_NetValue.color = oSummary.Net.Cents < 0 ? Theme.EXPENSE : Theme.TEXT;
-        }
-
-        private void _renderBreakdown(List<CategoryBreakdownItem> lItems)
-        {
-            _clearList();
-
-            if (lItems.Count == 0)
-            {
-                Text oEmpty = UiFactory.CreateText(m_BreakdownContent, "Empty", ReportForm.EMPTY_HINT,
-                    Theme.FONT_BODY, TextAnchor.MiddleCenter, Theme.TEXT_WEAK);
-                UiFactory.SetHeight(oEmpty.rectTransform, EMPTY_HINT_HEIGHT);
-                return;
-            }
-
-            foreach (CategoryBreakdownItem oItem in lItems)
-            {
-                _addBreakdownRow(oItem);
-            }
-        }
-
-        private void _addBreakdownRow(CategoryBreakdownItem oItem)
-        {
-            // 这一行要竖排（上面文字、下面条形），所以不能用 CreateRow——
-            // 它自带 HorizontalLayoutGroup，再叠加 VerticalLayoutGroup 会打架。
-            RectTransform oRow = UiFactory.CreateNode(m_BreakdownContent, $"Item_{oItem.CategoryId}");
-            UiFactory.SetHeight(oRow, Theme.ROW_HEIGHT);
-
-            UiFactory.PaintCard(oRow);
-
-            VerticalLayoutGroup oLayout = oRow.gameObject.AddComponent<VerticalLayoutGroup>();
-            oLayout.childControlWidth = true;
-            oLayout.childControlHeight = true;
-            oLayout.childForceExpandWidth = true;
-            oLayout.childForceExpandHeight = false;
-            oLayout.padding = new RectOffset(
-                (int)Theme.CARD_PADDING, (int)Theme.CARD_PADDING, 14, 14);
-
-            RectTransform oLabelLine = UiFactory.CreateNode(oRow, "LabelLine");
-            UiFactory.SetHeight(oLabelLine, 46f);
-
-            HorizontalLayoutGroup oLabelLayout = oLabelLine.gameObject.AddComponent<HorizontalLayoutGroup>();
-            oLabelLayout.childControlWidth = true;
-            oLabelLayout.childControlHeight = true;
-            oLabelLayout.childForceExpandWidth = false;
-            oLabelLayout.childForceExpandHeight = true;
-            oLabelLayout.spacing = Theme.CATEGORY_ICON_GAP;
-
-            // 与账单列表同一个道理：分类被删或没配图标时留透明空位，名字的左边仍然对齐
-            UiFactory.CreateIconSlot(oLabelLine, "Icon",
-                IconNames.ForCategory(oItem.IconName),
-                Theme.CATEGORY_ICON_SIZE, Theme.TEXT_WEAK);
-
-            Text oName = UiFactory.CreateText(oLabelLine, "Name", oItem.CategoryName,
-                Theme.FONT_BODY, TextAnchor.MiddleLeft);
-            UiFactory.SetFlexible(oName.rectTransform);
-
-            Text oValue = UiFactory.CreateText(oLabelLine, "Value",
-                ReportForm.BreakdownValueText(oItem.Total, oItem.Ratio),
-                Theme.FONT_CAPTION, TextAnchor.MiddleRight, Theme.TEXT_WEAK);
-            UiFactory.SetWidth(oValue.rectTransform, VALUE_WIDTH);
-
-            _addBar(oRow, oItem.Ratio);
-        }
-
-        private void _addBar(RectTransform oParent, decimal dRatio)
-        {
-            RectTransform oTrack = UiFactory.CreateNode(oParent, "BarTrack");
-            UiFactory.SetHeight(oTrack, Theme.BAR_TRACK_HEIGHT);
-
-            Image oTrackImage = oTrack.gameObject.AddComponent<Image>();
-            oTrackImage.sprite = SpriteFactory.Card();
-            oTrackImage.type = Image.Type.Sliced;
-            oTrackImage.color = Theme.BAR_TRACK;
-
-            Image oFill = UiFactory.CreatePanel(oTrack, "Fill",
-                m_BreakdownType == TxType.Expense ? Theme.EXPENSE : Theme.INCOME, bRounded: true);
-
-            // 用锚点右边界表达占比：0 = 一点不画，1 = 铺满整条轨道
-            float fRatio = (float)ReportForm.BarWidthRatio(dRatio);
-
-            oFill.rectTransform.anchorMin = new Vector2(0f, 0f);
-            oFill.rectTransform.anchorMax = new Vector2(fRatio, 1f);
-            oFill.rectTransform.offsetMin = Vector2.zero;
-            oFill.rectTransform.offsetMax = Vector2.zero;
-        }
-
-        private void _clearList()
-        {
-            for (int i = m_BreakdownContent.childCount - 1; i >= 0; i--)
-            {
-                Object.Destroy(m_BreakdownContent.GetChild(i).gameObject);
-            }
         }
     }
 }
