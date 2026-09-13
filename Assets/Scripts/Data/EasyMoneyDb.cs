@@ -8,7 +8,7 @@ namespace EasyMoney.Data
     /// </summary>
     public sealed class EasyMoneyDb : System.IDisposable
     {
-        public const int SCHEMA_VERSION = 1;
+        public const int SCHEMA_VERSION = 2;
 
         private readonly string m_DbPath;
         private SQLiteConnection m_Connection;

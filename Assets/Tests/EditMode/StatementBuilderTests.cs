@@ -18,9 +18,11 @@ namespace EasyMoney.Tests
         [SetUp]
         public void SetUp()
         {
+            // 只有「餐饮」配了图标名：预置分类都有图标，用户自建分类没有——
+            // 「购物」「工资」保持空图标名，专门用来盯住留空位那条路
             m_Categories = new List<Category>
             {
-                new Category { Id = 10, Name = "餐饮", Kind = CategoryKind.Expense },
+                new Category { Id = 10, Name = "餐饮", Kind = CategoryKind.Expense, IconName = "cat_food" },
                 new Category { Id = 11, Name = "购物", Kind = CategoryKind.Expense },
                 new Category { Id = 20, Name = "工资", Kind = CategoryKind.Income }
             };
@@ -165,6 +167,64 @@ namespace EasyMoney.Tests
 
             Assert.AreSame(oTransaction, oRow.Transaction);
             Assert.AreEqual(42, oRow.Transaction.Id);
+        }
+
+        // ── 分类图标 ────────────────────────────────
+
+        [Test]
+        public void BuildRow_CategoryWithIcon_FillsCategoryIconName()
+        {
+            StatementRow oRow = StatementBuilder.BuildRow(
+                _tx(TxType.Expense, 35.50m, 10, 1, "午饭"), m_Categories, m_Accounts);
+
+            Assert.AreEqual("cat_food", oRow.CategoryIconName);
+        }
+
+        [Test]
+        public void BuildRow_CategoryWithoutIcon_HasEmptyCategoryIconName()
+        {
+            // 用户自建分类没有图标名。界面据此留一个等宽空位，
+            // 而不是让这行的文字往左顶——否则各行左边缘参差不齐。
+            // 备注留空，好让 Title 落到分类名上：顺带证明分类是找到了的，只是没图标
+            StatementRow oRow = StatementBuilder.BuildRow(
+                _tx(TxType.Expense, 12m, 11, 1), m_Categories, m_Accounts);
+
+            Assert.AreEqual("购物", oRow.Title);
+            Assert.AreEqual(string.Empty, oRow.CategoryIconName);
+        }
+
+        [Test]
+        public void BuildRow_Transfer_HasNoCategoryIcon()
+        {
+            // 转账的 CategoryId 是 0，找分类天然落空。不能因为转账在主标题上
+            // 有「转账」这个兜底文案，就顺手也给它的图标位塞点什么
+            StatementRow oRow = StatementBuilder.BuildRow(
+                _tx(TxType.Transfer, 200m, 0, 1, string.Empty, 2), m_Categories, m_Accounts);
+
+            Assert.AreEqual(string.Empty, oRow.CategoryIconName);
+        }
+
+        [Test]
+        public void BuildRow_DeletedCategory_HasEmptyCategoryIconName()
+        {
+            // 分类被删后历史账单照样要显示：名称走「未分类」兜底，图标位留空
+            StatementRow oRow = StatementBuilder.BuildRow(
+                _tx(TxType.Expense, 12m, 999, 1), m_Categories, m_Accounts);
+
+            Assert.AreEqual("未分类", oRow.Title);
+            Assert.AreEqual(string.Empty, oRow.CategoryIconName);
+        }
+
+        [Test]
+        public void BuildDays_FillsCategoryIconNameFromLookupTable()
+        {
+            // 分类表在 BuildDays 里只是往下传，中间漏一层的话单测 BuildRow 全绿，
+            // 而界面上一整列空位——这条盯的就是那个缝
+            List<StatementDay> lDays = StatementBuilder.BuildDays(
+                new List<Transaction> { _tx(TxType.Expense, 35.50m, 10, 1, "午饭") },
+                m_Categories, m_Accounts);
+
+            Assert.AreEqual("cat_food", lDays[0].Items[0].CategoryIconName);
         }
 
         // ── 按天分组 ────────────────────────────────

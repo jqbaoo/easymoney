@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using EasyMoney.App.UI;
 using EasyMoney.Core;
 using EasyMoney.Data;
 using NUnit.Framework;
@@ -97,6 +98,57 @@ namespace EasyMoney.Tests
             foreach (Category oCategory in m_Repo.GetAll())
             {
                 Assert.IsTrue(oCategory.IsSystem, $"{oCategory.Name} 应当标记为系统分类");
+            }
+        }
+
+        [Test]
+        public void Defaults_AllHaveIconNames()
+        {
+            // 图标名是空的话，界面上那个分类就没有图标——第一版正是这样，
+            // 16 个预置分类的 icon_name 全是空字符串
+            foreach (Category oCategory in m_Repo.GetAll())
+            {
+                Assert.IsNotEmpty(oCategory.IconName, $"{oCategory.Name} 应当有图标名");
+            }
+        }
+
+        [Test]
+        public void Defaults_MapNamesToExpectedIcons()
+        {
+            // 抽查三个方向各一个：支出、出行、收入侧的中国特有概念。
+            // 不做全量对照表断言——那等于把 DefaultCategories 抄一遍，同义反复
+            Dictionary<string, string> dExpected = new Dictionary<string, string>
+            {
+                { "餐饮", "cat_food" },
+                { "交通", "cat_transport" },
+                { "红包", "cat_redpacket" }
+            };
+
+            int iChecked = 0;
+            foreach (Category oCategory in m_Repo.GetAll())
+            {
+                if (dExpected.TryGetValue(oCategory.Name, out string sExpected))
+                {
+                    Assert.AreEqual(sExpected, oCategory.IconName, $"{oCategory.Name} 的图标名不对");
+                    iChecked++;
+                }
+            }
+
+            Assert.Greater(iChecked, 0, "一个都没对上，说明名字或图标名被改过了");
+        }
+
+        [Test]
+        public void Defaults_IconNames_ResolveToExistingResources()
+        {
+            // 这条一次盯住三件事：Data 里的图标名没拼错、IconNames 那边的常量没改名、
+            // Resources/Icons 下那张 PNG 真的在。
+            // 「分类名 → 图标名」这份对照表在四个地方各存了一份（迁移 SQL、DefaultCategories、
+            // IconNames 常量、PNG 文件名），编译器一个都管不了；而图标名写错的后果
+            // 只是界面上那块空白——不报错、不崩溃，光看代码很难发现
+            foreach (Category oCategory in m_Repo.GetAll())
+            {
+                Assert.IsNotNull(IconNames.ForCategory(oCategory.IconName),
+                    $"{oCategory.Name} 的图标名 {oCategory.IconName} 找不到对应的图");
             }
         }
 

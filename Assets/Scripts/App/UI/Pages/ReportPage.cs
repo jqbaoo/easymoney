@@ -278,6 +278,12 @@ namespace EasyMoney.App.UI.Pages
             oLabelLayout.childControlHeight = true;
             oLabelLayout.childForceExpandWidth = false;
             oLabelLayout.childForceExpandHeight = true;
+            oLabelLayout.spacing = Theme.CATEGORY_ICON_GAP;
+
+            // 与账单列表同一个道理：分类被删或没配图标时留透明空位，名字的左边仍然对齐
+            UiFactory.CreateIconSlot(oLabelLine, "Icon",
+                IconNames.ForCategory(oItem.IconName),
+                Theme.CATEGORY_ICON_SIZE, Theme.TEXT_WEAK);
 
             Text oName = UiFactory.CreateText(oLabelLine, "Name", oItem.CategoryName,
                 Theme.FONT_BODY, TextAnchor.MiddleLeft);

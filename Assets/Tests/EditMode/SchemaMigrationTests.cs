@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using EasyMoney.Core;
 using EasyMoney.Data;
 using NUnit.Framework;
 using SQLite;
@@ -14,8 +16,10 @@ namespace EasyMoney.Tests
     /// 升级上来的没有，查询就报 no such column——是崩溃，不是降级。而第一版已经装在
     /// 真机上，里面有真实数据。
     ///
-    /// 现在还没有真实的迁移，所以这些用例用**合成迁移**驱动 <see cref="SchemaMigrator"/>：
-    /// 机制（这个类）与迁移清单（SchemaMigrations）分开，机制本身照样能被钉住。
+    /// 前半部分用**合成迁移**驱动 <see cref="SchemaMigrator"/>：机制（这个类）与迁移
+    /// 清单（SchemaMigrations）分开，机制本身照样能被钉住，不必等有真实迁移才测。
+    /// 后半部分是真迁移（v2 给预置分类补图标名）的用例——那是**数据回填**，
+    /// 只测机制看不见，得拿真库跑一遍升级路径。
     /// </summary>
     public class SchemaMigrationTests
     {
@@ -208,6 +212,140 @@ namespace EasyMoney.Tests
                 Assert.IsTrue(setSeen.Add(oMigration.Version),
                     $"版本 {oMigration.Version} 出现了不止一条迁移");
             }
+        }
+
+        // ── 真实迁移：v2 给预置分类补图标名 ─────────
+
+        /// <summary>
+        /// 落一个临时文件库，先用 <paramref name="oPrepare"/> 把它弄成想要的样子，关掉，
+        /// 再重开——**重开这一步才会跑迁移**——最后交给 <paramref name="oVerify"/> 断言。
+        ///
+        /// 不用 :memory:：内存库一 Close 数据就没了，重开等于新建，走的是建表那条路，
+        /// 迁移根本不会被执行。
+        /// </summary>
+        private static void _withReopenedDb(Action<EasyMoneyDb> oPrepare, Action<EasyMoneyDb> oVerify)
+        {
+            string sPath = Path.Combine(Path.GetTempPath(), $"easymoney_mig_{Guid.NewGuid():N}.db");
+
+            try
+            {
+                using (EasyMoneyDb oFirst = new EasyMoneyDb(sPath))
+                {
+                    oFirst.Open();
+                    oPrepare(oFirst);
+                }
+
+                using (EasyMoneyDb oSecond = new EasyMoneyDb(sPath))
+                {
+                    oSecond.Open();
+                    oVerify(oSecond);
+                }
+            }
+            finally
+            {
+                // WAL 模式下可能留下 -wal / -shm 旁挂文件，一并清掉
+                foreach (string sSuffix in new[] { string.Empty, "-wal", "-shm" })
+                {
+                    if (File.Exists(sPath + sSuffix))
+                    {
+                        File.Delete(sPath + sSuffix);
+                    }
+                }
+            }
+        }
+
+        /// <summary>把库退回成第一版的样子：图标名清空 + 版本号写回 1。</summary>
+        private static void _makeLegacy(EasyMoneyDb oDb)
+        {
+            oDb.Connection.Execute("UPDATE category SET icon_name = ''");
+            SchemaMigrator.WriteVersion(oDb.Connection, 1);
+        }
+
+        [Test]
+        public void CategoryIconMigration_BackfillsLegacyDatabase()
+        {
+            _withReopenedDb(_makeLegacy, oDb =>
+            {
+                List<Category> lAll = new SqliteCategoryRepository(oDb).GetAll();
+
+                Assert.IsNotEmpty(lAll, "预置分类应当还在");
+                foreach (Category oCategory in lAll)
+                {
+                    Assert.IsNotEmpty(oCategory.IconName, $"{oCategory.Name} 升级后应当有图标名");
+                }
+            });
+        }
+
+        [Test]
+        public void CategoryIconMigration_LeavesUserCategoriesAlone()
+        {
+            // 数据回填最容易伤到的就是用户自己建的东西：同名分类被顺手改了图标
+            _withReopenedDb(oDb =>
+            {
+                _makeLegacy(oDb);
+
+                oDb.Connection.Execute(
+                    @"INSERT INTO category (name, kind, parent_id, icon_name, sort_order, is_system)
+                      VALUES ('餐饮', 0, 0, '', 9000, 0)");
+            },
+            oDb =>
+            {
+                int iTouched = oDb.Connection.ExecuteScalar<int>(
+                    "SELECT COUNT(*) FROM category WHERE is_system = 0 AND icon_name <> ''");
+
+                Assert.AreEqual(0, iTouched, "用户自建分类不该被迁移改到");
+            });
+        }
+
+        [Test]
+        public void CategoryIconMigration_MatchesFreshInstallSeed()
+        {
+            // 「老库升级」和「全新安装」是两条完全不同的路：前者走迁移里的 UPDATE，
+            // 后者走 DefaultCategories 的建表种子。两条路必须到达同一个状态——
+            // 只改一边的话，一半用户看得到图标、另一半看不到，而且两种人都在用同一个版本号。
+            // 这条把这个不变式写成断言，省得将来靠人记住「改这张表要同时改两处」
+            _withReopenedDb(_makeLegacy, oDb =>
+            {
+                Dictionary<string, string> dSeeded = new Dictionary<string, string>();
+                foreach (Category oCategory in DefaultCategories.Build())
+                {
+                    dSeeded[$"{oCategory.Kind}|{oCategory.Name}"] = oCategory.IconName;
+                }
+
+                List<Category> lUpgraded = new SqliteCategoryRepository(oDb).GetAll();
+                Assert.AreEqual(dSeeded.Count, lUpgraded.Count,
+                    "升级上来的分类数量应与全新安装一致");
+
+                foreach (Category oCategory in lUpgraded)
+                {
+                    string sKey = $"{oCategory.Kind}|{oCategory.Name}";
+
+                    Assert.IsTrue(dSeeded.ContainsKey(sKey),
+                        $"升级后的库里冒出了预置清单之外的分类：{sKey}");
+                    Assert.AreEqual(dSeeded[sKey], oCategory.IconName,
+                        $"{oCategory.Name} 升级后拿到的图标与全新安装的不一致");
+                }
+            });
+        }
+
+        [Test]
+        public void CategoryIconMigration_DoesNotOverwriteExistingIcon()
+        {
+            _withReopenedDb(oDb =>
+            {
+                _makeLegacy(oDb);
+
+                // 假装「餐饮」的图标名早就被设成了别的值
+                oDb.Connection.Execute(
+                    "UPDATE category SET icon_name = 'cat_custom' WHERE name = '餐饮' AND is_system = 1");
+            },
+            oDb =>
+            {
+                string sIcon = oDb.Connection.ExecuteScalar<string>(
+                    "SELECT icon_name FROM category WHERE name = '餐饮' AND is_system = 1");
+
+                Assert.AreEqual("cat_custom", sIcon, "已经有图标名的分类不该被覆盖");
+            });
         }
     }
 }

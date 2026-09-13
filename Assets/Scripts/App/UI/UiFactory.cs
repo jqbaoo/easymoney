@@ -96,6 +96,51 @@ namespace EasyMoney.App.UI
         }
 
         /// <summary>
+        /// 列表行首的图标位：固定占一格，有图标就画出来，没图标就整格透明。
+        ///
+        /// 没图标也要占位，是因为用户自建的分类没有图标名——那一格若干脆不建，
+        /// 这行的文字会往左顶，跟上下行的左边缘参差不齐。
+        ///
+        /// 不走 <see cref="CreateIconOrText"/>：它没图时会改建一个 Text 兜底，
+        /// 而记账页的分类行选中分类后要往这一格填图，换节点的话同帧内新旧两个
+        /// 节点会在布局里各占一格。这里无论有没有图都是同一个 Image，
+        /// 换图只改 sprite 和颜色，见 <see cref="SetIconSlot"/>。
+        /// </summary>
+        public static Image CreateIconSlot(
+            Transform oParent, string sName, string sIconName, float fSize, Color? oColor = null)
+        {
+            Color oTint = oColor ?? Theme.TEXT;
+
+            Image oSlot = CreatePanel(oParent, sName, oTint);
+            oSlot.preserveAspect = true;
+            oSlot.raycastTarget = false;
+
+            SetWidth(oSlot.rectTransform, fSize);
+            SetHeight(oSlot.rectTransform, fSize);
+
+            SetIconSlot(oSlot, sIconName, oTint);
+
+            return oSlot;
+        }
+
+        /// <summary>
+        /// 给图标位换图。找不到图（含传 null）时把整格调成全透明——格子本身留着占位，
+        /// 所以「有图标的分类」和「没图标的分类」在列表里占的宽度是一样的。
+        /// </summary>
+        public static void SetIconSlot(Image oSlot, string sIconName, Color oColor)
+        {
+            if (oSlot == null)
+            {
+                return;
+            }
+
+            Sprite oSprite = string.IsNullOrEmpty(sIconName) ? null : AssetProvider.Icon(sIconName);
+
+            oSlot.sprite = oSprite;
+            oSlot.color = oSprite != null ? oColor : Theme.TRANSPARENT;
+        }
+
+        /// <summary>
         /// 创建一个文本。字重参数放在参数表末尾并带默认值——全站调用点大多用位置参数，
         /// 放中间会全线破坏，放末尾才能让已有调用一行都不用改。
         /// </summary>

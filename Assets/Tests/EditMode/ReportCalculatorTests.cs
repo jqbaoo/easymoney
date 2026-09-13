@@ -15,9 +15,11 @@ namespace EasyMoney.Tests
         [SetUp]
         public void SetUp()
         {
+            // 只有「餐饮」配了图标名：预置分类都有图标，用户自建分类没有——
+            // 其余保持空图标名，专门用来盯住留空位那条路
             m_Categories = new List<Category>
             {
-                new Category { Id = 10, Name = "餐饮", Kind = CategoryKind.Expense },
+                new Category { Id = 10, Name = "餐饮", Kind = CategoryKind.Expense, IconName = "cat_food" },
                 new Category { Id = 11, Name = "购物", Kind = CategoryKind.Expense },
                 new Category { Id = 12, Name = "交通", Kind = CategoryKind.Expense },
                 new Category { Id = 20, Name = "工资", Kind = CategoryKind.Income }
@@ -174,6 +176,43 @@ namespace EasyMoney.Tests
             Assert.AreEqual(1, lItems.Count);
             Assert.AreEqual(0, lItems[0].CategoryId);
             Assert.IsNotEmpty(lItems[0].CategoryName);
+        }
+
+        [Test]
+        public void BuildBreakdown_CategoryWithIcon_FillsIconName()
+        {
+            List<Transaction> lTx = new List<Transaction> { _tx(TxType.Expense, 30m, 10) };
+
+            List<CategoryBreakdownItem> lItems =
+                ReportCalculator.BuildBreakdown(lTx, TxType.Expense, m_Categories);
+
+            Assert.AreEqual("餐饮", lItems[0].CategoryName);
+            Assert.AreEqual("cat_food", lItems[0].IconName);
+        }
+
+        [Test]
+        public void BuildBreakdown_CategoryWithoutIcon_HasEmptyIconName()
+        {
+            // 用户自建分类没有图标名，界面留等宽空位；名字仍然照常显示
+            List<Transaction> lTx = new List<Transaction> { _tx(TxType.Expense, 30m, 11) };
+
+            List<CategoryBreakdownItem> lItems =
+                ReportCalculator.BuildBreakdown(lTx, TxType.Expense, m_Categories);
+
+            Assert.AreEqual("购物", lItems[0].CategoryName);
+            Assert.AreEqual(string.Empty, lItems[0].IconName);
+        }
+
+        [Test]
+        public void BuildBreakdown_DeletedCategory_HasEmptyIconName()
+        {
+            List<Transaction> lTx = new List<Transaction> { _tx(TxType.Expense, 30m, 999) };
+
+            List<CategoryBreakdownItem> lItems =
+                ReportCalculator.BuildBreakdown(lTx, TxType.Expense, m_Categories);
+
+            Assert.IsNotEmpty(lItems[0].CategoryName, "名称仍要有兜底文案");
+            Assert.AreEqual(string.Empty, lItems[0].IconName);
         }
 
         [Test]

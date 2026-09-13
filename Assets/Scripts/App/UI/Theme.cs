@@ -30,6 +30,18 @@ namespace EasyMoney.App.UI
         /// <summary>标签栏文字行高。</summary>
         public const float TAB_LABEL_HEIGHT = 32f;
 
+        /// <summary>
+        /// 分类图标尺寸。账单列表行、报表行、记账页分类行、分类选择弹窗四处共用，
+        /// 免得四处各写一个数，改的时候漏掉一处、大小对不上。
+        /// </summary>
+        public const float CATEGORY_ICON_SIZE = 40f;
+
+        /// <summary>
+        /// 分类图标与相邻文字之间的间距。靠所在行的 spacing 留出来——
+        /// 不额外插占位节点，那样每多一个图标位就多一层节点，布局也难对齐。
+        /// </summary>
+        public const float CATEGORY_ICON_GAP = 12f;
+
         // ── 间距 ────────────────────────────────────
         public const float PAGE_PADDING = 32f;
         public const float PAGE_GAP = 24f;

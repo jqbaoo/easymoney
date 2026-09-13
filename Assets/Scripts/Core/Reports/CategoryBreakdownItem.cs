@@ -7,6 +7,9 @@ namespace EasyMoney.Core
 
         public string CategoryName { get; set; } = string.Empty;
 
+        /// <summary>分类图标名（数据库里存的值，如 cat_food）。分类被删或没配图标时是空字符串。</summary>
+        public string IconName { get; set; } = string.Empty;
+
         public Money Total { get; set; }
 
         public int TxCount { get; set; }

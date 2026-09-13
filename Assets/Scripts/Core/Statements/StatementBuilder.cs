@@ -75,7 +75,10 @@ namespace EasyMoney.Core
         public static StatementRow BuildRow(
             Transaction oTransaction, IList<Category> lCategories, IList<Account> lAccounts)
         {
-            string sCategoryName = _categoryName(oTransaction.CategoryId, lCategories);
+            // 一次找出分类对象，名称和图标名都从它身上取——为了两个字段遍历两遍不划算
+            Category oCategory = Category.FindById(lCategories, oTransaction.CategoryId);
+
+            string sCategoryName = oCategory?.Name ?? UNCATEGORIZED_NAME;
 
             return new StatementRow
             {
@@ -85,7 +88,10 @@ namespace EasyMoney.Core
                     ? _accountName(oTransaction.AccountId, lAccounts)
                         + TRANSFER_ARROW + _accountName(oTransaction.ToAccountId, lAccounts)
                     : sCategoryName + SUBTITLE_SEPARATOR + _accountName(oTransaction.AccountId, lAccounts),
-                AmountText = _formatAmount(oTransaction)
+                AmountText = _formatAmount(oTransaction),
+
+                // 转账的 CategoryId 是 0、分类被删掉时也找不到，两种都落到空字符串
+                CategoryIconName = oCategory?.IconName ?? string.Empty
             };
         }
 
@@ -119,22 +125,6 @@ namespace EasyMoney.Core
             };
 
             return sSign + Money.FromCents(oTransaction.AmountCents);
-        }
-
-        private static string _categoryName(int iCategoryId, IList<Category> lCategories)
-        {
-            if (lCategories != null)
-            {
-                foreach (Category oCategory in lCategories)
-                {
-                    if (oCategory.Id == iCategoryId)
-                    {
-                        return oCategory.Name;
-                    }
-                }
-            }
-
-            return UNCATEGORIZED_NAME;
         }
 
         private static string _accountName(int iAccountId, IList<Account> lAccounts)

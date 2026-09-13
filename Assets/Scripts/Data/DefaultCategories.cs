@@ -9,40 +9,62 @@ namespace EasyMoney.Data
     /// </summary>
     public static class DefaultCategories
     {
+        // 图标名在这里只能写字面量，不能引用 App 层的 IconNames.CAT_*：
+        // 依赖方向是 Core ← Data ← App，Data 层引用 App 是反向依赖。
+        // 下面的字符串与 IconNames 里的同名常量一一对应，改一边就得改另一边。
+        //
+        // 之所以不像尺寸字号那样必须来自代码常量：图标名写进数据库后就成了**数据**，
+        // 将来「分类管理」页会让用户自己改，代码管不着。
+
+        private static readonly (string Name, string Icon)[] EXPENSE_CATEGORIES =
+        {
+            ("餐饮", "cat_food"),
+            ("购物", "cat_shopping"),
+            ("交通", "cat_transport"),
+            ("住房", "cat_housing"),
+            ("娱乐", "cat_entertainment"),
+            ("医疗", "cat_medical"),
+            ("学习", "cat_education"),
+            ("通讯", "cat_communication"),
+            ("人情", "cat_social"),
+
+            // 支出与收入各有一个「其他」，共用同一个图标，靠 kind 区分
+            ("其他", "cat_other")
+        };
+
+        private static readonly (string Name, string Icon)[] INCOME_CATEGORIES =
+        {
+            ("工资", "cat_salary"),
+            ("奖金", "cat_bonus"),
+            ("兼职", "cat_parttime"),
+            ("投资收益", "cat_investment"),
+            ("红包", "cat_redpacket"),
+            ("其他", "cat_other")
+        };
+
         public static List<Category> Build()
         {
             List<Category> lResult = new List<Category>();
 
-            lResult.AddRange(_buildExpense());
-            lResult.AddRange(_buildIncome());
+            lResult.AddRange(_build(EXPENSE_CATEGORIES, CategoryKind.Expense, 1000));
+            lResult.AddRange(_build(INCOME_CATEGORIES, CategoryKind.Income, 2000));
 
             return lResult;
         }
 
-        private static List<Category> _buildExpense()
-        {
-            string[] lNames = { "餐饮", "购物", "交通", "住房", "娱乐", "医疗", "学习", "通讯", "人情", "其他" };
-            return _build(lNames, CategoryKind.Expense, 1000);
-        }
-
-        private static List<Category> _buildIncome()
-        {
-            string[] lNames = { "工资", "奖金", "兼职", "投资收益", "红包", "其他" };
-            return _build(lNames, CategoryKind.Income, 2000);
-        }
-
-        private static List<Category> _build(string[] lNames, CategoryKind oKind, int iBaseSortOrder)
+        private static List<Category> _build(
+            (string Name, string Icon)[] lEntries, CategoryKind oKind, int iBaseSortOrder)
         {
             List<Category> lResult = new List<Category>();
 
-            for (int i = 0; i < lNames.Length; i++)
+            for (int i = 0; i < lEntries.Length; i++)
             {
                 lResult.Add(new Category
                 {
-                    Name = lNames[i],
+                    Name = lEntries[i].Name,
                     Kind = oKind,
                     ParentId = 0,
-                    IconName = string.Empty,
+                    IconName = lEntries[i].Icon,
                     SortOrder = iBaseSortOrder + (i + 1) * 10,
                     IsSystem = true
                 });

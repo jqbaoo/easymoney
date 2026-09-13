@@ -38,6 +38,27 @@ namespace EasyMoney.App.UI
             Action<int> oOnPicked,
             string sEmptyHint = null)
         {
+            Show(oParent, sTitle, lOptions, null, oOnPicked, sEmptyHint);
+        }
+
+        /// <summary>
+        /// 带图标的选择框。<paramref name="lIconNames"/> 与 <paramref name="lOptions"/> 按下标对应，
+        /// 元素可以是 null（该项没图标，留一个等宽空位）；传 null 则整列都没有图标。
+        ///
+        /// 做成重载而不是往原签名末尾加参数：分类 / 账户 / 转入 / 日期 / 账户类型
+        /// 五个调用点一行都不用改，只有分类那一处用得上图标。
+        ///
+        /// 图标名的解析（哪张图在 Resources 里真的存在）由调用方负责——
+        /// 这个弹窗是分类、账户、日期共用的，让它认识「分类图标」是没必要的耦合。
+        /// </summary>
+        public static void Show(
+            RectTransform oParent,
+            string sTitle,
+            IList<string> lOptions,
+            IList<string> lIconNames,
+            Action<int> oOnPicked,
+            string sEmptyHint = null)
+        {
             RectTransform oOverlay = UiFactory.CreateNode(oParent, "PickerOverlay");
             UiFactory.Stretch(oOverlay);
 
@@ -46,7 +67,7 @@ namespace EasyMoney.App.UI
             oDim.color = Theme.SCRIM;
 
             RectTransform oPanel = _createPanel(oOverlay, sTitle);
-            _fillOptions(oPanel, lOptions, sEmptyHint, oOverlay, oOnPicked);
+            _fillOptions(oPanel, lOptions, lIconNames, sEmptyHint, oOverlay, oOnPicked);
             _createCancelButton(oPanel, oOverlay);
         }
 
@@ -75,6 +96,7 @@ namespace EasyMoney.App.UI
         private static void _fillOptions(
             RectTransform oPanel,
             IList<string> lOptions,
+            IList<string> lIconNames,
             string sEmptyHint,
             RectTransform oOverlay,
             Action<int> oOnPicked)
@@ -95,8 +117,13 @@ namespace EasyMoney.App.UI
 
             for (int i = 0; i < lOptions.Count; i++)
             {
+                // 图标名列表可能比选项少（或压根没传），按下标取、越界就当作没图标
+                string sIconName = lIconNames != null && i < lIconNames.Count
+                    ? lIconNames[i]
+                    : null;
+
                 int iCaptured = i;
-                _addOptionRow(oContent, i, lOptions[i],
+                _addOptionRow(oContent, i, lOptions[i], lIconNames != null, sIconName,
                     () => _pick(oOverlay, oOnPicked, iCaptured));
             }
         }
@@ -109,9 +136,23 @@ namespace EasyMoney.App.UI
             UiFactory.SetHeight(oEmpty.rectTransform, EMPTY_HINT_HEIGHT);
         }
 
-        private static void _addOptionRow(RectTransform oContent, int iIndex, string sLabel, Action oOnClick)
+        private static void _addOptionRow(
+            RectTransform oContent, int iIndex, string sLabel, bool bWithIconSlot,
+            string sIconName, Action oOnClick)
         {
-            RectTransform oRow = UiFactory.CreateRow(oContent, $"Option_{iIndex}", OPTION_HEIGHT);
+            // 传了图标名列表才建图标位：账户 / 转入账户 / 日期 / 账户类型四个弹窗都没传，
+            // 它们每一行都该跟改动前长得一模一样，不能平白多出一格左缩进。
+            // 反过来，一旦建了这一格，它就跟当前这项有没有图无关——自建分类混在
+            // 预置分类中间时，各行文字的左边缘才是齐的。
+            RectTransform oRow = UiFactory.CreateRow(
+                oContent, $"Option_{iIndex}", OPTION_HEIGHT,
+                bWithIconSlot ? Theme.CATEGORY_ICON_GAP : 0f);
+
+            if (bWithIconSlot)
+            {
+                UiFactory.CreateIconSlot(
+                    oRow, "Icon", sIconName, Theme.CATEGORY_ICON_SIZE, Theme.TEXT_WEAK);
+            }
 
             Text oLabel = UiFactory.CreateText(oRow, "Label", sLabel, Theme.FONT_BODY);
             UiFactory.SetFlexible(oLabel.rectTransform);

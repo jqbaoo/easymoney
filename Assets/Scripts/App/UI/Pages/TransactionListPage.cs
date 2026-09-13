@@ -238,12 +238,19 @@ namespace EasyMoney.App.UI.Pages
         private void _addTransactionRow(StatementRow oStatementRow)
         {
             RectTransform oRow = UiFactory.CreateRow(
-                m_ListContent, $"Tx_{oStatementRow.Transaction.Id}", Theme.ROW_HEIGHT);
+                m_ListContent, $"Tx_{oStatementRow.Transaction.Id}", Theme.ROW_HEIGHT,
+                Theme.CATEGORY_ICON_GAP);
 
             Image oBackground = oRow.gameObject.AddComponent<Image>();
             oBackground.sprite = SpriteFactory.Card();
             oBackground.type = Image.Type.Sliced;
             oBackground.color = Theme.SURFACE;
+
+            // 分类图标放在行首。转账、分类被删、自建分类都没有图标名，
+            // 那时留一个透明空位，各行的标题左边缘仍然对齐
+            UiFactory.CreateIconSlot(oRow, "Icon",
+                IconNames.ForCategory(oStatementRow.CategoryIconName),
+                Theme.CATEGORY_ICON_SIZE, Theme.TEXT_WEAK);
 
             RectTransform oLeft = UiFactory.CreateNode(oRow, "Left");
             UiFactory.SetFlexible(oLeft);

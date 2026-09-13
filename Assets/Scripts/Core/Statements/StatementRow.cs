@@ -19,6 +19,13 @@ namespace EasyMoney.Core
         /// <summary>金额文案：收入带 +，支出带 -，转账不带符号。</summary>
         public string AmountText { get; set; } = string.Empty;
 
+        /// <summary>
+        /// 分类图标名（数据库里存的值，如 cat_food），界面拿它去 Resources 里找图。
+        /// 转账、分类被删、分类没配图标名这三种情况都是空字符串——
+        /// 界面据此决定留不留图标位（留空位是为了让各行文字左边缘对齐）。
+        /// </summary>
+        public string CategoryIconName { get; set; } = string.Empty;
+
         public TxType Type => Transaction?.Type ?? TxType.Expense;
     }
 }

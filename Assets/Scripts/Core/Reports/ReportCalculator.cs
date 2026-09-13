@@ -69,10 +69,13 @@ namespace EasyMoney.Core
 
                     if (!dItems.TryGetValue(oTx.CategoryId, out CategoryBreakdownItem oItem))
                     {
+                        Category oCategory = Category.FindById(lCategories, oTx.CategoryId);
+
                         oItem = new CategoryBreakdownItem
                         {
                             CategoryId = oTx.CategoryId,
-                            CategoryName = _resolveName(oTx.CategoryId, lCategories),
+                            CategoryName = oCategory?.Name ?? UNCATEGORIZED_NAME,
+                            IconName = oCategory?.IconName ?? string.Empty,
                             Total = Money.Zero,
                             TxCount = 0
                         };
@@ -120,23 +123,6 @@ namespace EasyMoney.Core
             {
                 oItem.Ratio = (decimal)oItem.Total.Cents / iGrandTotalCents;
             }
-        }
-
-        private static string _resolveName(int iCategoryId, IList<Category> lCategories)
-        {
-            if (lCategories != null)
-            {
-                foreach (Category oCategory in lCategories)
-                {
-                    if (oCategory.Id == iCategoryId)
-                    {
-                        return oCategory.Name;
-                    }
-                }
-            }
-
-            // 分类被删掉后历史账单还在，这时不能显示成「0」或者空白
-            return UNCATEGORIZED_NAME;
         }
 
         private static int _compareByTotalDescending(CategoryBreakdownItem oLeft, CategoryBreakdownItem oRight)

@@ -43,6 +43,7 @@ namespace EasyMoney.App.UI.Pages
         private InputField m_AmountInput;
         private InputField m_NoteInput;
         private Text m_CategoryValue;
+        private Image m_CategoryIcon;
         private Text m_AccountValue;
         private Text m_ToAccountValue;
         private Text m_DateValue;
@@ -143,6 +144,7 @@ namespace EasyMoney.App.UI.Pages
             if (m_CategoryValue != null)
             {
                 m_CategoryValue.text = UNSELECTED;
+                _refreshCategoryIcon(null);
             }
 
             if (m_ToAccountValue != null)
@@ -257,28 +259,38 @@ namespace EasyMoney.App.UI.Pages
             RectTransform oCard = UiFactory.CreateCard(oBody, "DetailCard");
 
             m_CategoryRow = _addLinkRow(oCard, "分类", UNSELECTED, out m_CategoryValue,
-                _showCategoryPicker);
+                _showCategoryPicker, out m_CategoryIcon, bWithIconSlot: true);
             UiFactory.CreateDivider(oCard, "Divider1");
 
-            _addLinkRow(oCard, "账户", UNSELECTED, out m_AccountValue, _showAccountPicker);
+            _addLinkRow(oCard, "账户", UNSELECTED, out m_AccountValue, _showAccountPicker, out _);
             UiFactory.CreateDivider(oCard, "Divider2");
 
             m_ToAccountRow = _addLinkRow(oCard, "转入", UNSELECTED, out m_ToAccountValue,
-                _showToAccountPicker);
+                _showToAccountPicker, out _);
             UiFactory.CreateDivider(oCard, "Divider3");
 
-            _addLinkRow(oCard, "日期", DATE_LABELS[0], out m_DateValue, _showDatePicker);
+            _addLinkRow(oCard, "日期", DATE_LABELS[0], out m_DateValue, _showDatePicker, out _);
             UiFactory.CreateDivider(oCard, "Divider4");
 
             _addNoteRow(oCard);
         }
 
-        /// <summary>一行「标签 —— 值 —— &gt;」的选择型表单行。</summary>
+        /// <summary>
+        /// 一行「标签 —— 值 —— &gt;」的选择型表单行。
+        ///
+        /// <paramref name="bWithIconSlot"/> 只有分类行传 true。图标摆在「值」和箭头之间，
+        /// 而不是塞在标签前面——这样「标签」那 140 的定宽不用动，账户 / 转入 / 日期
+        /// 三行的版式也就完全不受影响。
+        /// </summary>
         private static RectTransform _addLinkRow(
             RectTransform oCard, string sLabel, string sValue, out Text oValueText,
-            UnityEngine.Events.UnityAction oOnClick)
+            UnityEngine.Events.UnityAction oOnClick, out Image oIconSlot,
+            bool bWithIconSlot = false)
         {
-            RectTransform oRow = UiFactory.CreateBareRow(oCard, $"Row_{sLabel}", Theme.ROW_HEIGHT);
+            RectTransform oRow = UiFactory.CreateBareRow(
+                oCard, $"Row_{sLabel}", Theme.ROW_HEIGHT, Theme.CATEGORY_ICON_GAP);
+
+            oIconSlot = null;
 
             Text oLabel = UiFactory.CreateText(oRow, "Label", sLabel, Theme.FONT_BODY);
             UiFactory.SetWidth(oLabel.rectTransform, LABEL_WIDTH);
@@ -286,6 +298,13 @@ namespace EasyMoney.App.UI.Pages
             oValueText = UiFactory.CreateText(oRow, "Value", sValue, Theme.FONT_BODY,
                 TextAnchor.MiddleRight, Theme.TEXT);
             UiFactory.SetFlexible(oValueText.rectTransform);
+
+            if (bWithIconSlot)
+            {
+                // 先建一个空位，选中分类后由 _refreshCategoryIcon 往里填图
+                oIconSlot = UiFactory.CreateIconSlot(
+                    oRow, "Icon", null, Theme.CATEGORY_ICON_SIZE, Theme.TEXT_WEAK);
+            }
 
             // 有 chevron_right 图标就是图标，没有就是原来的 ">"
             UiFactory.CreateIconOrText(oRow, "Chevron", IconNames.CHEVRON_RIGHT, ">",
@@ -460,12 +479,17 @@ namespace EasyMoney.App.UI.Pages
 
             List<Category> lCategories = oContext.Categories.GetByKind(_categoryKind());
             List<string> lLabels = new List<string>();
+            List<string> lIcons = new List<string>();
             foreach (Category oCategory in lCategories)
             {
                 lLabels.Add(oCategory.Name);
+
+                // 图标名在这里解析好再交给弹窗：资源存不存在是页面这边的事，
+                // 弹窗只管把拿到的名字画出来
+                lIcons.Add(IconNames.ForCategory(oCategory.IconName));
             }
 
-            PickerDialog.Show(Root, "选择分类", lLabels,
+            PickerDialog.Show(Root, "选择分类", lLabels, lIcons,
                 iIndex => _pickCategory(lCategories[iIndex]),
                 "还没有分类，请先去「账户」页检查");
         }
@@ -475,6 +499,18 @@ namespace EasyMoney.App.UI.Pages
             m_CategoryId = oCategory.Id;
             m_CategoryValue.text = oCategory.Name;
             m_CategoryValue.color = Theme.TEXT;
+
+            _refreshCategoryIcon(oCategory);
+        }
+
+        /// <summary>
+        /// 把分类行的图标换成新选中的那个。传 null（尚未选分类 / 换成转账类型时）就把图标清掉。
+        /// 图标位本身不会被销毁——它要一直占着那 40 的宽度，值文字才不会左右跳。
+        /// </summary>
+        private void _refreshCategoryIcon(Category oCategory)
+        {
+            UiFactory.SetIconSlot(m_CategoryIcon,
+                IconNames.ForCategory(oCategory?.IconName), Theme.TEXT_WEAK);
         }
 
         private void _showAccountPicker()
