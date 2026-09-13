@@ -22,7 +22,8 @@ App/
     ├── AssetPaths.cs       资源路径常量
     ├── AssetProvider.cs    唯一的 Resources.Load 入口
     ├── IconNames.cs        图标名常量
-    ├── SafeAreaFitter.cs   安全区适配
+    ├── SafeAreaFitter.cs   安全区适配（含底部导航栏内缩）
+    ├── AndroidSystemBars.cs 读 Android 系统栏高度（JNI，非 Android 恒返回 0）
     ├── PageBase.cs         页面抽象基类
     ├── PageRouter.cs       页面注册与切换
     ├── TabBar.cs           底部标签栏
@@ -129,7 +130,7 @@ UiFactory.SetFlexible(right);         // 吃掉剩余
 同名的 `UiFactoryLayoutTests` 锁着这个契约（`Assets/Tests/EditMode/`）。
 它只断言锚点能即时决定的尺寸，布局组算出的高度测不了，那些仍要靠 Play 肉眼验。
 
-### ⚠️ 三个已知陷阱
+### ⚠️ 四个已知陷阱
 
 **1. 一个节点上不要同时挂两种 LayoutGroup。**
 `HorizontalLayoutGroup` + `VerticalLayoutGroup` 会打架。
@@ -145,6 +146,19 @@ UiFactory.SetFlexible(right);         // 吃掉剩余
 **3. `Theme` 的颜色是属性，不是字段。**
 `Theme.PRIMARY` 每次访问都会走一层属性转发。构建 UI 时无所谓，
 但别放在每帧执行的循环里。
+
+**4. 铺满整屏的东西挂 `Canvas`，别挂进 `SafeArea`；底部让多少也别自己算。**
+全局 `Background` 必须在 `Canvas` 下——`SafeAreaFitter` 会让开底部导航栏，背景跟着
+一起缩的话导航栏那一条就没人画了，露出相机的清屏色（比内容被挡还难看，而且会让人
+以为是安全区算错了）。
+
+底部到底让出多少，由 `Core/Layout/SafeAreaLayout.cs` 的**差额**规则决定，
+**别在别处再写一遍「减掉导航栏高度」**：Unity 2022.3 的 `Screen.safeArea` 不包含
+导航栏（UUM-121413），但 Android 13/14 上它**本来就排除了**导航栏——无条件减会在
+那些机器上多出一条与导航栏等高的白边。两种错都不报错、不崩溃，界面上看着都「挺正常」。
+
+导航栏高度只能从 `AndroidSystemBars` 取，并且**不要改成每帧调用**：每读一次要新建
+若干个 `AndroidJavaObject`，各占一个 JNI local ref，而本地引用表只有 512 项。
 
 ---
 

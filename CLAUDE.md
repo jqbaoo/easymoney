@@ -27,9 +27,9 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
 - ✅ **字体风格升级**（2026-09-13）—— 自带 Noto Sans SC 三档字重（Regular / Medium /
   Bold，OFL 1.1，子集化后合计 5.7 MB），全站建立字重层次，**字形不再依赖机型 ROM**。
   字重→槽位映射抽在 `Core/Typography/FontSlots.cs`，`FontSlotsTests` 8 个用例钉着。
-  ⚠️ **APK 至今没重打**——从这一版起累计五次改动没进包（三档字重 / 暖色配色 /
-  月份条 / 环形图 / 图例色点），都只在编辑器里验过。包体预计从 ~29 MB 涨到 ~35 MB，
-  真机复验待做，见 `Claude/plans/android-release-checklist.md` 的「后续待办」
+  ⚠️ **APK 至今没重打**——从这一版起累计六次改动没进包（三档字重 / 暖色配色 /
+  月份条 / 环形图 / 图例色点 / 导航栏适配），都只在编辑器里验过。包体预计从 ~29 MB
+  涨到 ~35 MB，真机复验待做，见 `Claude/plans/android-release-checklist.md` 的「后续待办」
 - ✅ **分类图标接入**（2026-09-13）—— 15 个预置分类的图标接进账单行 / 报表行 /
   记账页分类行 / 分类选择弹窗四处。图标名是**数据**（存在 `category.icon_name` 里），
   所以新装的库走 `DefaultCategories` 种子、**老库走 v2 迁移补**，两条路都得改，
@@ -64,6 +64,22 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   类型/账户/分类/日期留着（连记几笔同类账不用重选）。
   ⚠️ 记账页那条**没有测试覆盖**（`_onSave` 要连着数据库才走得完），只能靠 Play 验
   ✅ **Play 肉眼验收通过**（2026-09-13，13 项）
+- ✅ **底部导航栏遮挡修复 + 锁竖屏**（2026-09-13）—— 真机上开三键导航时**整块底部
+  被盖住**（四个标签的标签栏 + 账户页/报表页的底部内容）。根因链：APK 是
+  `targetSdk 35` → Android 15 强制 edge-to-edge（导航栏变浮层）→ 而 **Unity 2022.3 的
+  `Screen.safeArea` 不包含导航栏**（UUM-121413，只在 6.1 修复、没回移 2022）。
+  修法**不是**无条件减导航栏高度，而是按**差额**补：`extra = Max(0, 导航栏高度 - safeArea.y)`
+  ——Android 13/14 的 safeArea 本来就排除了导航栏，无条件减会凭空多一条白边，
+  两种错都不报错。规则抽在 `Core/Layout/SafeAreaLayout.cs`（`SafeAreaLayoutTests`
+  11 条钉着，其中两条幂等用例就是这个 bug 的形状），导航栏高度走
+  `App/UI/AndroidSystemBars.cs` 读 `WindowInsets`（**px 不是 dp**，且**不能每帧读**——
+  每次新建的 `AndroidJavaObject` 各占一个 JNI local ref）。
+  ⚠️ 三个连带改动漏一个就白改：`Background` 必须从 SafeArea 挪到 Canvas（否则导航栏
+  那条露出相机的蓝灰清屏色）；**安全区被吃光时放弃内缩**（高度成 0 会让标题栏/标签栏/
+  内容区全塌，整屏空白且不报错）；锁竖屏（版式只验过竖屏）。
+  ⚠️ **这条 Play 验不了**——编辑器里 safeArea 全屏、导航栏恒 0，改动完全不可见，
+  只能真机验；本轮 APK 里带了一行临时诊断读数辅助定位，**验完要删**
+  ⏳ **真机验收待做**，清单见 `Claude/plans/android-release-checklist.md`
 
 **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
 `ITransactionRepository` 等于绕过校验。
