@@ -1,21 +1,45 @@
+using EasyMoney.Core;
 using UnityEngine;
 
 namespace EasyMoney.App.UI
 {
     /// <summary>
     /// 安全区适配。把自身 RectTransform 内缩到 Screen.safeArea，
-    /// 避开刘海、状态栏与底部 home 指示条。编辑器里 safeArea 等于全屏，不会产生偏移。
+    /// 避开刘海、状态栏与底部导航栏。编辑器里 safeArea 等于全屏、导航栏高度恒 0，
+    /// 所以不会产生偏移。
+    ///
+    /// 「底部要不要再让开导航栏」那条规则在 <see cref="SafeAreaLayout"/> 里——
+    /// Unity 2022.3 的 Screen.safeArea 不包含导航栏（UUM-121413），得另外去
+    /// WindowInsets 里读，见 <see cref="AndroidSystemBars"/>。
     /// </summary>
     [RequireComponent(typeof(RectTransform))]
     public sealed class SafeAreaFitter : MonoBehaviour
     {
+        /// <summary>
+        /// 启动后多久之内反复重读导航栏高度。
+        ///
+        /// 启动初期 getRootWindowInsets() 的失败形态是「返回非 null 但各边都是 0」
+        /// （视图 attach 了、inset 还没分发下来），而不是返回 null。这时候读到 0 会让
+        /// 底部不让，**表现就是「修了跟没修一样」**，而且极难排查——所以才要重试。
+        ///
+        /// 按时间不按帧数：帧率是浮动的，10 帧在低端机上也许只有几十毫秒。
+        /// </summary>
+        private const float INSET_PROBE_SECONDS = 2f;
+
+        /// <summary>两次重读之间隔多少帧。每读一次要走一串 JNI，别每帧都来。</summary>
+        private const int INSET_PROBE_FRAME_GAP = 10;
+
         private RectTransform m_Rect;
         private Rect m_LastSafeArea = Rect.zero;
         private Vector2Int m_LastScreenSize = Vector2Int.zero;
+        private int m_NavigationBarPx;
+        private int m_FramesSinceProbe;
+        private float m_StartTime;
 
         private void Awake()
         {
             m_Rect = GetComponent<RectTransform>();
+            m_StartTime = Time.realtimeSinceStartup;
             _apply();
         }
 
@@ -27,7 +51,36 @@ namespace EasyMoney.App.UI
                 Screen.height != m_LastScreenSize.y)
             {
                 _apply();
+                return;
             }
+
+            // 导航栏高度还没读到，就在启动头两秒里再试几次。设备本来就没导航栏时
+            // 会一直返回 0，试满时间窗就自然停下——不用另外记「失败过几次」
+            m_FramesSinceProbe++;
+            if (m_NavigationBarPx <= 0 &&
+                m_FramesSinceProbe >= INSET_PROBE_FRAME_GAP &&
+                Time.realtimeSinceStartup - m_StartTime < INSET_PROBE_SECONDS)
+            {
+                _apply();
+            }
+        }
+
+        /// <summary>
+        /// 切回前台时重读一次。
+        ///
+        /// 手势导航 ↔ 三键导航切换时导航栏会从细条变成 48dp，而在 Android 15 上
+        /// Screen.safeArea 一直报全屏、Screen.width/height 也不变——Update 里
+        /// 「尺寸变了」那个条件**永远不触发**，缓存的一直是切换前的旧高度。
+        /// </summary>
+        private void OnApplicationFocus(bool bHasFocus)
+        {
+            if (!bHasFocus)
+            {
+                return;
+            }
+
+            m_StartTime = Time.realtimeSinceStartup;
+            _apply();
         }
 
         private void _apply()
@@ -40,22 +93,17 @@ namespace EasyMoney.App.UI
             Rect oSafeArea = Screen.safeArea;
             m_LastSafeArea = oSafeArea;
             m_LastScreenSize = new Vector2Int(Screen.width, Screen.height);
+            m_FramesSinceProbe = 0;
 
-            if (Screen.width <= 0 || Screen.height <= 0)
-            {
-                return;
-            }
+            // 读一次要走一串 JNI，所以只在真要重算的时候读，不放进 Update 每帧跑
+            m_NavigationBarPx = AndroidSystemBars.NavigationBarHeightPx();
 
-            Vector2 oMin = oSafeArea.position;
-            Vector2 oMax = oSafeArea.position + oSafeArea.size;
+            SafeAreaAnchors oAnchors = SafeAreaLayout.Compute(
+                new SafeAreaRect(oSafeArea.x, oSafeArea.y, oSafeArea.width, oSafeArea.height),
+                Screen.width, Screen.height, m_NavigationBarPx);
 
-            oMin.x /= Screen.width;
-            oMin.y /= Screen.height;
-            oMax.x /= Screen.width;
-            oMax.y /= Screen.height;
-
-            m_Rect.anchorMin = oMin;
-            m_Rect.anchorMax = oMax;
+            m_Rect.anchorMin = new Vector2(oAnchors.MinX, oAnchors.MinY);
+            m_Rect.anchorMax = new Vector2(oAnchors.MaxX, oAnchors.MaxY);
             m_Rect.offsetMin = Vector2.zero;
             m_Rect.offsetMax = Vector2.zero;
         }

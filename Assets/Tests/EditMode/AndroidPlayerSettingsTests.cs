@@ -91,6 +91,23 @@ namespace EasyMoney.Tests
         }
 
         [Test]
+        public void Orientation_IsPortraitOnly()
+        {
+            // 两条理由：
+            // 一是版式只按竖屏（750×1334 基准）设计并验收过，横屏是什么样从来没人看过；
+            // 二是 CanvasScaler 用的 matchWidthOrHeight = 0（按宽度匹配），
+            // 这个选择的前提是「宽度恒定」——横过来宽度变成长边，整屏会被拉扁。
+            Assert.AreEqual(UIOrientation.Portrait, PlayerSettings.defaultInterfaceOrientation,
+                "默认方向应为 Portrait，留在 AutoRotation 会让设备一转就换版式");
+
+            Assert.IsTrue(PlayerSettings.allowedAutorotateToPortrait, "竖屏必须允许");
+            Assert.IsFalse(PlayerSettings.allowedAutorotateToPortraitUpsideDown,
+                "不允许倒竖屏：状态栏会翻到上面，安全区只验过正向");
+            Assert.IsFalse(PlayerSettings.allowedAutorotateToLandscapeLeft, "不允许横屏");
+            Assert.IsFalse(PlayerSettings.allowedAutorotateToLandscapeRight, "不允许横屏");
+        }
+
+        [Test]
         public void LinkXml_Exists()
         {
             // link.xml 是剥离的第一道防线（与 Minimal 双保险）。

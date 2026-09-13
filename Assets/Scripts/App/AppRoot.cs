@@ -134,14 +134,20 @@ namespace EasyMoney.App
             RectTransform oCanvas = _createCanvas();
             m_CanvasRoot = oCanvas;
 
-            // 安全区：刘海屏与全面屏手机上内缩，避免内容被遮挡
+            // 全局背景垫在最底层，页面内容都盖在它上面。
+            //
+            // ⚠️ 必须挂在 Canvas 下，不能挂进 SafeArea：SafeArea 会让开底部导航栏，
+            // 背景跟着一起缩的话导航栏那一条就没人画了，露出相机的清屏色——
+            // SampleScene 里是块蓝灰，比内容被挡还难看，而且会让人以为安全区算错了。
+            // 先建 = 先绘制 = 在下层，所以它要建在 SafeArea 之前
+            Image oBackground = UiFactory.CreatePanel(oCanvas, "Background", Theme.BACKGROUND);
+            UiFactory.Stretch(oBackground.rectTransform);
+
+            // 安全区：刘海屏与全面屏手机上内缩，避开刘海与系统栏。
+            // 底部让开 Android 导航栏那一步见 SafeAreaFitter / SafeAreaLayout
             RectTransform oSafeArea = UiFactory.CreateNode(oCanvas, "SafeArea");
             UiFactory.Stretch(oSafeArea);
             oSafeArea.gameObject.AddComponent<SafeAreaFitter>();
-
-            // 全局背景垫在最底层，页面内容都盖在它上面
-            Image oBackground = UiFactory.CreatePanel(oSafeArea, "Background", Theme.BACKGROUND);
-            UiFactory.Stretch(oBackground.rectTransform);
 
             _buildHeader(oSafeArea);
 
@@ -151,6 +157,9 @@ namespace EasyMoney.App
             m_TabBar = new TabBar();
             m_TabBar.Build(oSafeArea, TABS);
             m_TabBar.TabClicked += sKey => m_Router.Show(sKey);
+
+            // ⚠️ 临时：本轮真机验收的诊断读数，验完连同 SafeAreaDiagnostics.cs 一起删
+            SafeAreaDiagnostics.Attach(oCanvas);
         }
 
         private static RectTransform _createCanvas()
