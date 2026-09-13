@@ -1,3 +1,4 @@
+using EasyMoney.Core;
 using UnityEngine;
 
 namespace EasyMoney.App.UI
@@ -37,10 +38,15 @@ namespace EasyMoney.App.UI
         /// </summary>
         public static int NavigationBarHeightPx()
         {
-#if UNITY_ANDROID && !UNITY_EDITOR
+#if UNITY_ANDROID
+            // 编辑器里安全区等于全屏、也没有导航栏，一律当作不用让
+            if (Application.isEditor)
+            {
+                return 0;
+            }
+
             return _readNavigationBarHeightPx();
 #else
-            // 编辑器里安全区等于全屏、也没有导航栏，一律当作不用让
             return 0;
 #endif
         }
@@ -59,7 +65,12 @@ namespace EasyMoney.App.UI
         /// </summary>
         public static int LegacyNavigationBarHeightPxForDiagnostics()
         {
-#if UNITY_ANDROID && !UNITY_EDITOR
+#if UNITY_ANDROID
+            if (Application.isEditor)
+            {
+                return -1;
+            }
+
             return _probeInsets(false);
 #else
             return -1;
@@ -76,14 +87,32 @@ namespace EasyMoney.App.UI
         /// </summary>
         public static int NewApiNavigationBarHeightPxForDiagnostics()
         {
-#if UNITY_ANDROID && !UNITY_EDITOR
+#if UNITY_ANDROID
+            if (Application.isEditor)
+            {
+                return -1;
+            }
+
             return _probeInsets(true);
 #else
             return -1;
 #endif
         }
 
-#if UNITY_ANDROID && !UNITY_EDITOR
+#if UNITY_ANDROID
+        // ⚠️ 全文件一律用 #if UNITY_ANDROID + 运行时 Application.isEditor 判断，
+        // **不要写成 #if UNITY_ANDROID && !UNITY_EDITOR**。
+        //
+        // 后者会让整段 JNI 代码在编辑器里不参与编译，于是里面任何编译错误
+        // （漏 using、方法名写错、类型不存在）都只有真机打包时才会暴露——
+        // 代价是白跑一轮十几分钟的构建。**这个坑已经踩过一次**：
+        // _navigationBarBottom 里用了 Core 的 SafeAreaLayout 却漏了 using EasyMoney.Core，
+        // 364 个 EditMode 用例全绿，打包时才报 CS0103。
+        //
+        // 改成 #if UNITY_ANDROID 之后，只要当前 Build Target 是 Android（本项目一直是），
+        // 编辑器就会把这段代码也编译一遍，写错当场就能发现；执行路径由 isEditor 早返回挡住。
+        // 残留的边界：Build Target 切到非 Android 时这段仍不编译——别长期切走。
+
         /// <summary>SDK_INT 是常量，读一次记下来，省掉每次调用新建一个 AndroidJavaClass。</summary>
         private static int s_SdkInt = -1;
 

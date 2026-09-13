@@ -35,7 +35,14 @@ namespace EasyMoney.App.UI
 
         public static void Attach(RectTransform oCanvas)
         {
-#if UNITY_ANDROID && !UNITY_EDITOR
+#if UNITY_ANDROID
+            // 编辑器里这些值恒为 0，面板显示出来只会挡住标题栏。
+            // 用运行时判断而不是 #if UNITY_EDITOR，理由同 AndroidSystemBars 顶部那段注释
+            if (Application.isEditor)
+            {
+                return;
+            }
+
             RectTransform oRoot = UiFactory.CreateNode(oCanvas, "SafeAreaDiagnostics");
 
             // 贴在屏幕最顶端盖住标题栏——反正是临时的，看得清比好看要紧。
