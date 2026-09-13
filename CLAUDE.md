@@ -38,7 +38,7 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   两者只差 13 个色阶、卡片又没有投影，整屏看着就是一片白。换成燕麦米白底 + 暖白卡片 +
   焦糖棕主色，卡片统一加一层投影（`UiFactory.PaintCard` / `AddCardShadow`）。
   配色在 `theme.json` 和 `ThemePalette.Light()` 两处，`ThemePaletteTests` 钉着一致。
-  ⚠️ **尚未 Play 肉眼验收**——配色和投影是纯视觉的，EditMode 测不到
+  ✅ **Play 肉眼验收通过**（2026-09-13）——底色与卡片层次分得开、投影在
 - ✅ **月份条抽组件 + 点年月选月份**（2026-09-13）—— 账单页和报表页的月份条
   原先逐字重复（连 `MONTH_BAR_HEIGHT` / `NAV_BUTTON_WIDTH` / `NAV_ICON_SIZE`
   三个常量都各定义一份），收成 `App/UI/MonthBar.cs`，两页各一行 `new MonthBar(...)`；
@@ -47,7 +47,8 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   ⚠️ **顺手多了一条教训**：月份条原来在页面里，一条测试都没有；收成组件后
   `MonthBarTests` + `MonthPickerDialogTests` 共 19 个用例才够得着它——
   **能测的界面逻辑就往下沉成组件**
-  ⚠️ **尚未 Play 肉眼验收**——弹窗布局、遮罩、加了箭头后整组是否仍居中，EditMode 测不到
+  ✅ **Play 肉眼验收通过**（2026-09-13）——弹窗、月份条、`↓` 提示、遮罩与居中、
+  跨年进位 5 项全过，详见 `Claude/plans/android-release-checklist.md`
 
 **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
 `ITransactionRepository` 等于绕过校验。

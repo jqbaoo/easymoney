@@ -53,8 +53,8 @@ App 层    ██████████ 100%   记账页 / 账单页 / 账户�
 | **报表页** | `App/UI/Pages/ReportPage.cs`、`Core/Reports/ReportForm.cs` | Task 16 产出。月份切换 + 收支汇总 + 支出/收入分类占比条形图。**展示规则抽在 Core 的 `ReportForm` 里**（构成标题、占比文案、条形宽度钳位），月份格式统一走 `TimeUtil.FormatYearMonth`。`DemoData.cs` 已随之删除 |
 
 | **分类图标** | `Resources/Icons/cat_*.png`、`Data/DefaultCategories.cs`、`Data/SchemaMigrations.cs`、`App/UI/UiFactory.cs` | 计划外新增。15 个预置分类的图标接进账单行 / 报表行 / 记账页分类行 / 分类选择弹窗四处；老库的 `icon_name` 靠 v2 迁移补上。见第 7 节 |
-| **暖色纸感配色 + 卡片投影** | `Resources/theme.json`、`App/UI/ThemePalette.cs`、`App/UI/UiFactory.cs` | 计划外新增。原来是浅灰底 `#F2F3F5` 配白卡片，两者只差 13 个色阶、卡片又没有投影，整屏看着就是一片白。换成暖色纸感，卡片投影收进 `UiFactory.PaintCard` / `AddCardShadow`。配色在 `theme.json` 与 `ThemePalette.Light()` 两处，`ThemePaletteTests` 钉着一致。⚠️ **尚未 Play 肉眼验收**。见第 7 节 |
-| **月份条抽组件 + 点年月选月份** | `App/UI/MonthBar.cs`、`App/UI/MonthPickerDialog.cs`、`Core/TimeUtil.cs`、`App/UI/UiFactory.cs` | 计划外新增。账单页与报表页的月份条原先逐字重复（连三个常量都各定义一份），收成 `MonthBar` 后两页各一行 `new MonthBar(...)`；中间的年月文字从裸 `Text` 变成可点的「文字 + `↓`」横排，点开 `MonthPickerDialog`（年份行 + 3×4 月份网格）一次跳到目标月。`TimeUtil` 新增 `FormatYear` / `FormatMonth`，`FormatYearMonth` 改为拼这两个。**弹窗与月份条首次有了 EditMode 覆盖**（19 个用例）——原先逻辑在页面里，测试够不着 |
+| **暖色纸感配色 + 卡片投影** | `Resources/theme.json`、`App/UI/ThemePalette.cs`、`App/UI/UiFactory.cs` | 计划外新增。原来是浅灰底 `#F2F3F5` 配白卡片，两者只差 13 个色阶、卡片又没有投影，整屏看着就是一片白。换成暖色纸感，卡片投影收进 `UiFactory.PaintCard` / `AddCardShadow`。配色在 `theme.json` 与 `ThemePalette.Light()` 两处，`ThemePaletteTests` 钉着一致。**Play 肉眼验收通过**（2026-09-13）。见第 7 节 |
+| **月份条抽组件 + 点年月选月份** | `App/UI/MonthBar.cs`、`App/UI/MonthPickerDialog.cs`、`Core/TimeUtil.cs`、`App/UI/UiFactory.cs` | 计划外新增。账单页与报表页的月份条原先逐字重复（连三个常量都各定义一份），收成 `MonthBar` 后两页各一行 `new MonthBar(...)`；中间的年月文字从裸 `Text` 变成可点的「文字 + `↓`」横排，点开 `MonthPickerDialog`（年份行 + 3×4 月份网格）一次跳到目标月。`TimeUtil` 新增 `FormatYear` / `FormatMonth`，`FormatYearMonth` 改为拼这两个。**弹窗与月份条首次有了 EditMode 覆盖**（19 个用例）——原先逻辑在页面里，测试够不着。**Play 肉眼验收通过**（2026-09-13） |
 
 ### 全部完成
 
