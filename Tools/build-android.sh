@@ -19,9 +19,16 @@ if [ ! -f "$UNITY_EXE" ]; then
   exit 2
 fi
 
-# 同一个项目不能被两个 Unity 实例同时打开，否则构建起不来
-if tasklist //FI "IMAGENAME eq Unity.exe" 2>/dev/null | grep -qi "Unity.exe"; then
-  echo "Unity 编辑器正在运行，请先关闭再构建"
+# 同一个项目不能被两个 Unity 实例同时打开，否则构建起不来。
+#
+# 判据以**项目下的 Temp/UnityLockfile** 为准：编辑器开着就一定持有它，正常关闭会删掉。
+# 光看「机器上有没有 Unity.exe」会误伤两种情形——别的项目开着的编辑器，以及跑完没退
+# 干净的残留进程。后者实测把构建白挡了一轮：那个进程 0 线程 0 句柄、没有 lockfile，
+# 而 taskkill 对它只报「拒绝访问」，普通权限清不掉，只能重启。
+# 两个条件同时成立才算占用。
+if [ -f "$PROJECT_PATH/Temp/UnityLockfile" ] &&
+   tasklist //FI "IMAGENAME eq Unity.exe" 2>/dev/null | grep -qi "Unity.exe"; then
+  echo "Unity 编辑器正在运行（项目下有 Temp/UnityLockfile），请先关闭再构建"
   exit 2
 fi
 

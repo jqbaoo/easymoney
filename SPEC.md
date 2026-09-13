@@ -767,6 +767,11 @@ grep -o 'total="[0-9]*" passed="[0-9]*" failed="[0-9]*"' Tools/editmode-results.
   残留（十几 MB），不占项目，可以不管。**别凭进程名一律杀**——用户自己开着的编辑器
   也长这样，杀了会丢未保存的改动。
 
+  实测还有一种更硬的形态：**命令行读不出来、线程数与句柄数都是 0、没有窗口标题**
+  （已终止但内核对象没被回收）。这种连 `taskkill //F` 都只报「拒绝访问」，
+  普通权限清不掉，只能重启。**它不持有任何文件句柄，所以并不占项目**——但它会命中
+  构建脚本原来的进程名守卫，白挡一轮构建。守卫的判据已因此改掉，见「构建 Android APK」。
+
 ```bash
 "/d/unity/unity2022/2022.3.53f1c1/Editor/Unity.exe" \
   -batchmode -nographics \
@@ -828,7 +833,7 @@ grep -o 'total="[0-9]*" passed="[0-9]*" failed="[0-9]*"' Tools/editmode-results.
 
 产物 `Builds/EasyMoney.apk`。退出码：**0 = 成功，1 = 构建失败，2 = 环境问题**。
 
-⚠️ 脚本里写死了三件踩过的事，别绕过脚本手敲 `Unity.exe`：
+⚠️ 脚本里写死了四件踩过的事，别绕过脚本手敲 `Unity.exe`：
 
 - **日志放 `Tools/build-android.log` 而不是 `Temp/`** —— 理由同测试脚本，
   Unity 退出会清理 `Temp/`
@@ -836,8 +841,13 @@ grep -o 'total="[0-9]*" passed="[0-9]*" failed="[0-9]*"' Tools/editmode-results.
   正是最该避免的静默失败
 - **`-executeMethod` 要写全命名空间**：
   `EasyMoney.App.EditorTools.BuildScript.BuildAndroid`
+- **占用判据是项目下的 `Temp/UnityLockfile`（配合进程名），不是只看进程名** ——
+  编辑器开着就一定持有 lockfile、正常关闭即删除，这才是「本项目被占用」的凭据。
+  只看「机器上有没有 `Unity.exe`」会误伤别的项目的编辑器和跑完没退干净的残留进程：
+  实测一个 0 线程 0 句柄的僵尸进程把构建白挡了一轮，`taskkill` 还清不掉它
 
-首次 IL2CPP 构建约 4-5 分钟（实测 4.5 分钟，产物 29 MB）。
+耗时与产物：首次 IL2CPP 构建实测 4.5 分钟 / 29 MB；**带上三档字重与后续几次改动后
+实测约 14 分钟 / 34 MB**（字体是大头）。
 
 ### 运行界面
 
@@ -865,7 +875,7 @@ grep -o 'total="[0-9]*" passed="[0-9]*" failed="[0-9]*"' Tools/editmode-results.
 | **emoji 显示为空白** | 真机实测：备注里填 emoji 渲染成空白。根因同上——候选字体全是中文字体（含自带的 Noto Sans SC），**都不含 emoji 字形**，而 legacy `Text` 在字形缺失时不跨字体回退 | **已定性为纯渲染问题，数据没丢**。依据是把写入链路三段都证干净了（仓储 `Note_SupportsChineseAndEmoji`、服务 `Save_KeepsEmojiNoteIntact`、投影 `BuildRow_EmojiNote_KeepsItWholeAsTitle`），且全项目没有按 `char` 截断的代码。要支持得自带 emoji 字体 + 换 TextMeshPro，**当前判断为不值得做**。注意 Unity 的 legacy `Font` 与 TMP 3.0.7 **都不支持彩色 emoji 字体**（CBDT/CBLC、COLR/CPAL 均不认），换 TMP 也只在用单色 emoji 字体时才有效 |
 | **APK 里仍有 INTERNET 权限** | 已设 `Internet Access: Not Required`，测试也是绿的，但 `aapt dump badging` 实测包里仍有该权限。根因是 `com.unity.modules.unitywebrequest` 模块自己声明，manifest merger 合并进来，`ForceInternetPermission` 拦不住 | 单机 App 用不到，属瑕疵。要真正去掉需自定义 `Assets/Plugins/Android/AndroidManifest.xml` + `tools:node="remove"`——自定义 manifest 是构建失败高发区，单独一轮做 |
 | **adb 连不上真机** | Task 17 验收时 USB（线缆只有电源线芯）与无线调试（路由器 AP 隔离）双双失败，最后靠手动传 APK 完成验收，**没有 logcat 佐证** | 下次接设备前先确认线能传数据、路由器没开客户端隔离。另：platform-tools v31.0.2+ 需 `ADB_MDNS_OPENSCREEN=1` 才能 `adb pair` |
-| **编辑器占用 / 残留的 batchmode 进程** | 命令行跑测试或构建时，另一个 Unity 实例不能打开同一项目。除了用户开着的编辑器，**上一次跑完却没退出的 batchmode 进程**同样会占着项目（实测多次：结果都写完了、进程仍驻留 1.6 GB），而它报出来的错是 `HandleProjectAlreadyOpenInAnotherInstance`，看起来像编译错误 | 跑之前先确认没有 Unity 实例；脚本以退出码 2 报出。清理办法见第 10 节——**先看结果文件在不在**，别急着当编译错误查 |
+| **编辑器占用 / 残留的 batchmode 进程** | 命令行跑测试或构建时，另一个 Unity 实例不能打开同一项目。除了用户开着的编辑器，**上一次跑完却没退出的 batchmode 进程**同样会占着项目（实测多次：结果都写完了、进程仍驻留 1.6 GB），而它报出来的错是 `HandleProjectAlreadyOpenInAnotherInstance`，看起来像编译错误。另有一种**清不掉的僵尸形态**：线程数与句柄数都是 0、命令行读不出来，`taskkill //F` 只报「拒绝访问」，只能重启——它不占项目，但会命中按进程名判断的守卫 | 跑之前先确认没有 Unity 实例；脚本以退出码 2 报出。清理办法见第 10 节——**先看结果文件在不在**，别急着当编译错误查。构建脚本的占用判据已改为 `Temp/UnityLockfile` + 进程名两个条件同时成立，见第 10 节 |
 | **命令行测试的静默失败** | `-quit` 会让 Unity 跳过测试直接退出（退出码 0）；`Temp/` 下的结果文件会被 Unity 退出时清理 | 两个坑都已规避并写进脚本，见第 10 节 |
 | **`Assets/Resources/` 下的东西都会进 APK** | 放进去的每张图都算包体。应用图标源图一度放在 `Assets/Resources/Icons/AppIcon/`，等于把 47 张 PNG 白打进包里 | 图标源图已移到 `Assets/AppIcons/`（自动打包够不着），只在 Player Settings 里引用 |
 | **改表结构会砸掉用户数据** | 建表全是 `CREATE TABLE IF NOT EXISTS`，对已有的表等于什么都不做。给旧表加列，升级上来的老库会 `no such column`——是崩溃，不是降级。第一版已装在真机上且有真实数据 | ✅ **已解决**。`SchemaMigrator` + `SchemaMigrations.ALL`，`EasyMoneyDb.Open()` 时按版本补跑缺失的迁移。改结构走三步，见第 6 节。机制行为有 9 个测试钉着 |
