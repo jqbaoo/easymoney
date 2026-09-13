@@ -24,6 +24,7 @@ App/
     ├── IconNames.cs        图标名常量
     ├── SafeAreaFitter.cs   安全区适配（含底部导航栏内缩）
     ├── AndroidSystemBars.cs 读 Android 系统栏高度（JNI，非 Android 恒返回 0）
+    ├── SafeAreaDiagnostics.cs ⚠️ 临时：真机诊断读数，**导航栏那轮验完即删**
     ├── PageBase.cs         页面抽象基类
     ├── PageRouter.cs       页面注册与切换
     ├── TabBar.cs           底部标签栏
@@ -161,6 +162,39 @@ UiFactory.SetFlexible(right);         // 吃掉剩余
 若干个 `AndroidJavaObject`，各占一个 JNI local ref，而本地引用表只有 512 项。
 
 ---
+
+## 平台相关代码：用 `#if UNITY_ANDROID`，别用 `#if UNITY_ANDROID && !UNITY_EDITOR`
+
+```csharp
+// ✅ 这样写
+public static int NavigationBarHeightPx()
+{
+#if UNITY_ANDROID
+    if (Application.isEditor) { return 0; }   // 运行时早返回，不是编译期排除
+    return _readNavigationBarHeightPx();
+#else
+    return 0;
+#endif
+}
+```
+
+**加了 `!UNITY_EDITOR` 就等于把这段代码从编辑器编译里摘出去**，于是里面任何编译错误
+——漏 `using`、方法名写错、类型不存在——**只有真机打包时才会暴露**，代价是白跑一轮
+十几分钟的构建。这个坑**已经踩过一次**：`AndroidSystemBars._navigationBarBottom`
+用了 Core 的 `SafeAreaLayout` 却漏了 `using EasyMoney.Core`，
+**364 个 EditMode 用例全绿**，打包时才报 `CS0103`。
+
+⚠️ **记住这句话：EditMode 全绿 ≠ Android 编得过。** 测试跑在编辑器平台上，
+`UNITY_ANDROID` 没定义，被 `#if` 摘掉的代码它一行都没看过。
+所以**动了 `#if UNITY_ANDROID` 里的东西，「再来一轮测试」不算验证，得真打一次包**。
+
+改成 `#if UNITY_ANDROID` 之后，只要当前 Build Target 是 Android（本项目一直是），
+编辑器就会把这段代码一起编译，写错当场发现；执行路径由 `Application.isEditor` 挡住。
+**残留的边界**：Build Target 切成非 Android 时这段仍不编译——别长期切走。
+
+同一条纪律也适用于方法的**位置**：`#if` 块里的方法，块外的调用方看不到。
+`AndroidSystemBars` 那两个诊断方法与 `NavigationBarHeightPx` 一样，外壳在 `#if` 外、
+实现放里面——把整个方法塞进块内，块外的调用方直接 CS0117。这个错犯过两次。
 
 ---
 

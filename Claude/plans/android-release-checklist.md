@@ -311,6 +311,46 @@ native-code: 'arm64-v8a' 'armeabi-v7a'
 
 跑完这一轮之后，第 23 / 24 / 25 项是这次修复的直接证据，其余是顺带走查。
 
+### 第一轮（构建 1）：没修好 —— 但读数把原因指出来了
+
+**结果：第 19-22 项不过**（用户肉眼：「三键导航的情况下底部标签还是被覆盖了」），
+**第 23 项过了**（用户肉眼：「导航栏是米白色」，不是蓝灰——说明 `Background` 挪出
+`SafeArea` 那一步已经生效）。
+
+抄回来的读数（`Assets/结果图.jpg`，1080×2400 的截图）：
+
+```
+safeArea y=0 h=2310 w=1080
+screen 1080x2400  nav 0 (new 0/old 124)  extra 0
+```
+
+**三件事一次问清了**，这正是当初坚持要塞这个临时读数的理由：
+
+| 读数 | 说明了什么 |
+|---|---|
+| `safeArea y=0 h=2310`，屏幕高 2400 | 底部**贴着屏幕最底**（`y=0`），排掉的那 90px 全在**顶部**（状态栏/挖孔）。UUM-121413 在真机上坐实：`safeArea` 确实不含导航栏 |
+| `new 0` | API 30+ 的 `getInsets(Type.navigationBars())` 在这台机器上返回 **0**——正路是哑的 |
+| `old 124` | deprecated 的 `getSystemWindowInsetBottom()` 给出了正确的 124px |
+
+于是 `nav` 取到 0、`extra` 算出 0，**修了跟没修一样**——而界面上完全看不出原因，
+只有读数能区分「JNI 读不到」和「设备不需要补」。
+
+**修法**：新增 `SafeAreaLayout.ResolveNavigationBarHeight(iNewApiPx, iLegacyPx)`——
+新 API 优先，**它为 0 才回退老的**，两个都没有就是 0。刻意**不取两者较大值**：
+两个来源都可能给出与当前导航模式不符的偏大值（手势导航下导航栏只有一条细缝），
+取大就会多让出一截白边，同样不报错。纯函数，5 条用例钉着（`SafeAreaLayoutTests`）。
+
+⚠️ **另一个独立的问题**：改完之后**打包失败**，报
+`AndroidSystemBars.cs(133,20): error CS0103: 'SafeAreaLayout' does not exist`——
+漏了 `using EasyMoney.Core;`。**364 个 EditMode 用例当时全绿**，因为出错那句在
+`#if UNITY_ANDROID && !UNITY_EDITOR` 块里，编辑器根本不编译它。
+详见 `Assets/Scripts/App/CLAUDE.md` 里那条「别用 `#if UNITY_ANDROID && !UNITY_EDITOR`
+把代码藏起来」。
+
+### 第二轮（构建 2）：带上了回退取法
+
+提交 `f0113e57`。**下面 10 项要在这一版上重走一遍**（第 23 项已知过，可只扫一眼）。
+
 ---
 
 ## 编辑器内 Play 验收记录

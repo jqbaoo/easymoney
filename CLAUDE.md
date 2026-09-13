@@ -71,15 +71,20 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   修法**不是**无条件减导航栏高度，而是按**差额**补：`extra = Max(0, 导航栏高度 - safeArea.y)`
   ——Android 13/14 的 safeArea 本来就排除了导航栏，无条件减会凭空多一条白边，
   两种错都不报错。规则抽在 `Core/Layout/SafeAreaLayout.cs`（`SafeAreaLayoutTests`
-  11 条钉着，其中两条幂等用例就是这个 bug 的形状），导航栏高度走
+  16 条钉着，其中两条幂等用例就是这个 bug 的形状），导航栏高度走
   `App/UI/AndroidSystemBars.cs` 读 `WindowInsets`（**px 不是 dp**，且**不能每帧读**——
   每次新建的 `AndroidJavaObject` 各占一个 JNI local ref）。
   ⚠️ 三个连带改动漏一个就白改：`Background` 必须从 SafeArea 挪到 Canvas（否则导航栏
   那条露出相机的蓝灰清屏色）；**安全区被吃光时放弃内缩**（高度成 0 会让标题栏/标签栏/
   内容区全塌，整屏空白且不报错）；锁竖屏（版式只验过竖屏）。
+  ⚠️ **第一版真机没修好**，但读数把原因指出来了：API 30+ 的
+  `getInsets(Type.navigationBars())` 在真机上返回 **0**，deprecated 的
+  `getSystemWindowInsetBottom()` 才给出正确的 124px。已加回退——**新 API 优先，
+  它为 0 才用老的**（**不许改成取较大值**，手势导航下会多让出一截白边）。
+  这条教训值钱：**「修了没效果」时塞一行读数进包，比反复试快得多**
   ⚠️ **这条 Play 验不了**——编辑器里 safeArea 全屏、导航栏恒 0，改动完全不可见，
   只能真机验；本轮 APK 里带了一行临时诊断读数辅助定位，**验完要删**
-  ⏳ **真机验收待做**，清单见 `Claude/plans/android-release-checklist.md`
+  ⏳ **第二轮真机验收待做**，清单见 `Claude/plans/android-release-checklist.md`
 
 **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
 `ITransactionRepository` 等于绕过校验。
@@ -250,6 +255,10 @@ bash Tools/run-editmode-tests.sh
    会自己改写 `ProjectSettings/` 下的文件——实测构建完 `UnityConnectSettings.asset`
    的 `m_Enabled` 被从 `0` 写成了 `1`，这次的改动跟它毫无关系，混进提交里以后
    没人知道它为什么变了
+5. **动了 `#if UNITY_ANDROID` 里的代码，「跑一遍 EditMode 测试」不算验证——得真打一次包。**
+   测试跑在编辑器平台上，`UNITY_ANDROID` 没定义，被 `#if` 摘掉的代码它一行都没看过。
+   实测踩过：`AndroidSystemBars` 漏一句 `using EasyMoney.Core`，**364 个用例全绿**，
+   打包时才报 `CS0103`。详见 `Assets/Scripts/App/CLAUDE.md`
 
 ---
 
