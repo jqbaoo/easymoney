@@ -99,6 +99,16 @@ namespace EasyMoney.Tests
         }
 
         [Test]
+        public void Bar_RowsHaveNoLegendDot()
+        {
+            // 条形图的条统一用收支红绿、不按分类分色，旁边再来个按分类变的色点
+            // 会跟条的颜色对不上，反而误导
+            new BarReportView().Render(m_Content, _items(), TxType.Expense);
+
+            Assert.IsNull(m_Content.Find("Item_1/LabelLine/Dot"), "条形视图不该有图例色点");
+        }
+
+        [Test]
         public void Bar_EmptyItems_ShowsHintAndNoRows()
         {
             new BarReportView().Render(m_Content, new List<CategoryBreakdownItem>(), TxType.Expense);
@@ -148,6 +158,67 @@ namespace EasyMoney.Tests
             Assert.IsNull(m_Content.Find("Item_1/BarTrack"), "环形视图下不该有轨道");
             Assert.AreEqual(ReportViewParts.ROW_HEIGHT_PLAIN, _rowHeight(1),
                 "没有条形的行要矮一截，按带条的行高排下来底下会空一块");
+        }
+
+        [Test]
+        public void Donut_RowsCarryLegendDotMatchingSliceColor()
+        {
+            // 环上没有文字，光看颜色对不上是哪个分类——色点就是这张环的图例
+            new DonutReportView().Render(m_Content, _items(), TxType.Expense);
+
+            _assertColor(Theme.ChartColor(0), _dotColor(1), "第一行该用 0 号槽位的颜色");
+            _assertColor(Theme.ChartColor(1), _dotColor(2), "第二行该用 1 号槽位的颜色");
+        }
+
+        [Test]
+        public void Donut_DotColorFollowsRowOrderNotCategoryId()
+        {
+            // 扇区是按**行号**取色的（DonutLayout 里 SeriesIndex = i），色点必须跟它同一套。
+            // 跟着 CategoryId 走的话，中间有个分类被删掉之后颜色就整体错位了——
+            // 而环和行都还在、只是对不上，从界面上很难归因
+            List<CategoryBreakdownItem> lItems = new List<CategoryBreakdownItem>
+            {
+                new CategoryBreakdownItem
+                {
+                    CategoryId = 77, CategoryName = "餐饮", Total = Money.FromCents(3000), Ratio = 0.6m
+                },
+                new CategoryBreakdownItem
+                {
+                    CategoryId = 88, CategoryName = "交通", Total = Money.FromCents(2000), Ratio = 0.4m
+                }
+            };
+
+            new DonutReportView().Render(m_Content, lItems, TxType.Expense);
+
+            _assertColor(Theme.ChartColor(0), _dotColor(77), "CategoryId 是 77，但它在第一行");
+            _assertColor(Theme.ChartColor(1), _dotColor(88), "CategoryId 是 88，但它在第二行");
+        }
+
+        [Test]
+        public void Donut_LegendDotSitsBeforeIcon()
+        {
+            // 色点排在行首、图标之前，扫一列下来才是「一张图例」的样子；
+            // 挤在图标和分类名中间的话，两个小元素挨在一起会分不出哪个是哪个
+            new DonutReportView().Render(m_Content, _items(), TxType.Expense);
+
+            Transform oDot = m_Content.Find("Item_1/LabelLine/Dot");
+            Assert.IsNotNull(oDot);
+            Assert.AreEqual(0, oDot.GetSiblingIndex(), "色点该是行里的第一个元素");
+            Assert.Less(oDot.GetSiblingIndex(),
+                m_Content.Find("Item_1/LabelLine/Icon").GetSiblingIndex());
+        }
+
+        [Test]
+        public void Donut_LegendDotIsRoundAndNotStretched()
+        {
+            // 行高比色点大，横向布局组会把它拉成椭圆——这条钉的是那层 preserveAspect。
+            // 布局组算出的实际尺寸要等一次真实的布局重建，EditMode 里量不了，
+            // 所以只能验「有这个开关」，真圆不圆得 Play 里看
+            new DonutReportView().Render(m_Content, _items(), TxType.Expense);
+
+            Image oDot = m_Content.Find("Item_1/LabelLine/Dot").GetComponent<Image>();
+            Assert.IsNotNull(oDot.sprite, "色点是一张圆贴图，没贴图就是个方块");
+            Assert.IsTrue(oDot.preserveAspect, "没有 preserveAspect 会被布局组拉成椭圆");
         }
 
         [Test]
@@ -220,6 +291,13 @@ namespace EasyMoney.Tests
         private Color _fillColor(int iIndex)
         {
             return m_Content.Find($"Item_{iIndex}/BarTrack/Fill").GetComponent<Image>().color;
+        }
+
+        private Color _dotColor(int iCategoryId)
+        {
+            Transform oDot = m_Content.Find($"Item_{iCategoryId}/LabelLine/Dot");
+            Assert.IsNotNull(oDot, $"分类 {iCategoryId} 那一行没有图例色点");
+            return oDot.GetComponent<Image>().color;
         }
 
         private Image _ring()

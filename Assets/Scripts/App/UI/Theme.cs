@@ -42,6 +42,14 @@ namespace EasyMoney.App.UI
         /// </summary>
         public const float CATEGORY_ICON_GAP = 12f;
 
+        /// <summary>
+        /// 环形图图例色点的直径。
+        ///
+        /// 取分类图标的一半：它是「这一行对应环上哪一块」的标记，跟图标抢视觉重量的话
+        /// 扫一列下来反而分不出主次。环上没有文字，颜色与分类的对应全靠它。
+        /// </summary>
+        public const float CHART_DOT_SIZE = 20f;
+
         // ── 间距 ────────────────────────────────────
         public const float PAGE_PADDING = 32f;
         public const float PAGE_GAP = 24f;

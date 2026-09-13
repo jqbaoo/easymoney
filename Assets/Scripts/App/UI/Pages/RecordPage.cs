@@ -51,11 +51,32 @@ namespace EasyMoney.App.UI.Pages
         private RectTransform m_CategoryRow;
         private RectTransform m_ToAccountRow;
 
+        /// <summary>首次进入本页时做过完整初始化没有。见 <see cref="OnShow"/>。</summary>
+        private bool m_Initialized;
+
         public override string Title => "记一笔";
 
         public override void OnShow()
         {
-            _resetForm();
+            if (!m_Initialized)
+            {
+                // 数据还没就绪时不能算「初始化过了」——置了位就再也不会回来初始化，
+                // 分类与账户会永远停在「请选择」。等下次切进来再试
+                if (AppContext.Instance == null)
+                {
+                    return;
+                }
+
+                m_Initialized = true;
+                _resetForm();
+                return;
+            }
+
+            // 之后无论是切回本页，还是保存成功后 AppRoot 重走一遍 OnShow（它订阅了
+            // DataChanged），都**不能**再整页重置——用户刚选好的分类、账户、日期得留着，
+            // 这正是「连着记几笔同类账」的前提。这里只把它还没选的补上
+            _applyDefaults();
+            _clearMessage();
         }
 
         protected override void _build()
@@ -118,10 +139,7 @@ namespace EasyMoney.App.UI.Pages
 
             for (int i = 0; i < m_Segments.Length; i++)
             {
-                bool bSelected = i == iIndex;
-                UiFactory.PaintButton(m_Segments[i],
-                    bSelected ? Theme.PRIMARY : Theme.SURFACE,
-                    bSelected ? Theme.WHITE : Theme.TEXT);
+                TogglePalette.Apply(m_Segments[i], i == iIndex);
             }
 
             _refreshVisibility();
@@ -387,8 +405,11 @@ namespace EasyMoney.App.UI.Pages
                 return;
             }
 
+            // 顺序有讲究：NotifyDataChanged 会让 AppRoot 重走当前页的 OnShow，
+            // 而 OnShow 那边已经不会再整页重置了（见那里的说明）。这里再清一遍输入，
+            // 最后才把「已保存」写上——写早了会被 _clearInputs 里的 _clearMessage 抹掉
             oContext.NotifyDataChanged();
-            _resetForm();
+            _clearInputs();
             _showMessage("已保存", true);
         }
 
@@ -417,8 +438,30 @@ namespace EasyMoney.App.UI.Pages
         }
 
         /// <summary>
-        /// 回到「刚打开这一页」的状态：清空输入，并把账户与分类预选到第一项，
-        /// 让用户少点两下。
+        /// 保存成功后回到「可以立刻记下一笔」的状态。
+        ///
+        /// **只清金额与备注**，类型、账户、分类、日期都留着——连续记几笔同类账
+        /// （一天几笔餐饮）时那几项通常都一样，每笔都要重选一遍很烦。清掉的这两项
+        /// 才是每笔都不同的。
+        /// </summary>
+        private void _clearInputs()
+        {
+            if (m_AmountInput == null)
+            {
+                return;
+            }
+
+            m_AmountInput.text = string.Empty;
+            m_NoteInput.text = string.Empty;
+
+            // 刚记的这笔会进「最近消费均值」，快捷金额的档位得跟着变
+            _refreshQuickAmounts();
+            _clearMessage();
+        }
+
+        /// <summary>
+        /// 回到「刚打开这一页」的状态：清空所有输入，并把账户与分类预选到第一项，
+        /// 让用户少点两下。**只在首次进入本页时调用**，见 <see cref="OnShow"/>。
         /// </summary>
         private void _resetForm()
         {
@@ -441,6 +484,15 @@ namespace EasyMoney.App.UI.Pages
             _clearMessage();
         }
 
+        /// <summary>
+        /// 把**还没选**的项预选到第一项，让用户少点两下。
+        ///
+        /// 只补没选的，已经选着的一律不动：首次进入时刚清空过，所以两项都补；
+        /// 之后切回本页时，用户自己挑过的那份得留着。
+        ///
+        /// 兜住的还有一个场景：新装的库里还没有账户，首次进来时账户行停在「请选择」，
+        /// 用户去账户页建完再切回来，靠这里补上。
+        /// </summary>
         private void _applyDefaults()
         {
             AppContext oContext = AppContext.Instance;
@@ -449,16 +501,22 @@ namespace EasyMoney.App.UI.Pages
                 return;
             }
 
-            List<Category> lCategories = oContext.Categories.GetByKind(_categoryKind());
-            if (lCategories.Count > 0)
+            if (m_CategoryId == 0)
             {
-                _pickCategory(lCategories[0]);
+                List<Category> lCategories = oContext.Categories.GetByKind(_categoryKind());
+                if (lCategories.Count > 0)
+                {
+                    _pickCategory(lCategories[0]);
+                }
             }
 
-            List<Account> lAccounts = oContext.Accounts.GetAll();
-            if (lAccounts.Count > 0)
+            if (m_AccountId == 0)
             {
-                _pickAccount(lAccounts[0]);
+                List<Account> lAccounts = oContext.Accounts.GetAll();
+                if (lAccounts.Count > 0)
+                {
+                    _pickAccount(lAccounts[0]);
+                }
             }
         }
 

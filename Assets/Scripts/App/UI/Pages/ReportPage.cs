@@ -164,13 +164,10 @@ namespace EasyMoney.App.UI.Pages
         {
             bool bExpense = m_BreakdownType == TxType.Expense;
 
-            UiFactory.PaintButton(m_ExpenseTab,
-                bExpense ? Theme.PRIMARY : Theme.SURFACE,
-                bExpense ? Theme.WHITE : Theme.TEXT);
-
-            UiFactory.PaintButton(m_IncomeTab,
-                bExpense ? Theme.SURFACE : Theme.PRIMARY,
-                bExpense ? Theme.WHITE : Theme.TEXT);
+            // 两个 tab 互为反面。原先这里各写了一套「底 + 字」的三元表达式，
+            // 收入那个抄反了一个分支（暖白底配白字），走 TogglePalette 就不会了
+            TogglePalette.Apply(m_ExpenseTab, bExpense);
+            TogglePalette.Apply(m_IncomeTab, !bExpense);
         }
 
         // ── 分类占比 ────────────────────────────────

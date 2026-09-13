@@ -12,8 +12,12 @@ namespace EasyMoney.App.UI
     /// </summary>
     public static class SpriteFactory
     {
+        /// <summary>圆点贴图的边长。够大才经得起拉伸，反正只是一张纯白圆。</summary>
+        private const int CIRCLE_TEXTURE_SIZE = 64;
+
         private static Sprite s_Card;
         private static Sprite s_Button;
+        private static Sprite s_Circle;
 
         /// <summary>卡片底图。</summary>
         public static Sprite Card()
@@ -43,6 +47,23 @@ namespace EasyMoney.App.UI
             }
 
             return s_Button;
+        }
+
+        /// <summary>
+        /// 正圆，环形图的图例色点用——圆角半径取半边长，同一个 SDF 出来的就是圆。
+        ///
+        /// 与 Card / Button 的区别在用法不在画法：那两张是九宫格（`Image.type = Sliced`，
+        /// 任意拉伸不变形），这张是整张（`Simple`）——色点是固定大小的正方形，不需要九宫格。
+        /// 没有对应的资源图，纯代码生成：一个 20 像素的圆点不值得占一张美术图。
+        /// </summary>
+        public static Sprite Circle()
+        {
+            if (s_Circle == null)
+            {
+                s_Circle = _createRounded(CIRCLE_TEXTURE_SIZE, CIRCLE_TEXTURE_SIZE / 2);
+            }
+
+            return s_Circle;
         }
 
         private static Sprite _createRounded(int iSize, int iRadius)

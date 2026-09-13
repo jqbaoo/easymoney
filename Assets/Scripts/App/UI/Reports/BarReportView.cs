@@ -26,7 +26,12 @@ namespace EasyMoney.App.UI.Reports
 
             foreach (CategoryBreakdownItem oItem in lItems)
             {
-                _addBar(ReportViewParts.AddRow(oContent, oItem, bWithBar: true), oItem.Ratio, oType);
+                // 不画图例色点：这里的条统一用收支红绿，不按分类分色，
+                // 旁边再来一个按分类变的色点会跟条的颜色对不上，反而误导
+                RectTransform oRow = ReportViewParts.AddRow(
+                    oContent, oItem, bWithBar: true, iSeriesIndex: -1);
+
+                _addBar(oRow, oItem.Ratio, oType);
             }
         }
 

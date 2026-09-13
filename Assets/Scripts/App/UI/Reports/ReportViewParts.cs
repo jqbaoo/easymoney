@@ -26,11 +26,14 @@ namespace EasyMoney.App.UI.Reports
         private const float EMPTY_HINT_HEIGHT = 200f;
 
         /// <summary>
-        /// 加一行明细：图标 + 分类名 + 金额(占比)。返回这一行，
+        /// 加一行明细：色点 + 图标 + 分类名 + 金额(占比)。返回这一行，
         /// 条形视图在它下面再接一根条。
         /// </summary>
+        /// <param name="iSeriesIndex">
+        /// 这一行在列表里的下标，用来取图例色点的颜色；传负数表示这种视图不需要图例。
+        /// </param>
         public static RectTransform AddRow(
-            RectTransform oContent, CategoryBreakdownItem oItem, bool bWithBar)
+            RectTransform oContent, CategoryBreakdownItem oItem, bool bWithBar, int iSeriesIndex)
         {
             // 这一行要竖排（上面文字、下面条形），所以不能用 CreateRow——
             // 它自带 HorizontalLayoutGroup，再叠加 VerticalLayoutGroup 会打架
@@ -60,6 +63,13 @@ namespace EasyMoney.App.UI.Reports
             oLabelLayout.childForceExpandHeight = true;
             oLabelLayout.spacing = Theme.CATEGORY_ICON_GAP;
 
+            // 色点排在最左，在图标之前：环上没有文字，颜色与分类的对应全靠它，
+            // 摆在行首扫一列下来就是一张图例
+            if (iSeriesIndex >= 0)
+            {
+                _addLegendDot(oLabelLine, iSeriesIndex);
+            }
+
             // 与账单列表同一个道理：分类被删或没配图标时留透明空位，名字的左边仍然对齐
             UiFactory.CreateIconSlot(oLabelLine, "Icon",
                 IconNames.ForCategory(oItem.IconName),
@@ -75,6 +85,26 @@ namespace EasyMoney.App.UI.Reports
             UiFactory.SetWidth(oValue.rectTransform, VALUE_WIDTH);
 
             return oRow;
+        }
+
+        /// <summary>
+        /// 图例色点。颜色按**行号**取槽位，与扇区同一套（<see cref="DonutLayout"/> 里
+        /// `SeriesIndex = i`）——跟 CategoryId 走的话，中间删掉一个分类，颜色就整体错位了，
+        /// 而环和行都还在、只是对不上，从界面上很难归因。
+        /// </summary>
+        private static void _addLegendDot(RectTransform oLabelLine, int iSeriesIndex)
+        {
+            Image oDot = UiFactory.CreatePanel(oLabelLine, "Dot", Theme.ChartColor(iSeriesIndex));
+            oDot.sprite = SpriteFactory.Circle();
+
+            // 行高比色点大，横向布局组会把它拉成椭圆——跟图标位一样靠 preserveAspect
+            // 保住正方形（这里不能靠布局组的 forceExpandHeight 关掉来解决，
+            // 那会连带影响同一行里的两段文字）
+            oDot.preserveAspect = true;
+            oDot.raycastTarget = false;
+
+            UiFactory.SetWidth(oDot.rectTransform, Theme.CHART_DOT_SIZE);
+            UiFactory.SetHeight(oDot.rectTransform, Theme.CHART_DOT_SIZE);
         }
 
         /// <summary>这个类型下一条记录都没有时的提示。各个视图共用同一句话。</summary>

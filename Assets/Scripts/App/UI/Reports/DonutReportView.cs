@@ -33,9 +33,10 @@ namespace EasyMoney.App.UI.Reports
 
             _addChart(oContent, lItems, oType);
 
-            foreach (CategoryBreakdownItem oItem in lItems)
+            for (int i = 0; i < lItems.Count; i++)
             {
-                ReportViewParts.AddRow(oContent, oItem, bWithBar: false);
+                // 行号就是扇区序号：色点、扇区、明细行三者靠它对齐
+                ReportViewParts.AddRow(oContent, lItems[i], bWithBar: false, iSeriesIndex: i);
             }
         }
 
