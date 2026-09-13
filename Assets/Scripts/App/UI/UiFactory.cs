@@ -48,6 +48,51 @@ namespace EasyMoney.App.UI
         }
 
         /// <summary>
+        /// 给已经定好尺寸的节点铺上卡片底：圆角、卡片色、一层投影。
+        ///
+        /// 收在这里，是因为「AddComponent&lt;Image&gt; + Card() + Sliced + SURFACE」这几行
+        /// 在账单行 / 账户行 / 报表行各抄了一遍——加投影就得改三处，漏一处那块卡片
+        /// 就平贴在底色上，而且从代码里完全看不出来。
+        ///
+        /// 注意这里不设 raycastTarget，保持 Image 的默认值：账单行的整行点击、
+        /// 账户行上的按钮都指望事件能落到这一层上。
+        /// </summary>
+        public static Image PaintCard(RectTransform oNode)
+        {
+            Image oCard = oNode.gameObject.AddComponent<Image>();
+            oCard.sprite = SpriteFactory.Card();
+            oCard.type = Image.Type.Sliced;
+            oCard.color = Theme.SURFACE;
+
+            AddCardShadow(oNode.gameObject);
+            return oCard;
+        }
+
+        /// <summary>
+        /// 给卡片加一层投影。
+        ///
+        /// 用 UGUI 的 Shadow 组件，而不是把投影烘进底图：烘进图里的话，九宫格的
+        /// border 必须连投影一起包住，那张图被拉伸到节点尺寸时卡片本体就比节点小一圈，
+        /// 行高、内边距、行间距全得跟着重量一遍。Shadow 画在节点之外，不动布局尺寸。
+        ///
+        /// 代价是它只做偏移复制、不做模糊，边缘是硬的。想要柔和投影就给美术一张
+        /// card.png——AssetProvider 会优先用图，这条程序化路径自动让位。
+        /// </summary>
+        public static void AddCardShadow(GameObject oNode)
+        {
+            if (oNode == null)
+            {
+                return;
+            }
+
+            Shadow oShadow = oNode.AddComponent<Shadow>();
+            oShadow.effectColor = Theme.SHADOW;
+
+            // effectDistance 的 Y 轴向上为正，投影落在下方所以取负
+            oShadow.effectDistance = new Vector2(0f, -Theme.SHADOW_OFFSET);
+        }
+
+        /// <summary>
         /// 按名字创建一个图标（Assets/Resources/Icons/&lt;名字&gt;.png）。
         /// 资源里没有这张图时返回 <c>null</c>——不报错、不给占位图，
         /// 由调用方决定退化成什么（通常是文字符号）。
@@ -242,7 +287,7 @@ namespace EasyMoney.App.UI
         /// <summary>白底圆角卡片，高度随内容自适应，内部留 CARD_PADDING 左右内边距。</summary>
         public static RectTransform CreateCard(Transform oParent, string sName, float fSpacing = 0f)
         {
-            Image oCard = CreatePanel(oParent, sName, Theme.SURFACE, bRounded: true);
+            Image oCard = PaintCard(CreateNode(oParent, sName));
 
             VerticalLayoutGroup oLayout = oCard.gameObject.AddComponent<VerticalLayoutGroup>();
             oLayout.childControlWidth = true;

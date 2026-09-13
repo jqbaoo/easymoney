@@ -49,6 +49,13 @@ namespace EasyMoney.App.UI
         public const float CARD_GAP = 20f;
         public const float CARD_RADIUS = 16f;
 
+        /// <summary>
+        /// 卡片投影向下偏移多少（设计稿像素，6 ≈ 3pt）。
+        /// 行间距 CARD_GAP 只有 20，偏移再大一点相邻两行的投影就会挨上，
+        /// 列表会显得糊。
+        /// </summary>
+        public const float SHADOW_OFFSET = 6f;
+
         // ── 行高 ────────────────────────────────────
         public const float ROW_HEIGHT = 112f;
         public const float ROW_HEIGHT_LARGE = 140f;
@@ -129,6 +136,7 @@ namespace EasyMoney.App.UI
         public static Color DIVIDER => Palette.Divider;
         public static Color BAR_TRACK => Palette.BarTrack;
         public static Color SCRIM => Palette.Scrim;
+        public static Color SHADOW => Palette.Shadow;
 
         // 这两个与主题无关，固定值。
         public static readonly Color WHITE = Color.white;

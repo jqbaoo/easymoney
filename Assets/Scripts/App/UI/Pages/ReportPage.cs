@@ -257,10 +257,7 @@ namespace EasyMoney.App.UI.Pages
             RectTransform oRow = UiFactory.CreateNode(m_BreakdownContent, $"Item_{oItem.CategoryId}");
             UiFactory.SetHeight(oRow, Theme.ROW_HEIGHT);
 
-            Image oBackground = oRow.gameObject.AddComponent<Image>();
-            oBackground.sprite = SpriteFactory.Card();
-            oBackground.type = Image.Type.Sliced;
-            oBackground.color = Theme.SURFACE;
+            UiFactory.PaintCard(oRow);
 
             VerticalLayoutGroup oLayout = oRow.gameObject.AddComponent<VerticalLayoutGroup>();
             oLayout.childControlWidth = true;

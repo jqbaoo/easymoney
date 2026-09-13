@@ -29,20 +29,32 @@ namespace EasyMoney.App.UI
 
         public Color Scrim { get; private set; }
 
+        /// <summary>
+        /// 卡片投影的颜色。暖色底上用纯黑会发灰，所以浅色主题给的是偏棕的暖黑，
+        /// 靠 alpha 控制轻重——饱和度高的阴影会显得脏。
+        /// </summary>
+        public Color Shadow { get; private set; }
+
         public static ThemePalette Light()
         {
             return new ThemePalette
             {
-                Background = _hex("#F2F3F5"),
-                Surface = _hex("#FFFFFF"),
-                Primary = _hex("#307AE8"),
-                Expense = _hex("#E03E3E"),
-                Income = _hex("#2EA05C"),
-                TextPrimary = _hex("#1F2126"),
-                TextWeak = _hex("#8A8F99"),
-                Divider = _hex("#E6E8EB"),
-                BarTrack = _hex("#E6E8EB"),
-                Scrim = _hex("#00000073")
+                // 暖色纸感。底色是燕麦米白，卡片是暖白——两者只差十几个色阶，
+                // 靠的是卡片那一层投影把边界交代清楚，光靠底色深浅是分不出来的。
+                //
+                // 支出红和收入绿也跟着暖化了：原来的纯红 #E03E3E、冷绿 #2EA05C
+                // 放在米白底上会「燥」，跟整页的暖调打架。
+                Background = _hex("#F2ECE2"),
+                Surface = _hex("#FFFCF6"),
+                Primary = _hex("#A9714B"),
+                Expense = _hex("#C0523C"),
+                Income = _hex("#4F8A5B"),
+                TextPrimary = _hex("#2B2620"),
+                TextWeak = _hex("#8A8177"),
+                Divider = _hex("#E7DFD2"),
+                BarTrack = _hex("#E7DFD2"),
+                Scrim = _hex("#00000073"),
+                Shadow = _hex("#46311C1A")
             };
         }
 
@@ -50,16 +62,19 @@ namespace EasyMoney.App.UI
         {
             return new ThemePalette
             {
+                // 深色下卡片靠「比底亮一档」浮起来，投影几乎看不见，
+                // 所以这里的值只是让对比更强一点，不是主要手段。
                 Background = _hex("#121316"),
                 Surface = _hex("#1C1E22"),
-                Primary = _hex("#4A90E2"),
-                Expense = _hex("#E05C5C"),
-                Income = _hex("#3FBF74"),
+                Primary = _hex("#D19A6E"),
+                Expense = _hex("#E0705C"),
+                Income = _hex("#5FB47C"),
                 TextPrimary = _hex("#ECEDEF"),
-                TextWeak = _hex("#8A8F99"),
+                TextWeak = _hex("#9A9CA1"),
                 Divider = _hex("#2A2D32"),
                 BarTrack = _hex("#2A2D32"),
-                Scrim = _hex("#000000A6")
+                Scrim = _hex("#000000A6"),
+                Shadow = _hex("#0000003D")
             };
         }
 
@@ -102,6 +117,7 @@ namespace EasyMoney.App.UI
             oResult.Divider = _override(oData.divider, oResult.Divider);
             oResult.BarTrack = _override(oData.barTrack, oResult.BarTrack);
             oResult.Scrim = _override(oData.scrim, oResult.Scrim);
+            oResult.Shadow = _override(oData.shadow, oResult.Shadow);
 
             return oResult;
         }
@@ -138,6 +154,7 @@ namespace EasyMoney.App.UI
             public string divider;
             public string barTrack;
             public string scrim;
+            public string shadow;
         }
     }
 }

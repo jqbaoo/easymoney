@@ -76,6 +76,9 @@ namespace EasyMoney.App.UI
             Image oPanelImage = UiFactory.CreatePanel(
                 oOverlay, "Panel", Theme.SURFACE, bRounded: true);
 
+            // 面板浮在遮罩上，加一层投影跟后面的页面拉开
+            UiFactory.AddCardShadow(oPanelImage.gameObject);
+
             // 没有布局组的容器，尺寸只能靠锚点算：按比例居中
             RectTransform oPanel = oPanelImage.rectTransform;
             oPanel.anchorMin = new Vector2(0.5f - PANEL_WIDTH_RATIO / 2f, 0.5f - PANEL_HEIGHT_RATIO / 2f);

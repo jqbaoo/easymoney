@@ -148,10 +148,7 @@ namespace EasyMoney.App.UI.Pages
             RectTransform oRow = UiFactory.CreateRow(
                 m_ListContent, $"Account_{oAccount.Id}", Theme.ROW_HEIGHT_LARGE);
 
-            Image oBackground = oRow.gameObject.AddComponent<Image>();
-            oBackground.sprite = SpriteFactory.Card();
-            oBackground.type = Image.Type.Sliced;
-            oBackground.color = Theme.SURFACE;
+            UiFactory.PaintCard(oRow);
 
             RectTransform oLeft = UiFactory.CreateNode(oRow, "Left");
             UiFactory.SetFlexible(oLeft);

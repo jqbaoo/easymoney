@@ -1,12 +1,13 @@
 {
-  "background": "#F2F3F5",
-  "surface": "#FFFFFF",
-  "primary": "#307AE8",
-  "expense": "#E03E3E",
-  "income": "#2EA05C",
-  "textPrimary": "#1F2126",
-  "textWeak": "#8A8F99",
-  "divider": "#E6E8EB",
-  "barTrack": "#E6E8EB",
-  "scrim": "#00000073"
+  "background":  "#F2ECE2",
+  "surface":     "#FFFCF6",
+  "primary":     "#A9714B",
+  "expense":     "#C0523C",
+  "income":      "#4F8A5B",
+  "textPrimary": "#2B2620",
+  "textWeak":    "#8A8177",
+  "divider":     "#E7DFD2",
+  "barTrack":    "#E7DFD2",
+  "scrim":       "#00000073",
+  "shadow":      "#46311C1A"
 }
