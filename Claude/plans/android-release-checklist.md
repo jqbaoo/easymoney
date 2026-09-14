@@ -269,9 +269,14 @@ native-code: 'arm64-v8a' 'armeabi-v7a'
 
 ## 后续待办
 
-1. **真机复验第五版 APK。** 第四版（`Builds/EasyMoney4.apk`，33.5 MB）已验过一轮：
-   第 29、30 项过（导航键常驻、手势下标签栏贴底），**第 32 项不过**（三键下位置偏高）。
-   第五版修的就是它。清单见下面「真机待验收」一节，重点看**第 32-34 项**
+1. **真机复验第五版 APK。** ✅ 包已经打出来了（`Builds/EasyMoney5.apk`，
+   35,152,123 字节 ≈ 33.5 MB，构建时间 2026-09-14 22:44）。
+   第四版（`Builds/EasyMoney4.apk`）已验过一轮：第 29、30 项过（导航键常驻、
+   手势下标签栏贴底），**第 32 项不过**（三键下位置偏高）——第五版修的正是它。
+   清单见下面「真机待验收」一节，重点看**第 32-34 项**
+   - 打包后核对过清单：`unity.launch-fullscreen` = **false**、
+     `unity.render-outside-safearea` = **true**、`screenOrientation` = 1（竖屏）、
+     minSdk 24 / targetSdk 35、arm64-v8a + armeabi-v7a 两个 ABI 都在
 2. **解决连接问题**，下次验收才能真正用上 `adb install` + logcat + 截图
    - 换一根 USB 数据线（首选）
    - 或关掉路由器 AP 隔离走无线调试
