@@ -166,6 +166,13 @@ UiFactory.SetFlexible(right);         // 吃掉剩余
 **为 0 就是手势**（没有可点的系统栏），规则在 `SafeAreaLayout.ResolveBottomInset`。
 光看导航栏 inset 分不出模式——某些机型手势下照样报三键的 48dp，留了就凭空多一条空白。
 
+**还有一个陷阱：导航栏 inset 有值 ≠ 那一条还在渲染面里。** 关掉「Start in Fullscreen
+Mode」之后窗口自己就停在导航栏上沿了（实测 2400 的屏上 `Screen.height` 报 2276），
+可 `getInsets(navigationBars())` **照样报 124**——照着它再让一次，现象是
+「内容整体偏高、标签栏下面空一块」。判据是渲染面底边到屏幕底边的**间距够不够一整条**
+（`AndroidSystemBars` 里那个 `_windowBottomGapPx()`，读 `Display.main.systemHeight`
+与 `Screen.height` 的差）。`ResolveBottomInset` 三个参数缺一不可。
+
 导航栏的**图标颜色**也要管：Android 15 的导航栏是没有底色的浮层，图标颜色由系统按
 `windowLightNavigationBar` 定，而 Unity 生成的主题继承自 `Holo.Light`——**Holo 是
 API 27 之前的东西，没有这个属性**，默认 false = 画白图标。白图标落在本项目的燕麦米白
@@ -187,11 +194,11 @@ API 27 之前的东西，没有这个属性**，默认 false = 画白图标。�
 
 ```csharp
 // ✅ 这样写
-public static int NavigationBarHeightPx()
+public static int BottomInsetPx()
 {
 #if UNITY_ANDROID
     if (Application.isEditor) { return 0; }   // 运行时早返回，不是编译期排除
-    return _readNavigationBarHeightPx();
+    return _readBottomInsetPx();
 #else
     return 0;
 #endif
@@ -213,7 +220,7 @@ public static int NavigationBarHeightPx()
 **残留的边界**：Build Target 切成非 Android 时这段仍不编译——别长期切走。
 
 同一条纪律也适用于方法的**位置**：`#if` 块里的方法，块外的调用方看不到。
-`AndroidSystemBars` 那两个诊断方法与 `NavigationBarHeightPx` 一样，外壳在 `#if` 外、
+`AndroidSystemBars` 那几个诊断方法与 `BottomInsetPx` 一样，外壳在 `#if` 外、
 实现放里面——把整个方法塞进块内，块外的调用方直接 CS0117。这个错犯过两次。
 
 ---
