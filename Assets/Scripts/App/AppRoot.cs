@@ -158,9 +158,6 @@ namespace EasyMoney.App
             m_TabBar = new TabBar();
             m_TabBar.Build(oSafeArea, TABS);
             m_TabBar.TabClicked += sKey => m_Router.Show(sKey);
-
-            // ⚠️ 临时：本轮真机验收的诊断读数，验完连同 SafeAreaDiagnostics.cs 一起删
-            SafeAreaDiagnostics.Attach(oCanvas);
         }
 
         private static RectTransform _createCanvas()

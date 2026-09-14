@@ -29,7 +29,7 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   字重→槽位映射抽在 `Core/Typography/FontSlots.cs`，`FontSlotsTests` 8 个用例钉着。
   ✅ **已随第四版 APK 进包**（`Builds/EasyMoney4.apk`，33.5 MB）——这一版把此前六次
   没进包的改动（三档字重 / 暖色配色 / 月份条 / 环形图 / 图例色点 / 导航栏适配）
-  一次补齐，真机复验清单见 `Claude/plans/android-release-checklist.md` 的「真机待验收」
+  一次补齐，真机复验记录见 `Claude/plans/android-release-checklist.md` 的「真机验收」一节
 - ✅ **分类图标接入**（2026-09-13）—— 15 个预置分类的图标接进账单行 / 报表行 /
   记账页分类行 / 分类选择弹窗四处。图标名是**数据**（存在 `category.icon_name` 里），
   所以新装的库走 `DefaultCategories` 种子、**老库走 v2 迁移补**，两条路都得改，
@@ -101,8 +101,8 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   分辨（**为 0 = 手势导航**，系统栏不占版面，标签栏落到底，微信的样子），
   规则在 `SafeAreaLayout.ResolveBottomInset`。读不到时按「有导航键」兜底，
   **不能按手势算**——多留一截只是难看，少留一截是点不到
-  ⚠️ **这两条 Play 都验不了**——编辑器里 safeArea 全屏、导航栏恒 0，改动完全不可见，
-  只能真机验；本轮 APK 里带了一行临时诊断读数辅助定位，**验完要删**
+  ⚠️ **这几条 Play 都验不了**——编辑器里 safeArea 全屏、导航栏恒 0，改动完全不可见，
+  只能真机验。前五轮每轮都在包里塞一行临时诊断读数定位，**验完已删**
   ⚠️ **第四轮验完，前两条过了、三键下冒出第三个问题**：位置**偏高**，标签栏底下空一条。
   读数是答案的一半——`screen 1080x2276`，2400 的屏少掉的正是一个导航栏，**窗口自己已经
   停在导航栏上沿了**；可 `getInsets(navigationBars())` **照样报 124**，于是重复预留。
@@ -113,9 +113,11 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   只剩**底色**：两条系统栏都是纯黑。根因是 `setStatusBarColor` / `setNavigationBarColor`
   的文档写明「**只有窗口带 `FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS` 时才生效**」，
   而 Unity 那套 Holo 主题没开这一位——调用**跑了、但被系统静默丢掉**，不报错不崩溃。
-  修法是**先 `addFlags` 再设颜色，顺序不能换**。（第四轮截图里**顶部**那条深色横带是
-  临时诊断面板自己，与系统栏的黑不是一回事，别当成一个）
-  ⏳ **第六轮真机验收待做**，清单见 `Claude/plans/android-release-checklist.md`
+  修法是**先 `addFlags` 再设颜色，顺序不能换**。（第五轮截图里**顶部**那条深色横带是
+  当时那版临时诊断面板自己，与系统栏的黑不是一回事，别当成一个）
+  ✅ **第六轮真机验收通过**（2026-09-14）——两条系统栏都成了页面底色、图标看得清，
+  这一轮结束。带读数的临时诊断组件已删；`Builds/EasyMoney6.apk` 是最后一个带读数的包，
+  以后再查这块的行为拿它当参照。清单见 `Claude/plans/android-release-checklist.md`
 
 **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
 `ITransactionRepository` 等于绕过校验。

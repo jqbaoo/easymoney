@@ -24,7 +24,6 @@ App/
     ├── IconNames.cs        图标名常量
     ├── SafeAreaFitter.cs   安全区适配（含底部导航栏内缩）
     ├── AndroidSystemBars.cs 读 Android 系统栏高度 / 要求导航栏常驻（JNI，非 Android 恒返回 0）
-    ├── SafeAreaDiagnostics.cs ⚠️ 临时：真机诊断读数，**导航栏那轮验完即删**
     ├── PageBase.cs         页面抽象基类
     ├── PageRouter.cs       页面注册与切换
     ├── TabBar.cs           底部标签栏
@@ -184,8 +183,14 @@ API 27 之前的东西，没有这个属性**，默认 false = 画白图标。�
 `FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS` 时这两个调用才生效**，而 Unity 那套 Holo 主题
 没有开这一位——所以必须**先 `addFlags` 再设颜色**，顺序不能换。少了那一步，代码跑了、
 颜色被系统静默丢掉，真机上就是两条纯黑，跟没写代码一模一样。
-诊断读数最后那行 `bars flags/sb/nb` 就是为了分这个：**屏幕上是黑的而读回来是页面底色
-= 系统丢的**，那时该去改主题，而不是继续在这几个 API 上打转。
+
+⚠️ **「屏幕没变」和「代码没跑到」是两回事，别急着改代码。** 分这两者靠**读回来**：
+`Window.getAttributes().flags` 里有没有 `80000000`、`getStatusBarColor()` /
+`getNavigationBarColor()` 返回的是不是 `Theme.BACKGROUND` 的 ARGB。
+**屏幕上是黑的而读回来是页面底色 = 系统把调用丢了**，那时该去改主题
+（`windowDrawsSystemBarBackgrounds`），而不是继续在这几个 API 上打转。
+（这一条是第五轮真机一轮读出来的：两版代码都「编译过、装上没变化」，
+差别只在那一个标志位。）
 
 `AndroidSystemBars.EnsureSystemBarsUsable()` 除了改图标颜色，还要求系统
 `show()` + 不要自动隐藏，**调用点在 `SafeAreaFitter._apply()`，不是启动时调一次**。
