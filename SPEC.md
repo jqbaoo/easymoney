@@ -23,7 +23,7 @@
 Core 层   ██████████ 100%   Money / TimeUtil / 模型 / 校验 / 报表 / 账单展示投影 / 账户表单 / 报表展示（Task 2-3、5、7、9-11、14-16）
 Data 层   ██████████ 100%   SQLite / 三个仓储 / 记账服务 / 筛选（Task 4、6-11）
 App 层    ██████████ 100%   记账页 / 账单页 / 账户页 / 报表页全部通真实数据
-测试      ██████████ 100%   364 个用例全绿（Money 7 + Parser 17 + TimeUtil 15 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 16 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 11 + 筛选 18 + 报表 16 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 26 + 账户表单 13 + 报表展示 15 + 构建配置守卫 10 + 结构迁移 13 + 字体槽位 8 + 配色 10 + 选中态配色 7 + 月份条 10 + 月份弹窗 9 + 环形切分 14 + 视图清单 9 + 下拉列表 12 + 视图宿主 10 + 视图渲染 17 + 安全区换算 16）
+测试      ██████████ 100%   369 个用例全绿（Money 7 + Parser 17 + TimeUtil 15 + 建表 4 + 冒烟 1 + 构建配置 1 + 模型 4 + 分类仓储 16 + 账户仓储 12 + 账单仓储 10 + 校验 17 + 记账服务 11 + 筛选 18 + 报表 16 + 应用容器 7 + 快捷金额 6 + 界面工厂布局 3 + 账单展示 26 + 账户表单 13 + 报表展示 15 + 构建配置守卫 11 + 结构迁移 13 + 字体槽位 8 + 配色 10 + 选中态配色 7 + 月份条 10 + 月份弹窗 9 + 环形切分 14 + 视图清单 9 + 下拉列表 12 + 视图宿主 10 + 视图渲染 17 + 安全区换算 20）
 打包      ██████████ 100%   APK 已构建，Redmi K60 真机验收 18 项中 17 项通过
 ```
 
@@ -57,7 +57,7 @@ App 层    ██████████ 100%   记账页 / 账单页 / 账户�
 | **暖色纸感配色 + 卡片投影** | `Resources/theme.json`、`App/UI/ThemePalette.cs`、`App/UI/UiFactory.cs` | 计划外新增。原来是浅灰底 `#F2F3F5` 配白卡片，两者只差 13 个色阶、卡片又没有投影，整屏看着就是一片白。换成暖色纸感，卡片投影收进 `UiFactory.PaintCard` / `AddCardShadow`。配色在 `theme.json` 与 `ThemePalette.Light()` 两处，`ThemePaletteTests` 钉着一致。**Play 肉眼验收通过**（2026-09-13）。见第 7 节 |
 | **月份条抽组件 + 点年月选月份** | `App/UI/MonthBar.cs`、`App/UI/MonthPickerDialog.cs`、`Core/TimeUtil.cs`、`App/UI/UiFactory.cs` | 计划外新增。账单页与报表页的月份条原先逐字重复（连三个常量都各定义一份），收成 `MonthBar` 后两页各一行 `new MonthBar(...)`；中间的年月文字从裸 `Text` 变成可点的「文字 + `↓`」横排，点开 `MonthPickerDialog`（年份行 + 3×4 月份网格）一次跳到目标月。`TimeUtil` 新增 `FormatYear` / `FormatMonth`，`FormatYearMonth` 改为拼这两个。**弹窗与月份条首次有了 EditMode 覆盖**（19 个用例）——原先逻辑在页面里，测试够不着。**Play 肉眼验收通过**（2026-09-13） |
 | **报表环形图视图 + 下拉切换** | `Core/Reports/DonutLayout.cs`、`Core/Reports/ReportViewMode.cs`、`App/UI/DropdownButton.cs`、`App/UI/Reports/*.cs` | 计划外新增。报表页多一种画法：按占比把每一类切成扇区画成**环形图**，环中心显示合计金额；支出/收入切换旁挂一个下拉浮层切换视图，图例仍是明细列表（只是不带条形）。**视图是可扩展的**——以后再加一种，在 `ReportViews.ALL` 里挂个号、写一个 `IReportView` 实现、`ReportPage` 构造宿主时多传一个实例，页面别处不用动。环形贴图逐像素程序化生成（UGUI 没有扇形控件），色板走 `Theme.ChartColor(i)`。报表页里的明细行与条形画法一并沉进 `App/UI/Reports/`。**新增 65 个用例**（环形切分 14 + 视图清单 9 + 下拉列表 12 + 视图宿主 10 + 视图渲染 12 + 报表展示 3 + 配色 5）。**Play 肉眼验收通过**（2026-09-13，14 项），见 `Claude/plans/android-release-checklist.md` |
-| **底部导航栏遮挡修复** | `Core/Layout/*.cs`、`App/UI/AndroidSystemBars.cs`、`App/UI/SafeAreaFitter.cs`、`App/AppRoot.cs` | 计划外。真机上三键导航时**整块底部被盖住**（标签栏 + 账户页/报表页底部）。根因是 targetSdk 35 在 Android 15 上被强制 edge-to-edge，而 Unity 2022.3 的 `Screen.safeArea` 不包含导航栏（UUM-121413，只在 6.1 修复、没有回移）。修法是按差额补足而不是无条件减——详见第 8 节。同时**锁竖屏**（版式只验过竖屏，`matchWidthOrHeight = 0` 的前提也是宽度恒定）。⚠️ **第一版真机没修好**：读数显示 API 30+ 的 `getInsets` 返回 0（`App/UI/AndroidSystemBars.cs` 里已加回退，见第 8 节与第 11 节）。本轮 APK 另含一行临时诊断读数，**第二轮真机验收尚未做** |
+| **底部导航栏遮挡修复** | `Core/Layout/*.cs`、`App/UI/AndroidSystemBars.cs`、`App/UI/SafeAreaFitter.cs`、`App/AppRoot.cs` | 计划外。真机上三键导航时**整块底部被盖住**（标签栏 + 账户页/报表页底部）。根因是 targetSdk 35 在 Android 15 上被强制 edge-to-edge，而 Unity 2022.3 的 `Screen.safeArea` 不包含导航栏（UUM-121413，只在 6.1 修复、没有回移）。修法是按差额补足而不是无条件减——详见第 8 节。同时**锁竖屏**（版式只验过竖屏，`matchWidthOrHeight = 0` 的前提也是宽度恒定）。**三轮真机各暴露一个新问题，都已收在代码里**：① 读数显示 API 30+ 的 `getInsets` 返回 0（已加回退）；② 底部空一条，根因是 Unity 那套主题画白图标（`EnsureNavigationBarUsable`）；③ 导航键会自己消失 + 手势导航下标签栏悬着（关掉 `androidStartInFullscreen`、按 `tappableElement` 分辨导航模式）。见第 8 节与第 11 节。本轮 APK 仍含一行临时诊断读数，**第四轮真机验收尚未做** |
 
 ### 全部完成
 
@@ -653,8 +653,8 @@ Theme.Apply(ThemePalette.Dark());   // 界面会自动整体重建
 - `CanvasScaler.matchWidthOrHeight = 0`（**按宽度匹配**）
   - 竖屏 App 的宽度恒定、高度随屏幕比例伸缩。用 0.5 会在 18:9 / 20:9 机器上横向拉伸
 - 安全区适配：`SafeAreaFitter` 比较 `Screen.safeArea` 与屏幕尺寸，变化才重算
-  - **底部还要额外让开 Android 导航栏**，规则在 `Core/Layout/SafeAreaLayout.Compute`（纯函数，16 个用例钉着）
-  - 让的是**差额** `Max(0, 导航栏高度 - safeArea.y)`，不是无条件减掉导航栏高度。同一个
+  - **底部还要额外让开 Android 导航栏**，规则在 `Core/Layout/SafeAreaLayout`（纯函数，20 个用例钉着）
+  - 让的是**差额** `Max(0, 底部预留高度 - safeArea.y)`，不是无条件减掉它。同一个
     `Screen.safeArea`，Android 15 上铺满全屏（导航栏是浮层），Android 13/14 上却已经把
     导航栏排除了（`y ≈ 导航栏高度`）——无条件减在后者会凭空多出一条等高白边，不减则在
     前者被盖住，**两种错都不报错、界面上看着都「挺正常」**。取差额同时照顾两种情况，
@@ -669,11 +669,23 @@ Theme.Apply(ThemePalette.Dark());   // 界面会自动整体重建
     现象就是「修了跟没修一样」，而界面上看不出原因。⚠️ **不要改成取两者较大值**：
     两个来源都可能给出与当前导航模式不符的偏大值（手势导航下导航栏只有一条细缝），
     取大就会多让出一截白边，同样不报错
-  - **导航栏的外观要在启动时主动设一次**：`AndroidSystemBars.EnsureNavigationBarUsable()`
-    （`AppRoot.Awake` 里调用）。Android 15 的导航栏是没有底色的浮层，图标颜色交给系统按
-    `windowLightNavigationBar` 决定，而 Unity 那套主题传下来的是「画白图标」——白图标落在
-    燕麦米白底上就是隐形，底部那 124px 看着就是一块空白。**只在 API 30+ 动手**，
-    理由见第 11 节
+  - **手势导航下不留**：`SafeAreaLayout.ResolveBottomInset`（纯函数，4 个用例钉着）用
+    `WindowInsets.Type.tappableElement()` 分辨导航模式——bottom **为 0 就是手势导航**
+    （没有可点的系统栏），非 0 是三键。三键留整条 48dp，手势留 0（标签栏落到底，
+    微信就是这样）。**光看导航栏 inset 分不出模式**：某些机型在手势导航下照样报出三键的
+    高度，预留了底部就凭空空一条。读不到（API 30 以下）时按「有导航键」兜底——
+    多留一截只是难看，少留一截是内容被系统栏压住、再也点不到
+  - **别让系统把导航栏收走**：`AndroidSystemBars.EnsureNavigationBarUsable()` 既设深色图标
+    （Android 15 的导航栏是没有底色的浮层，图标颜色交给系统按 `windowLightNavigationBar`
+    决定，而 Unity 那套主题传下来的是「画白图标」——白图标落在燕麦米白底上就是隐形，
+    底部那 124px 看着就是一块空白），也要求系统 `show()` + 不要自动隐藏。
+    **只在 API 30+ 动手**，理由见第 11 节
+    - 调用点在 `SafeAreaFitter._apply()`，**每次重算安全区都重申一遍**，不是启动时调一次。
+      Unity 的播放器自己会给窗口设全屏沉浸标志（`unity.launch-fullscreen` →
+      `SYSTEM_UI_FLAG_HIDE_NAVIGATION | IMMERSIVE_STICKY`），设的时机在我们后面，
+      只调一次会被它盖掉——现象是导航键「露一下、慢慢消失、划一下才浮出来、一两秒又缩回去」
+    - **Player Settings 里的「Start in Fullscreen Mode」必须是关的**（`androidStartInFullscreen: 0`）。
+      勾上等于自己请求全屏沉浸，导航键就常驻不了。`AndroidPlayerSettingsTests.StartInFullscreen_IsDisabled` 守着
   - **内缩会让安全区高度归零时放弃内缩**：高度成 0 会让标题栏、标签栏、内容区
     （按上下两个高度算，还会算出负数）全塌，整屏空白且不报错
   - 全局 `Background` 挂 Canvas 上、**不进 SafeArea**——安全区一缩，导航栏那条就没人
@@ -859,7 +871,7 @@ grep -o 'total="[0-9]*" passed="[0-9]*" failed="[0-9]*"' Tools/editmode-results.
   实测一个 0 线程 0 句柄的僵尸进程把构建白挡了一轮，`taskkill` 还清不掉它
 
 耗时与产物：首次 IL2CPP 构建实测 4.5 分钟 / 29 MB；**带上三档字重与后续几次改动后
-实测约 14 分钟 / 34 MB**（字体是大头）。
+实测约 14 分钟 / 33.5 MB**（字体是大头）。
 
 ### 运行界面
 
@@ -892,9 +904,11 @@ grep -o 'total="[0-9]*" passed="[0-9]*" failed="[0-9]*"' Tools/editmode-results.
 | **`Assets/Resources/` 下的东西都会进 APK** | 放进去的每张图都算包体。应用图标源图一度放在 `Assets/Resources/Icons/AppIcon/`，等于把 47 张 PNG 白打进包里 | 图标源图已移到 `Assets/AppIcons/`（自动打包够不着），只在 Player Settings 里引用 |
 | **改表结构会砸掉用户数据** | 建表全是 `CREATE TABLE IF NOT EXISTS`，对已有的表等于什么都不做。给旧表加列，升级上来的老库会 `no such column`——是崩溃，不是降级。第一版已装在真机上且有真实数据 | ✅ **已解决**。`SchemaMigrator` + `SchemaMigrations.ALL`，`EasyMoneyDb.Open()` 时按版本补跑缺失的迁移。改结构走三步，见第 6 节。机制行为有 9 个测试钉着 |
 | **`.bat` 里写中文会让 cmd 解析器错位** | 含 UTF-8 多字节字符的 `.bat`，即使加了 `chcp 65001`，cmd 的批处理解析器也会错位：字符被从中间劈开，碎片被当成命令执行。`build-apk.bat` 第一版因此打印了「构建成功」但**什么都没构建** | `build-apk.bat` 保持纯 ASCII，中文交给 `.sh` 输出。成功判定改成看产物在不在，不看退出码 |
-| **`Screen.safeArea` 不含 Android 导航栏** | Unity 2022.3 的已知缺陷 UUM-121413：targetSdk 35 的应用在 Android 15 上被强制 edge-to-edge（窗口铺满整屏、导航栏变成浮层），而 `safeArea` 仍然报告全屏，于是底部内容被导航栏盖住。**只在 Unity 6.1 修复，因为是 breaking change 没有回移 2022**，本项目升不上去。真机实测坐实：1080×2400 的机器上 `safeArea` 是 `y=0 h=2310`——排掉的 90px 全在顶部（状态栏），底部贴着屏幕最底 | 已在代码里补：底部按「导航栏高度 − `safeArea.y`」的**差额**内缩，见第 8 节。`SafeAreaLayoutTests` 16 个用例钉着，其中两条幂等用例正是这个缺陷的形状——**改成无条件减导航栏高度会在 Android 13/14 上多出一条白边** |
+| **`Screen.safeArea` 不含 Android 导航栏** | Unity 2022.3 的已知缺陷 UUM-121413：targetSdk 35 的应用在 Android 15 上被强制 edge-to-edge（窗口铺满整屏、导航栏变成浮层），而 `safeArea` 仍然报告全屏，于是底部内容被导航栏盖住。**只在 Unity 6.1 修复，因为是 breaking change 没有回移 2022**，本项目升不上去。真机实测坐实：1080×2400 的机器上 `safeArea` 是 `y=0 h=2310`——排掉的 90px 全在顶部（状态栏），底部贴着屏幕最底 | 已在代码里补：底部按「底部预留高度 − `safeArea.y`」的**差额**内缩，见第 8 节。`SafeAreaLayoutTests` 20 个用例钉着，其中两条幂等用例正是这个缺陷的形状——**改成无条件减导航栏高度会在 Android 13/14 上多出一条白边** |
 | **导航栏图标是白的，画在浅色底上等于隐形** | Unity 生成的 `BaseUnityTheme` 在 API 31+ 继承 `android:Theme.Holo.Light.NoActionBar.Fullscreen`，而 **Holo 是 API 27 之前的东西，压根没有 `windowLightNavigationBar` 属性**，取默认值 `false` = 让系统画**白色图标**。Android 15 之前不显形（导航栏是不透明黑条，白图标配黑底正好），edge-to-edge 把导航栏变成没有底色的浮层之后才暴露——白图标落在燕麦米白底上就是看不见。真机现象：底部空出 124px 什么都没有，而读数 `nav 124` 说明系统认为导航栏正占着那 124px（真被藏起来会变 0） | 启动时经 `WindowInsetsController` 设 `APPEARANCE_LIGHT_NAVIGATION_BARS`（深色图标）+ `show(navigationBars())` + `BEHAVIOR_DEFAULT`（别自动隐藏），见 `App/UI/AndroidSystemBars.EnsureNavigationBarUsable()`。**只在 API 30+ 动手**——Android 11 以下还是不透明黑条，在那里设「浅色导航栏」会变成黑图标画黑底。诊断读数里的 `vis` 位就是用来分「系统藏了」和「画了但看不见」的 |
 | **`getInsets(Type.navigationBars())` 在某些机器上返回 0** | API 30+ 的正路取法在真机上可能是哑的。实测（Redmi K60 / Android 15 / 三键导航）正路返回 **0**，而 deprecated 的 `getSystemWindowInsetBottom()` 给出正确的 **124px**。第一版修复因为只读正路，`extra` 恒为 0，**现象就是「修了跟没修一样」**——而界面上完全看不出原因，得靠临时读数才能区分「JNI 读不到」和「设备不需要补」 | 见第 8 节：两个来源都读，新 API 优先、**它为 0 才回退老的**（`SafeAreaLayout.ResolveNavigationBarHeight`）。⚠️ **不要改成取两者较大值**，那会在手势导航下多让出一截白边。**这个坑能发现，全靠当轮塞进包里的临时诊断读数**——「修了没效果」这类现象，读数比反复试快得多 |
+| **导航栏会被系统自己收走（沉浸式自动隐藏）** | 我们**自己请求了全屏沉浸**：Player Settings 的「Start in Fullscreen Mode」（`androidStartInFullscreen`）会往清单里写 `unity.launch-fullscreen=True`，播放器据此给窗口设 `SYSTEM_UI_FLAG_HIDE_NAVIGATION \| SYSTEM_UI_FLAG_IMMERSIVE_STICKY`（这两个字符串在 `libunity.so` 里直接搜得到）。真机现象与 `IMMERSIVE_STICKY` 的定义一字不差：**启动时露一下、慢慢消失，往上划才浮出来、一两秒又缩回去**——而底部那 124px 是按「导航键在」留出来的，收走之后就是一条空白。微信这类应用不请求全屏，导航键才常驻 | 两处一起改：① **「Start in Fullscreen Mode」关掉**（`AndroidPlayerSettingsTests.StartInFullscreen_IsDisabled` 守着）；② `EnsureNavigationBarUsable()` 的调用点从 `AppRoot.Awake` 挪进 `SafeAreaFitter._apply()`——**每次重算安全区都重申一遍**，因为播放器设标志的时机在我们后面，只调一次会被它盖掉 |
+| **手势导航下底部多让一条白边** | 光看导航栏 inset **分不出导航模式**：某些机型在手势导航下照样报出三键的 48dp，于是预留了整条，标签栏悬在上面、底下空一条。真机上第三轮验收看到的就是这个 | 用 `WindowInsets.Type.tappableElement()` 分辨——bottom **为 0 就是手势导航**（没有可点的系统栏），非 0 是三键；Android 官方 edge-to-edge 指引给的办法，衡量的是系统栏**实际占了多少地方**，与 inset 报多大无关。规则在 `SafeAreaLayout.ResolveBottomInset`（4 个用例钉着）。⚠️ **读不到时按「有导航键」兜底，不能按手势算**：多留一截只是难看，少留一截是内容被系统栏压住、再也点不到 |
 | **`targetSdkVersion = AndroidApiLevelAuto` 是不定时炸弹** | Auto 解析成「本机装的最高 android-XX」，当前解析为 35（`aapt2 dump badging` 实测）。某天本机装上 android-36，targetSdk 会**静默**跟着涨——而这个项目的安全区适配是按 35 的行为写的，Android 16 起 `windowOptOutEdgeToEdgeEnforcement` 被忽略，届时没有退路 | 本轮不动它（降 targetSdk 能退出 edge-to-edge，但那是拿「一条系统行为」换「少一次适配」，且和 Unity 后续版本的行为背道而驰）。**真治本是升 Unity 6.1+**。`AndroidPlayerSettingsTests.TargetSdkVersion_IsAutomatic` 记着当前是 Auto——改它之前先读这条 |
 
 ---

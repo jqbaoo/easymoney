@@ -23,7 +23,7 @@ App/
     ├── AssetProvider.cs    唯一的 Resources.Load 入口
     ├── IconNames.cs        图标名常量
     ├── SafeAreaFitter.cs   安全区适配（含底部导航栏内缩）
-    ├── AndroidSystemBars.cs 读 Android 系统栏高度（JNI，非 Android 恒返回 0）
+    ├── AndroidSystemBars.cs 读 Android 系统栏高度 / 要求导航栏常驻（JNI，非 Android 恒返回 0）
     ├── SafeAreaDiagnostics.cs ⚠️ 临时：真机诊断读数，**导航栏那轮验完即删**
     ├── PageBase.cs         页面抽象基类
     ├── PageRouter.cs       页面注册与切换
@@ -161,12 +161,25 @@ UiFactory.SetFlexible(right);         // 吃掉剩余
 导航栏高度只能从 `AndroidSystemBars` 取，并且**不要改成每帧调用**：每读一次要新建
 若干个 `AndroidJavaObject`，各占一个 JNI local ref，而本地引用表只有 512 项。
 
+底部留多少还要看**导航模式**：三键导航留整条，**手势导航留 0**（标签栏落到底，
+微信就是这样）。分辨办法是 `WindowInsets.Type.tappableElement()` 的 bottom
+**为 0 就是手势**（没有可点的系统栏），规则在 `SafeAreaLayout.ResolveBottomInset`。
+光看导航栏 inset 分不出模式——某些机型手势下照样报三键的 48dp，留了就凭空多一条空白。
+
 导航栏的**图标颜色**也要管：Android 15 的导航栏是没有底色的浮层，图标颜色由系统按
 `windowLightNavigationBar` 定，而 Unity 生成的主题继承自 `Holo.Light`——**Holo 是
 API 27 之前的东西，没有这个属性**，默认 false = 画白图标。白图标落在本项目的燕麦米白
-底色上就是隐形，界面上看着像「底部空了一块」。所以 `AppRoot.Awake` 里要调一次
-`AndroidSystemBars.EnsureNavigationBarUsable()`。**只在 API 30+ 做**——Android 11
+底色上就是隐形，界面上看着像「底部空了一块」。**只在 API 30+ 做**——Android 11
 以下的导航栏还是不透明黑条，在那里设「浅色导航栏」会把图标变成黑图标画黑底。
+
+`AndroidSystemBars.EnsureNavigationBarUsable()` 除了改图标颜色，还要求系统
+`show()` + 不要自动隐藏，**调用点在 `SafeAreaFitter._apply()`，不是启动时调一次**。
+理由：Unity 的播放器自己会给窗口设全屏沉浸标志（Player Settings 的
+「Start in Fullscreen Mode」→ 清单里的 `unity.launch-fullscreen` →
+`SYSTEM_UI_FLAG_HIDE_NAVIGATION | IMMERSIVE_STICKY`），而它设的时机在我们后面——
+只调一次会被盖掉，真机现象是导航键「露一下、慢慢消失、划一下才浮出来、一两秒又缩回去」。
+`_apply()` 在启动头两秒会反复跑、切回前台也会跑，正好覆盖那两个时间点。
+⚠️ 那个 Player Setting **必须是关的**（`AndroidPlayerSettingsTests.StartInFullscreen_IsDisabled` 守着）。
 
 ---
 
@@ -187,7 +200,7 @@ public static int NavigationBarHeightPx()
 
 **加了 `!UNITY_EDITOR` 就等于把这段代码从编辑器编译里摘出去**，于是里面任何编译错误
 ——漏 `using`、方法名写错、类型不存在——**只有真机打包时才会暴露**，代价是白跑一轮
-十几分钟的构建。这个坑**已经踩过一次**：`AndroidSystemBars._navigationBarBottom`
+十几分钟的构建。这个坑**已经踩过一次**：`AndroidSystemBars._bottomInset`
 用了 Core 的 `SafeAreaLayout` 却漏了 `using EasyMoney.Core`，
 **364 个 EditMode 用例全绿**，打包时才报 `CS0103`。
 

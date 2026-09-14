@@ -27,9 +27,9 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
 - ✅ **字体风格升级**（2026-09-13）—— 自带 Noto Sans SC 三档字重（Regular / Medium /
   Bold，OFL 1.1，子集化后合计 5.7 MB），全站建立字重层次，**字形不再依赖机型 ROM**。
   字重→槽位映射抽在 `Core/Typography/FontSlots.cs`，`FontSlotsTests` 8 个用例钉着。
-  ⚠️ **APK 至今没重打**——从这一版起累计六次改动没进包（三档字重 / 暖色配色 /
-  月份条 / 环形图 / 图例色点 / 导航栏适配），都只在编辑器里验过。包体预计从 ~29 MB
-  涨到 ~35 MB，真机复验待做，见 `Claude/plans/android-release-checklist.md` 的「后续待办」
+  ✅ **已随第四版 APK 进包**（`Builds/EasyMoney4.apk`，33.5 MB）——这一版把此前六次
+  没进包的改动（三档字重 / 暖色配色 / 月份条 / 环形图 / 图例色点 / 导航栏适配）
+  一次补齐，真机复验清单见 `Claude/plans/android-release-checklist.md` 的「真机待验收」
 - ✅ **分类图标接入**（2026-09-13）—— 15 个预置分类的图标接进账单行 / 报表行 /
   记账页分类行 / 分类选择弹窗四处。图标名是**数据**（存在 `category.icon_name` 里），
   所以新装的库走 `DefaultCategories` 种子、**老库走 v2 迁移补**，两条路都得改，
@@ -88,14 +88,27 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   `windowLightNavigationBar` 属性**，默认 false = 画白图标；白图标落在燕麦米白底上就是隐形。
   Android 15 之前不显形（导航栏是不透明黑条），是 edge-to-edge 才让它暴露。
   修法：启动时设深色图标 + `show()` + `BEHAVIOR_DEFAULT`（只在 API 30+）
-  ⚠️ **这条 Play 验不了**——编辑器里 safeArea 全屏、导航栏恒 0，改动完全不可见，
+  ⚠️ **第三版图标改深色成了**（三个键看得见了），但**导航键会自己消失**——放着不动
+  慢慢就没了，往上划才浮出来、一两秒又缩回去。这不是没让它显示，是**我们自己请求了
+  全屏沉浸**：Player Settings 的「Start in Fullscreen Mode」会往清单里写
+  `unity.launch-fullscreen=True`，播放器据此设 `SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+  IMMERSIVE_STICKY`（`libunity.so` 里直接搜得到这两个字符串）——现象与 IMMERSIVE_STICKY
+  的定义一字不差。微信不请求全屏，导航键才常驻。**已关掉该选项**，并把
+  `EnsureNavigationBarUsable()` 从 `AppRoot.Awake` 挪进 `SafeAreaFitter._apply()`
+  ——播放器设标志的时机在我们后面，**只调一次会被它盖掉，得每次重算安全区重申一遍**
+  ⚠️ **手势导航下「底下空一条」是另一个根因**：光看导航栏 inset 分不出导航模式，
+  某些机型手势导航下照样报三键的 48dp。改用 `WindowInsets.Type.tappableElement()`
+  分辨（**为 0 = 手势导航**，系统栏不占版面，标签栏落到底，微信的样子），
+  规则在 `SafeAreaLayout.ResolveBottomInset`。读不到时按「有导航键」兜底，
+  **不能按手势算**——多留一截只是难看，少留一截是点不到
+  ⚠️ **这两条 Play 都验不了**——编辑器里 safeArea 全屏、导航栏恒 0，改动完全不可见，
   只能真机验；本轮 APK 里带了一行临时诊断读数辅助定位，**验完要删**
-  ⏳ **第三轮真机验收待做**，清单见 `Claude/plans/android-release-checklist.md`
+  ⏳ **第四轮真机验收待做**，清单见 `Claude/plans/android-release-checklist.md`
 
 **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
 `ITransactionRepository` 等于绕过校验。
 
-⚠️ **打包配置现在有测试守着**（`AndroidPlayerSettingsTests`，9 个用例）。
+⚠️ **打包配置现在有测试守着**（`AndroidPlayerSettingsTests`，11 个用例）。
 改 Player Settings 前先看这个文件——计划里 Task 17 那张配置表的每一条都有对应断言，
 配置对不对不靠肉眼核对 Unity 面板。
 
