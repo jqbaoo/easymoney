@@ -26,6 +26,19 @@ namespace EasyMoney.App.UI
         {
         }
 
+        /// <summary>
+        /// 本页在标题栏右侧有没有动作按钮。眼下只有记账页的「语音记账」。
+        ///
+        /// 图标与文案由 AppRoot 定——顶栏长什么样是骨架的事，
+        /// 页面只需要说「我要一个」和「点了干什么」。
+        /// </summary>
+        public virtual bool HasHeaderAction => false;
+
+        /// <summary>标题栏那个动作按钮被点时调用。</summary>
+        public virtual void OnHeaderAction()
+        {
+        }
+
         protected abstract void _build();
     }
 }

@@ -27,6 +27,7 @@ namespace EasyMoney.App
         private PageRouter m_Router;
         private TabBar m_TabBar;
         private Text m_HeaderTitle;
+        private Button m_HeaderAction;
         private RectTransform m_ContentArea;
         private RectTransform m_CanvasRoot;
         private string m_CurrentKey = TABS[0].Key;
@@ -120,6 +121,7 @@ namespace EasyMoney.App
             m_Router = null;
             m_TabBar = null;
             m_HeaderTitle = null;
+            m_HeaderAction = null;
             m_ContentArea = null;
 
             _buildSkeleton();
@@ -190,6 +192,8 @@ namespace EasyMoney.App
                 Theme.FONT_TITLE, TextAnchor.MiddleCenter, null, Theme.WEIGHT_TITLE);
             UiFactory.Stretch(m_HeaderTitle.rectTransform);
 
+            _buildHeaderAction(oHeader);
+
             Image oDivider = UiFactory.CreatePanel(oHeader.transform, "Divider", Theme.DIVIDER);
             oDivider.rectTransform.anchorMin = new Vector2(0f, 0f);
             oDivider.rectTransform.anchorMax = new Vector2(1f, 0f);
@@ -226,6 +230,71 @@ namespace EasyMoney.App
             m_CurrentKey = sKey;
             m_TabBar.SetSelected(sKey);
             m_HeaderTitle.text = _titleOf(sKey);
+
+            _refreshHeaderAction();
+        }
+
+        /// <summary>
+        /// 标题栏右侧那个动作按钮（语音记账）。
+        ///
+        /// 用 CreateNavButton 是因为它「有图用图、没图退回文字」——icon_mic.png 还没画，
+        /// 眼下显示的是「语音」两个字，美术补上图就自动生效，代码一行不用改。
+        /// 图标名与文案定在这里而不是由页面给：顶栏长什么样是骨架的事，
+        /// 页面只需要说自己要不要（见 <see cref="PageBase.HasHeaderAction"/>）。
+        /// </summary>
+        private void _buildHeaderAction(Image oHeader)
+        {
+            m_HeaderAction = UiFactory.CreateNavButton(oHeader.transform, "HeaderAction",
+                IconNames.MIC, "语音", Theme.HEADER_ACTION_WIDTH, Theme.HEADER_ACTION_ICON_SIZE,
+                _onHeaderAction);
+
+            // 标题栏不是布局组，CreateNavButton 里那个 SetWidth 落不到实处，
+            // 尺寸得直接写进 RectTransform
+            RectTransform oRect = m_HeaderAction.GetComponent<RectTransform>();
+            oRect.anchorMin = new Vector2(1f, 0.5f);
+            oRect.anchorMax = new Vector2(1f, 0.5f);
+            oRect.pivot = new Vector2(1f, 0.5f);
+            oRect.sizeDelta = new Vector2(Theme.HEADER_ACTION_WIDTH, Theme.HEADER_HEIGHT);
+
+            // 贴右、留一个页面边距。标题是铺满整条居中的，按钮压在它右边——
+            // 标题够短，两者不会撞上
+            oRect.anchoredPosition = new Vector2(-Theme.PAGE_PADDING, 0f);
+
+            // 先藏起来，等 _onPageChanged 按当前页决定露不露
+            m_HeaderAction.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// 把点击转给当前页。
+        ///
+        /// 回调只在建按钮时绑这一次，切页不用换绑——委托每次都重新问一遍
+        /// 「现在是哪一页」，也就没有「忘了换绑、点到的还是上一页」这种错法。
+        /// </summary>
+        private void _onHeaderAction()
+        {
+            PageBase oPage = m_Router != null ? m_Router.Current : null;
+
+            if (oPage != null)
+            {
+                oPage.OnHeaderAction();
+            }
+        }
+
+        /// <summary>
+        /// 按当前页决定这个按钮露不露。眼下只有记账页要它。
+        ///
+        /// 藏在这里而不是让各页自己管：按钮只有一个、属于骨架，页面根本看不见它，
+        /// 也就没机会把它忘在屏幕上。
+        /// </summary>
+        private void _refreshHeaderAction()
+        {
+            if (m_HeaderAction == null)
+            {
+                return;
+            }
+
+            PageBase oPage = m_Router != null ? m_Router.Current : null;
+            m_HeaderAction.gameObject.SetActive(oPage != null && oPage.HasHeaderAction);
         }
 
         private static string _titleOf(string sKey)

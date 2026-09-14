@@ -125,12 +125,29 @@ namespace EasyMoney.App.UI.Pages
 
         private void _selectType(int iIndex)
         {
-            m_Type = iIndex switch
+            _setType(_typeAt(iIndex));
+        }
+
+        /// <summary>分段下标 → 账单类型。下标顺序就是 SEGMENT_LABELS 的顺序。</summary>
+        private static TxType _typeAt(int iIndex)
+        {
+            return iIndex switch
             {
                 1 => TxType.Income,
                 2 => TxType.Transfer,
                 _ => TxType.Expense
             };
+        }
+
+        /// <summary>
+        /// 切到某个账单类型。**这是唯一会清分类与转入的地方**，语音那条路也走这里。
+        ///
+        /// 别处再写一份的话，某一条路就会忘了清，留下一个方向不对的分类——
+        /// 而且要等到保存那一刻才报错，错误信息还指着别的地方。
+        /// </summary>
+        private void _setType(TxType eType)
+        {
+            m_Type = eType;
 
             // 换了类型，原来选的分类/转入账户都不再适用，必须清掉——
             // 否则会把「收入」记到一个支出分类上，保存时才报错
@@ -139,7 +156,7 @@ namespace EasyMoney.App.UI.Pages
 
             for (int i = 0; i < m_Segments.Length; i++)
             {
-                TogglePalette.Apply(m_Segments[i], i == iIndex);
+                TogglePalette.Apply(m_Segments[i], _typeAt(i) == eType);
             }
 
             _refreshVisibility();
@@ -495,28 +512,44 @@ namespace EasyMoney.App.UI.Pages
         /// </summary>
         private void _applyDefaults()
         {
+            _applyDefaultCategory();
+            _applyDefaultAccount();
+        }
+
+        /// <summary>
+        /// 还没选分类就预选第一个。
+        ///
+        /// 语音那条路会**跳过**它：这一句提了分类却没匹配上时不能补默认值，
+        /// 补了用户会以为语音已经填对，直接保存就记到别的分类上了。
+        /// </summary>
+        private void _applyDefaultCategory()
+        {
             AppContext oContext = AppContext.Instance;
-            if (oContext == null)
+            if (oContext == null || m_CategoryId != 0)
             {
                 return;
             }
 
-            if (m_CategoryId == 0)
+            List<Category> lCategories = oContext.Categories.GetByKind(_categoryKind());
+            if (lCategories.Count > 0)
             {
-                List<Category> lCategories = oContext.Categories.GetByKind(_categoryKind());
-                if (lCategories.Count > 0)
-                {
-                    _pickCategory(lCategories[0]);
-                }
+                _pickCategory(lCategories[0]);
+            }
+        }
+
+        /// <summary>还没选账户就预选第一个。该跳过的情形同 <see cref="_applyDefaultCategory"/>。</summary>
+        private void _applyDefaultAccount()
+        {
+            AppContext oContext = AppContext.Instance;
+            if (oContext == null || m_AccountId != 0)
+            {
+                return;
             }
 
-            if (m_AccountId == 0)
+            List<Account> lAccounts = oContext.Accounts.GetAll();
+            if (lAccounts.Count > 0)
             {
-                List<Account> lAccounts = oContext.Accounts.GetAll();
-                if (lAccounts.Count > 0)
-                {
-                    _pickAccount(lAccounts[0]);
-                }
+                _pickAccount(lAccounts[0]);
             }
         }
 
@@ -629,11 +662,151 @@ namespace EasyMoney.App.UI.Pages
         {
             List<string> lLabels = new List<string>(DATE_LABELS);
 
-            PickerDialog.Show(Root, "选择日期", lLabels, iIndex =>
+            PickerDialog.Show(Root, "选择日期", lLabels, _pickDay);
+        }
+
+        /// <summary>按「今天 / 昨天 / 前天」的下标选日期。语音那条路也走这里。</summary>
+        private void _pickDay(int iIndex)
+        {
+            if (iIndex < 0 || iIndex >= DATE_LABELS.Length)
             {
-                m_DateIndex = iIndex;
-                m_DateValue.text = DATE_LABELS[iIndex];
-            });
+                return;
+            }
+
+            m_DateIndex = iIndex;
+            m_DateValue.text = DATE_LABELS[iIndex];
+        }
+
+        // ── 一句话记账 ──────────────────────────────
+
+        public override bool HasHeaderAction => true;
+
+        public override void OnHeaderAction()
+        {
+            AppContext oContext = AppContext.Instance;
+            if (oContext == null)
+            {
+                _showMessage("数据尚未就绪，请稍后重试", false);
+                return;
+            }
+
+            // 分类名给的是**两个方向**的全表：「类型餐饮」得先认出「餐饮」是个分类名，
+            // 而那一刻这一句还没说收支方向（也可能永远不说）。
+            // 只给一个方向的话，另一个方向的分类永远解析不出来
+            PhraseInputDialog.Show(Root, _categoryNames(oContext), _applyDraft);
+        }
+
+        /// <summary>库里全部的分类名。<see cref="TransactionPhraseParser"/> 只拿它做值域消歧。</summary>
+        private static List<string> _categoryNames(AppContext oContext)
+        {
+            List<string> lNames = new List<string>();
+
+            foreach (Category oCategory in oContext.Categories.GetAll())
+            {
+                lNames.Add(oCategory.Name);
+            }
+
+            return lNames;
+        }
+
+        /// <summary>
+        /// 把听懂的那句话落到表单上。
+        ///
+        /// 规则本身（名字怎么匹配、匹配不上怎么办、分类按哪个方向找）全在
+        /// <see cref="DraftPlanner"/> 里，这里只按计划写控件——页面里留不住可测的东西，
+        /// 能搬走的都搬走了。
+        /// </summary>
+        private void _applyDraft(TransactionDraft oDraft)
+        {
+            AppContext oContext = AppContext.Instance;
+            if (oContext == null)
+            {
+                return;
+            }
+
+            DraftPlan oPlan = DraftPlanner.Build(
+                oDraft, m_Type, oContext.Accounts.GetAll(), oContext.Categories.GetAll());
+
+            _applyPlan(oPlan);
+        }
+
+        private void _applyPlan(DraftPlan oPlan)
+        {
+            // **先切类型再填别的。** 切类型会清掉分类与转入（方向变了，原来那两项
+            // 不再适用），顺序反过来填的话，刚填上的会被这一下抹掉
+            if (oPlan.Type.HasValue)
+            {
+                _setType(oPlan.Type.Value);
+            }
+
+            if (oPlan.AmountCents.HasValue)
+            {
+                m_AmountInput.text = Money.FromCents(oPlan.AmountCents.Value).ToString();
+            }
+
+            if (oPlan.Category != null)
+            {
+                _pickCategory(oPlan.Category);
+            }
+
+            if (oPlan.Account != null)
+            {
+                _pickAccount(oPlan.Account);
+            }
+
+            if (oPlan.ToAccount != null)
+            {
+                _pickToAccount(oPlan.ToAccount);
+            }
+
+            if (oPlan.DateIndex.HasValue)
+            {
+                _pickDay(oPlan.DateIndex.Value);
+            }
+
+            if (oPlan.Note != null)
+            {
+                m_NoteInput.text = oPlan.Note;
+            }
+
+            // 这一句**提过**的项即使没匹配上也不补默认值：自动补一个的话，用户会以为
+            // 语音已经填好了，直接点保存——那就记到别的账户/分类上了，是一笔真账。
+            // 留空他一定看得见。没提过的才补，行为跟切回本页时一样
+            if (!oPlan.MentionsCategory)
+            {
+                _applyDefaultCategory();
+            }
+
+            if (!oPlan.MentionsAccount)
+            {
+                _applyDefaultAccount();
+            }
+
+            _showPlanMessage(oPlan);
+        }
+
+        /// <summary>
+        /// 把这一句的结果告诉用户。
+        ///
+        /// 填上了什么不用报——屏幕上看得见。**没填上的必须报**：不说的话，
+        /// 他会以为整句都听懂了，而某个字段其实还是原来那个值。
+        /// </summary>
+        private void _showPlanMessage(DraftPlan oPlan)
+        {
+            if (oPlan.Unhandled.Count > 0)
+            {
+                _showMessage($"没认出：{string.Join("、", oPlan.Unhandled)}", false);
+                return;
+            }
+
+            if (!oPlan.HasAnyField)
+            {
+                _showMessage("没听懂，换个说法试试", false);
+                return;
+            }
+
+            // 填完提醒一句「核对」：金额是最容易听错的那个，而它一错就是一笔真账
+            _showMessage("已填入，请核对后保存", true);
         }
     }
 }

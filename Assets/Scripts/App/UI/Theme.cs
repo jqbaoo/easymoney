@@ -21,6 +21,15 @@ namespace EasyMoney.App.UI
         // ── 骨架 ────────────────────────────────────
         public const float HEADER_HEIGHT = 88f;
 
+        /// <summary>
+        /// 标题栏右侧那个动作按钮（语音记账）的点击区宽度。
+        /// 比图标本身宽不少是为了好点——它落在屏幕右上角，手指不容易够准。
+        /// </summary>
+        public const float HEADER_ACTION_WIDTH = 140f;
+
+        /// <summary>标题栏动作按钮的图标尺寸。</summary>
+        public const float HEADER_ACTION_ICON_SIZE = 44f;
+
         /// <summary>标签栏高度。比纯文字时代（98）高一些，给图标让位。</summary>
         public const float TABBAR_HEIGHT = 116f;
 

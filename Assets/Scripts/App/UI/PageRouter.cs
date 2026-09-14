@@ -15,6 +15,15 @@ namespace EasyMoney.App.UI
 
         public string CurrentKey => m_CurrentKey;
 
+        /// <summary>
+        /// 当前显示的那一页。在 PageChanged 回调里读到的已经是新页——
+        /// Show 先改 m_CurrentKey 再发通知，标题栏靠这个顺序取到正确的页面。
+        /// </summary>
+        public PageBase Current =>
+            m_CurrentKey != null && m_Pages.TryGetValue(m_CurrentKey, out PageBase oPage)
+                ? oPage
+                : null;
+
         public void Register(string sKey, PageBase oPage)
         {
             if (!m_Pages.ContainsKey(sKey))

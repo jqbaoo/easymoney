@@ -32,6 +32,12 @@ namespace EasyMoney.App.UI
         public const string DELETE = "icon_delete";
         public const string EDIT = "icon_edit";
 
+        /// <summary>
+        /// 麦克风，用在记账页标题栏右侧那个「语音记账」按钮上。
+        /// 目前没有这张图，显示兜底文字「语音」；美术补了 icon_mic.png 就自动生效。
+        /// </summary>
+        public const string MIC = "icon_mic";
+
         // ── 分类图标 ────────────────────────────────
         // 约定：cat_<slug>，与 Database 里 Category.IconName 存的值一致。
         public const string CAT_FOOD = "cat_food";
