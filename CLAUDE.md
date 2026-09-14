@@ -27,7 +27,7 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
 - ✅ **字体风格升级**（2026-09-13）—— 自带 Noto Sans SC 三档字重（Regular / Medium /
   Bold，OFL 1.1，子集化后合计 5.7 MB），全站建立字重层次，**字形不再依赖机型 ROM**。
   字重→槽位映射抽在 `Core/Typography/FontSlots.cs`，`FontSlotsTests` 8 个用例钉着。
-  ✅ **已随第四版 APK 进包**（`Builds/EasyMoney4.apk`，33.5 MB）——这一版把此前六次
+  ✅ **已随第四版 APK 进包**（33.5 MB）——这一版把此前六次
   没进包的改动（三档字重 / 暖色配色 / 月份条 / 环形图 / 图例色点 / 导航栏适配）
   一次补齐，真机复验记录见 `Claude/plans/android-release-checklist.md` 的「真机验收」一节
 - ✅ **分类图标接入**（2026-09-13）—— 15 个预置分类的图标接进账单行 / 报表行 /
@@ -116,8 +116,8 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   修法是**先 `addFlags` 再设颜色，顺序不能换**。（第五轮截图里**顶部**那条深色横带是
   当时那版临时诊断面板自己，与系统栏的黑不是一回事，别当成一个）
   ✅ **第六轮真机验收通过**（2026-09-14）——两条系统栏都成了页面底色、图标看得清，
-  这一轮结束。带读数的临时诊断组件已删；`Builds/EasyMoney6.apk` 是最后一个带读数的包，
-  以后再查这块的行为拿它当参照。清单见 `Claude/plans/android-release-checklist.md`
+  这一轮结束。带读数的临时诊断组件已删，旧的构建产物也一并清掉了——
+  `Builds/` 下只剩当前这一版。清单见 `Claude/plans/android-release-checklist.md`
 
 **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
 `ITransactionRepository` 等于绕过校验。
