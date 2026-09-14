@@ -179,7 +179,15 @@ API 27 之前的东西，没有这个属性**，默认 false = 画白图标。�
 底色上就是隐形，界面上看着像「底部空了一块」。**只在 API 30+ 做**——Android 11
 以下的导航栏还是不透明黑条，在那里设「浅色导航栏」会把图标变成黑图标画黑底。
 
-`AndroidSystemBars.EnsureNavigationBarUsable()` 除了改图标颜色，还要求系统
+⚠️ **两条系统栏的底色也归我们管，而这里有个「调了没用也不报错」的坑。**
+`setStatusBarColor` / `setNavigationBarColor` 的文档写明：**只有窗口带
+`FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS` 时这两个调用才生效**，而 Unity 那套 Holo 主题
+没有开这一位——所以必须**先 `addFlags` 再设颜色**，顺序不能换。少了那一步，代码跑了、
+颜色被系统静默丢掉，真机上就是两条纯黑，跟没写代码一模一样。
+诊断读数最后那行 `bars flags/sb/nb` 就是为了分这个：**屏幕上是黑的而读回来是页面底色
+= 系统丢的**，那时该去改主题，而不是继续在这几个 API 上打转。
+
+`AndroidSystemBars.EnsureSystemBarsUsable()` 除了改图标颜色，还要求系统
 `show()` + 不要自动隐藏，**调用点在 `SafeAreaFitter._apply()`，不是启动时调一次**。
 理由：Unity 的播放器自己会给窗口设全屏沉浸标志（Player Settings 的
 「Start in Fullscreen Mode」→ 清单里的 `unity.launch-fullscreen` →

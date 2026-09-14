@@ -94,7 +94,7 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   `unity.launch-fullscreen=True`，播放器据此设 `SYSTEM_UI_FLAG_HIDE_NAVIGATION |
   IMMERSIVE_STICKY`（`libunity.so` 里直接搜得到这两个字符串）——现象与 IMMERSIVE_STICKY
   的定义一字不差。微信不请求全屏，导航键才常驻。**已关掉该选项**，并把
-  `EnsureNavigationBarUsable()` 从 `AppRoot.Awake` 挪进 `SafeAreaFitter._apply()`
+  `EnsureSystemBarsUsable()` 从 `AppRoot.Awake` 挪进 `SafeAreaFitter._apply()`
   ——播放器设标志的时机在我们后面，**只调一次会被它盖掉，得每次重算安全区重申一遍**
   ⚠️ **手势导航下「底下空一条」是另一个根因**：光看导航栏 inset 分不出导航模式，
   某些机型手势导航下照样报三键的 48dp。改用 `WindowInsets.Type.tappableElement()`
@@ -109,11 +109,13 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
   **光看 inset 分不出「窗口铺在导航栏下面」和「窗口停在导航栏上沿」**，两者要的答案
   恰好相反。`ResolveBottomInset` 加第三个判据（渲染面底边到屏幕底边的间距，够一整条就
   让 0）——判据是**够不够一整条，不是把差额减掉**，减差额方向恰好反了
-  ⚠️ 同一轮还有一条**底色**是黑的：窗口不在那儿之后，导航栏那 124px 由系统绘制、
-  应用画不到。试 `setNavigationBarColor(Theme.BACKGROUND)`，**Android 15 上系统可能
-  忽略**，忽略了就是现状。（截图里**顶部**那条深色横带是临时诊断面板自己，两个黑不是
-  一回事，别当成一个）
-  ⏳ **第五轮真机验收待做**，清单见 `Claude/plans/android-release-checklist.md`
+  ⚠️ **第五轮验完，位置全对了**（三键下标签栏正好落在导航键上方、手势下仍贴底），
+  只剩**底色**：两条系统栏都是纯黑。根因是 `setStatusBarColor` / `setNavigationBarColor`
+  的文档写明「**只有窗口带 `FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS` 时才生效**」，
+  而 Unity 那套 Holo 主题没开这一位——调用**跑了、但被系统静默丢掉**，不报错不崩溃。
+  修法是**先 `addFlags` 再设颜色，顺序不能换**。（第四轮截图里**顶部**那条深色横带是
+  临时诊断面板自己，与系统栏的黑不是一回事，别当成一个）
+  ⏳ **第六轮真机验收待做**，清单见 `Claude/plans/android-release-checklist.md`
 
 **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
 `ITransactionRepository` 等于绕过校验。
