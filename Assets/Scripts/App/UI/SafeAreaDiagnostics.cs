@@ -80,6 +80,7 @@ namespace EasyMoney.App.UI
             int iNewApi = AndroidSystemBars.NewApiNavigationBarHeightPxForDiagnostics();
             int iLegacy = AndroidSystemBars.LegacyNavigationBarHeightPxForDiagnostics();
             int iVisible = AndroidSystemBars.NavigationBarVisibleForDiagnostics();
+            int iTappable = AndroidSystemBars.TappableElementBottomPxForDiagnostics();
 
             // 重算一遍「该让多少」，跟界面上实际的表现对照。
             // 故意调的是同一个纯函数，这样读数反映的是算出来的结果而不是拍的数
@@ -91,10 +92,14 @@ namespace EasyMoney.App.UI
 
             // vis：系统认为导航栏可不可见（1 可见 / 0 不可见 / -1 读不到）。
             // 光看 nav 分不出「系统藏了」和「画了但看不见」，这两个数要一起看
+            //
+            // tap：系统栏里可以点的那部分有多高，0 = 手势导航、非 0 = 三键、-1 = 读不到。
+            // nav 是「导航栏报多高」，tap 是「系统栏实际占多高」，两者都可能撒谎——
+            // 某些机型手势导航下 nav 照样报三键的 124，靠 tap 才分得出来
             m_Label.text =
                 $"safeArea y={oSafe.y:F0} h={oSafe.height:F0} w={oSafe.width:F0}\n" +
                 $"screen {Screen.width}x{Screen.height}  " +
-                $"nav {iNavBar} (new {iNewApi}/old {iLegacy})  vis {iVisible}  extra {fExtra:F0}";
+                $"nav {iNavBar} (new {iNewApi}/old {iLegacy})  vis {iVisible}  tap {iTappable}  extra {fExtra:F0}";
         }
     }
 }

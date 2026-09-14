@@ -108,6 +108,25 @@ namespace EasyMoney.Tests
         }
 
         [Test]
+        public void StartInFullscreen_IsDisabled()
+        {
+            // 这一条是「底部空一条」那个 bug 的根。
+            //
+            // 勾上之后 Unity 会往清单里写 unity.launch-fullscreen=True，
+            // 播放器据此给窗口设 SYSTEM_UI_FLAG_HIDE_NAVIGATION | SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            // （libunity.so 里这几个字符串明摆着在）。导航键就这样被收走了：
+            // 启动时露一下、慢慢消失，底部往上划才浮出来、一两秒又缩回去。
+            // 而底部那 124px 是按「导航键在」留出来的，收走之后就是一条空白。
+            //
+            // 微信这类应用不请求全屏，导航键才是常驻的——这正是用户要的样子。
+            //
+            // ⚠️ 顺带说明它**不影响状态栏**：状态栏是另一套标志（FLAG_FULLSCREEN），
+            // 关掉这个之后顶部仍然没有状态栏，顶部版式不用重新验收。
+            Assert.IsFalse(PlayerSettings.Android.startInFullscreen,
+                "「Start in Fullscreen Mode」会把导航键一起收走，必须关掉");
+        }
+
+        [Test]
         public void LinkXml_Exists()
         {
             // link.xml 是剥离的第一道防线（与 Minimal 双保险）。

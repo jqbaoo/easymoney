@@ -33,8 +33,11 @@ namespace EasyMoney.App.UI
     public static class AndroidSystemBars
     {
         /// <summary>
-        /// 导航栏高度（屏幕像素）。非 Android、读不到、或者这台设备本来就没有导航栏时
-        /// 返回 0——调用方按「不用让」处理。
+        /// **底部要预留多少**（屏幕像素）。非 Android、读不到、这台设备本来就没有导航栏，
+        /// 以及**手势导航**（导航栏不占版面）时都返回 0——调用方一律按「不用让」处理。
+        ///
+        /// 注意它不总是「导航栏高度」：三键导航下才是，手势导航下按 0 算，
+        /// 分辨规则在 <see cref="SafeAreaLayout.ResolveBottomInset"/> 里（可测的纯函数）。
         /// </summary>
         public static int NavigationBarHeightPx()
         {
@@ -154,6 +157,28 @@ namespace EasyMoney.App.UI
 #endif
         }
 
+        /// <summary>
+        /// ⚠️ 临时，诊断用：系统栏里可以点的那部分有多高。0 = 手势导航，非 0 = 三键。
+        /// 非 Android / 读失败返回 -1。
+        ///
+        /// 为什么要单独报这个：底部该不该让出导航栏那 124px 全看它，
+        /// 而它读不到时程序会按「有导航键」兜底——界面上「兜底生效了」和
+        /// 「真的是三键导航」长得一模一样，只能靠这个数分开。
+        /// </summary>
+        public static int TappableElementBottomPxForDiagnostics()
+        {
+#if UNITY_ANDROID
+            if (Application.isEditor)
+            {
+                return -1;
+            }
+
+            return _probeTappableElementBottom();
+#else
+            return -1;
+#endif
+        }
+
 #if UNITY_ANDROID
         // ⚠️ 全文件一律用 #if UNITY_ANDROID + 运行时 Application.isEditor 判断，
         // **不要写成 #if UNITY_ANDROID && !UNITY_EDITOR**。
@@ -161,7 +186,7 @@ namespace EasyMoney.App.UI
         // 后者会让整段 JNI 代码在编辑器里不参与编译，于是里面任何编译错误
         // （漏 using、方法名写错、类型不存在）都只有真机打包时才会暴露——
         // 代价是白跑一轮十几分钟的构建。**这个坑已经踩过一次**：
-        // _navigationBarBottom 里用了 Core 的 SafeAreaLayout 却漏了 using EasyMoney.Core，
+        // _bottomInset 里用了 Core 的 SafeAreaLayout 却漏了 using EasyMoney.Core，
         // 364 个 EditMode 用例全绿，打包时才报 CS0103。
         //
         // 改成 #if UNITY_ANDROID 之后，只要当前 Build Target 是 Android（本项目一直是），
@@ -207,7 +232,7 @@ namespace EasyMoney.App.UI
                     return 0;
                 }
 
-                return _navigationBarBottom(oInsets);
+                return _bottomInset(oInsets);
             }
             catch (System.Exception oError)
             {
@@ -276,6 +301,26 @@ namespace EasyMoney.App.UI
             }
         }
 
+        private static int _probeTappableElementBottom()
+        {
+            try
+            {
+                using AndroidJavaObject oInsets = _rootWindowInsets();
+
+                if (oInsets == null)
+                {
+                    return -1;
+                }
+
+                return _tappableElementBottom(oInsets);
+            }
+            catch (System.Exception oError)
+            {
+                Debug.LogWarning($"[AndroidSystemBars] 诊断读数失败：{oError}");
+                return -1;
+            }
+        }
+
         private static int _probeNavigationBarVisible()
         {
             if (_sdkInt() < 30)
@@ -305,15 +350,61 @@ namespace EasyMoney.App.UI
         }
 
         /// <summary>
-        /// 两个来源各读一遍，挑哪一个的规则在
-        /// <see cref="SafeAreaLayout.ResolveNavigationBarHeight"/> 里（可测的纯函数）。
+        /// 底部最终要预留的高度。两步，规则都在
+        /// <see cref="SafeAreaLayout"/> 里（可测的纯函数），这里只负责把数取回来：
+        /// 先从两个来源里挑出导航栏高度（<see cref="SafeAreaLayout.ResolveNavigationBarHeight"/>），
+        /// 再按当前是手势还是三键决定留不留（<see cref="SafeAreaLayout.ResolveBottomInset"/>）。
         /// </summary>
-        private static int _navigationBarBottom(AndroidJavaObject oInsets)
+        private static int _bottomInset(AndroidJavaObject oInsets)
         {
             int iNewApi = _sdkInt() >= 30 ? _insetsBottom(oInsets) : 0;
             int iLegacy = _legacyInsetBottom(oInsets);
+            int iNavBar = SafeAreaLayout.ResolveNavigationBarHeight(iNewApi, iLegacy);
 
-            return SafeAreaLayout.ResolveNavigationBarHeight(iNewApi, iLegacy);
+            return SafeAreaLayout.ResolveBottomInset(iNavBar, _tappableElementBottom(oInsets));
+        }
+
+        /// <summary>
+        /// 系统栏里**可以点的**那部分有多高。三键导航下等于导航栏高度，手势导航下是 0。
+        ///
+        /// 为什么要专门读它：导航栏 inset 本身分辨不出导航模式。某些机型在手势导航下
+        /// 照样报出三键的高度，于是底部白留一条——真机上验收时看到的就是这个。
+        /// 而 tappableElement 衡量的是系统栏**实际占了多少地方**，与 inset 报多大无关，
+        /// 是 Android 官方 edge-to-edge 指引给的分辨办法。
+        ///
+        /// ⚠️ <b>读不到一律返回 -1（「不知道」），绝不能返回 0。</b>
+        /// 0 在这个语义里是「确定是手势导航」，会把本该留出来的导航栏让没了；
+        /// 调用方按「不知道就当有导航键」处理。
+        /// </summary>
+        private static int _tappableElementBottom(AndroidJavaObject oInsets)
+        {
+            // WindowInsets$Type 在 API 30 以下不存在，FindClass 会直接抛
+            if (_sdkInt() < 30)
+            {
+                return -1;
+            }
+
+            try
+            {
+                using AndroidJavaClass oType = new AndroidJavaClass("android.view.WindowInsets$Type");
+                int iTappableElement = oType.CallStatic<int>("tappableElement");
+
+                using AndroidJavaObject oBarInsets =
+                    oInsets.Call<AndroidJavaObject>("getInsets", iTappableElement);
+
+                if (oBarInsets == null)
+                {
+                    return -1;
+                }
+
+                // 与导航栏那边同一个坑：android.graphics.Insets.bottom 是字段不是方法
+                return oBarInsets.Get<int>("bottom");
+            }
+            catch (System.Exception oError)
+            {
+                Debug.LogWarning($"[AndroidSystemBars] 读系统栏可点区域失败，按有导航键处理：{oError}");
+                return -1;
+            }
         }
 
         /// <summary>

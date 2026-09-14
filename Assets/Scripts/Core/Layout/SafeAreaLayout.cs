@@ -16,8 +16,13 @@ namespace EasyMoney.Core
     /// </summary>
     public static class SafeAreaLayout
     {
+        /// <summary>
+        /// <paramref name="fBottomInsetPx"/> 是**底部要预留的高度**，不是「导航栏有多高」——
+        /// 手势导航下导航栏不占版面，那个值由
+        /// <see cref="ResolveBottomInset"/> 归零后再传进来。
+        /// </summary>
         public static SafeAreaAnchors Compute(
-            SafeAreaRect oArea, float fScreenWidth, float fScreenHeight, float fNavigationBarPx)
+            SafeAreaRect oArea, float fScreenWidth, float fScreenHeight, float fBottomInsetPx)
         {
             // 屏幕尺寸还没准备好时除零会得到 NaN，锚点跟着全废。
             // 退回全屏至少是个能看的界面
@@ -26,7 +31,7 @@ namespace EasyMoney.Core
                 return new SafeAreaAnchors(0f, 0f, 1f, 1f);
             }
 
-            float fBottom = _extraBottom(oArea, fNavigationBarPx);
+            float fBottom = _extraBottom(oArea, fBottomInsetPx);
 
             // 顶边不动，只把底边往上抬 fBottom
             float fMinX = _clamp01(oArea.X / fScreenWidth);
@@ -52,7 +57,7 @@ namespace EasyMoney.Core
         /// <summary>
         /// 底部还要额外让出多少像素。
         ///
-        /// **幂等是这里的关键。** 不能无条件减掉导航栏高度：同一个 Screen.safeArea，
+        /// **幂等是这里的关键。** 不能无条件减掉要预留的高度：同一个 Screen.safeArea，
         /// Android 15 上铺满全屏（y = 0，导航栏是浮层），Android 13/14 上却已经把导航栏
         /// 排除掉了（y ≈ 导航栏高度）。无条件减在后者会凭空多出一条与导航栏等高的空白，
         /// 无条件不减在前者内容就被盖住——两种错都不报错。
@@ -60,14 +65,14 @@ namespace EasyMoney.Core
         /// 取差额就同时照顾了两种情况，将来 Unity 把 safeArea 修好（UUM-121413 在 6.1 修复）
         /// 也不用改代码：那时 y ≈ 导航栏高度，差额自动变成 0。
         /// </summary>
-        private static float _extraBottom(SafeAreaRect oArea, float fNavigationBarPx)
+        private static float _extraBottom(SafeAreaRect oArea, float fBottomInsetPx)
         {
-            if (fNavigationBarPx <= 0f)
+            if (fBottomInsetPx <= 0f)
             {
                 return 0f;
             }
 
-            float fExtra = fNavigationBarPx - oArea.Y;
+            float fExtra = fBottomInsetPx - oArea.Y;
             if (fExtra <= 0f)
             {
                 return 0f;
@@ -111,6 +116,48 @@ namespace EasyMoney.Core
             }
 
             return 0;
+        }
+
+        /// <summary>
+        /// 底部到底要预留多少像素——**导航栏不占版面时就是 0**。
+        ///
+        /// 三键导航和手势导航要区别对待：
+        ///
+        /// * **三键**：屏幕底部一条 48dp 的实心按钮条，内容钻到它下面就永远看不见，
+        ///   必须整条让出来（微信也是这么做的，标签栏正好落在导航键上方）。
+        /// * **手势**：只有一条贴底的细提示条，**不占版面**，标签栏应该一直落到屏幕最底，
+        ///   让出来的话底部就凭空多一条空白——真机上验收时看到的就是这个。
+        ///
+        /// 怎么分辨这两者：<c>WindowInsets.Type.tappableElement()</c> 的 bottom
+        /// **为 0 就是手势导航**（没有可点的系统栏），非 0 就是三键。
+        /// 这是 Android 官方 edge-to-edge 指引给的分辨办法，不是拍的——
+        /// 它衡量的是系统栏**实际占了多少地方**，与 inset 本身报多大无关，
+        /// 而某些机型在手势导航下照样报出三键的高度。
+        ///
+        /// ⚠️ <b>读不到（API 30 以下）时按「有导航键」处理，不要按手势算。</b>
+        /// 两个方向都可能错，但错法不一样：多留一截只是难看，
+        /// 少留一截是内容被系统栏压住、再也点不到——宁可难看。
+        /// 而且 Android 13/14 及更早的 <c>Screen.safeArea</c> 本来就排除了导航栏，
+        /// 多留的那截会被 <see cref="Compute"/> 里的差额规则抵消掉，这层兜底几乎不会生效。
+        /// </summary>
+        public static int ResolveBottomInset(int iNavigationBarPx, int iTappableElementPx)
+        {
+            if (iNavigationBarPx <= 0)
+            {
+                return 0;
+            }
+
+            if (iTappableElementPx < 0)
+            {
+                return iNavigationBarPx;
+            }
+
+            if (iTappableElementPx == 0)
+            {
+                return 0;
+            }
+
+            return iNavigationBarPx;
         }
 
         private static float _clamp01(float fValue)

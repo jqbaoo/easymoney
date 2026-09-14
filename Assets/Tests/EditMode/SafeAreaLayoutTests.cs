@@ -230,5 +230,46 @@ namespace EasyMoney.Tests
             Assert.AreEqual(48, SafeAreaLayout.ResolveNavigationBarHeight(48, 124),
                 "新 API 有值时不要因为老 API 更大就改用它");
         }
+
+        // ── 手势导航 / 三键导航：底部留不留 ──────────
+
+        [Test]
+        public void ResolveBottomInset_ThreeButtonNavigation_KeepsNavBarHeight()
+        {
+            // 三键导航：底部一条 48dp 的实心按钮条，内容钻进去就永远看不见。
+            // tappableElement 非 0 就说明有可点的系统栏，也就是三键
+            Assert.AreEqual(124, SafeAreaLayout.ResolveBottomInset(124, 124),
+                "三键导航下要把整条导航栏让出来");
+        }
+
+        [Test]
+        public void ResolveBottomInset_GestureNavigation_ReservesNothing()
+        {
+            // 手势导航：只有一条贴底的细提示条，不占版面（tappableElement 为 0）。
+            // 让出来的话底部就凭空多一条空白——真机上验收时看到的就是这个，
+            // 微信在同样的情况下标签栏是贴底的
+            Assert.AreEqual(0, SafeAreaLayout.ResolveBottomInset(124, 0),
+                "手势导航下不留，标签栏要落到屏幕最底");
+        }
+
+        [Test]
+        public void ResolveBottomInset_TappableUnknown_TreatedAsThreeButton()
+        {
+            // ⚠️ 这条钉的是「读不到时按有导航键算」：API 30 以下没有 tappableElement，
+            // 返回 -1 表示「不知道」。两个方向都可能错，但错法不一样——
+            // 多留一截只是难看，少留一截是内容被系统栏压住、再也点不到
+            Assert.AreEqual(124, SafeAreaLayout.ResolveBottomInset(124, -1),
+                "读不到可点区域时宁可多留，不能按手势算");
+        }
+
+        [Test]
+        public void ResolveBottomInset_NoNavigationBar_StaysZero()
+        {
+            // 设备本来就没有导航栏（或还没读到），此时 tappable 说什么都不重要：
+            // 没有导航栏可以让，就不该凭空留一条
+            Assert.AreEqual(0, SafeAreaLayout.ResolveBottomInset(0, 0));
+            Assert.AreEqual(0, SafeAreaLayout.ResolveBottomInset(0, 124),
+                "导航栏高度都没有，tappable 有值也留不出东西");
+        }
     }
 }
