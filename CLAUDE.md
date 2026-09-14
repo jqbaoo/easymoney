@@ -11,145 +11,54 @@ Android 本地记账 App，Unity 2022.3.53f1c1（中国版），UGUI + SQLite，
 
 ---
 
-## 当前进度（2026-09-13）
+## 当前状态
 
-**MVP 已完工。17 个任务全部完成，APK 已在 Redmi K60 真机上验收。**
+**MVP 已完工，APK 已在 Redmi K60 真机上验收通过**（2026-09-14 第六轮收口）。
+里程碑标签：**`data-layer-complete`**（业务逻辑层封顶）、**`mvp-complete`**。
 
-- ✅ `Assets/Scripts/App/` —— UI 基础设施 + 四个页面 + `AppContext` + `PickerDialog` + `AccountEditDialog`
-- ✅ **Task 1-17 完成** —— 三层程序集骨架 + 命令行测试链路 + 整个逻辑层 + 应用容器 +
-  四个页面 + Android 打包
-  （`Core`：Money / TimeUtil / 模型 / 校验 / 报表 / 快捷金额 / 账单展示投影 / 账户表单 / 报表展示；
-  `Data`：SQLite / 三个仓储 / 记账服务 / 多维筛选；`App`：`AppContext` / 记账页 / 账单页 / 账户页 / 报表页）
-- ✅ **270 个 EditMode 测试全绿**，`EasyMoney.Core.dll` 与 `EasyMoney.Data.dll` 均已生成
-- ✅ 标签 **`data-layer-complete`**（业务逻辑层封顶）、**`mvp-complete`**
-- ✅ **APK 构建成功**（`bash Tools/build-android.sh` → `Builds/EasyMoney.apk`，29 MB），
-  真机 18 项验收通过 17 项
-- ✅ **字体风格升级**（2026-09-13）—— 自带 Noto Sans SC 三档字重（Regular / Medium /
-  Bold，OFL 1.1，子集化后合计 5.7 MB），全站建立字重层次，**字形不再依赖机型 ROM**。
-  字重→槽位映射抽在 `Core/Typography/FontSlots.cs`，`FontSlotsTests` 8 个用例钉着。
-  ✅ **已随第四版 APK 进包**（33.5 MB）——这一版把此前六次
-  没进包的改动（三档字重 / 暖色配色 / 月份条 / 环形图 / 图例色点 / 导航栏适配）
-  一次补齐，真机复验记录见 `Claude/plans/android-release-checklist.md` 的「真机验收」一节
-- ✅ **分类图标接入**（2026-09-13）—— 15 个预置分类的图标接进账单行 / 报表行 /
-  记账页分类行 / 分类选择弹窗四处。图标名是**数据**（存在 `category.icon_name` 里），
-  所以新装的库走 `DefaultCategories` 种子、**老库走 v2 迁移补**，两条路都得改，
-  只改一边会有一半用户看不到图标。
-  这一版动了 `SCHEMA_VERSION`（1 → 2），老库靠迁移补上（覆盖路径不再真机验收，
-  见下面「验收」）
-- ✅ **暖色纸感配色 + 卡片投影**（2026-09-13）—— 原来是浅灰底 `#F2F3F5` 配白卡片，
-  两者只差 13 个色阶、卡片又没有投影，整屏看着就是一片白。换成燕麦米白底 + 暖白卡片 +
-  焦糖棕主色，卡片统一加一层投影（`UiFactory.PaintCard` / `AddCardShadow`）。
-  配色在 `theme.json` 和 `ThemePalette.Light()` 两处，`ThemePaletteTests` 钉着一致。
-  ✅ **Play 肉眼验收通过**（2026-09-13）——底色与卡片层次分得开、投影在
-- ✅ **月份条抽组件 + 点年月选月份**（2026-09-13）—— 账单页和报表页的月份条
-  原先逐字重复（连 `MONTH_BAR_HEIGHT` / `NAV_BUTTON_WIDTH` / `NAV_ICON_SIZE`
-  三个常量都各定义一份），收成 `App/UI/MonthBar.cs`，两页各一行 `new MonthBar(...)`；
-  中间的年月文字从裸 `Text` 变成可点的「文字 + `↓`」，点开 `MonthPickerDialog`
-  （年份行 + 3×4 月份网格）一次跳到目标月。
-  ⚠️ **顺手多了一条教训**：月份条原来在页面里，一条测试都没有；收成组件后
-  `MonthBarTests` + `MonthPickerDialogTests` 共 19 个用例才够得着它——
-  **能测的界面逻辑就往下沉成组件**
-  ✅ **Play 肉眼验收通过**（2026-09-13）——弹窗、月份条、`↓` 提示、遮罩与居中、
-  跨年进位 5 项全过，详见 `Claude/plans/android-release-checklist.md`
-- ✅ **报表环形图 + 下拉切换视图**（2026-09-13）—— 报表页多一种画法：按占比切扇形
-  画成环形图，环心显示合计；筛选行挂 `DropdownButton` 切换。**视图可扩展**——
-  新的视图只要在 `Core/Reports/ReportViews.ALL` 挂号、写一个 `IReportView` 实现、
-  页面构造宿主时多传一个实例。环形贴图是逐像素程序化生成的（UGUI 没有扇形控件）
-  ✅ **Play 肉眼验收通过**（2026-09-13，14 项）
-- ✅ **环形图图例色点 + 两处修正**（2026-09-13）—— 明细行最左加色点，颜色按**行号**
-  取槽位（跟扇区同一套，跟 `CategoryId` 走的话删掉一个分类颜色就整体错位）；
-  修掉报表页「收入构成」未选中时**白底白字**（用户肉眼发现，当时 335 个用例全绿）——
-  根因是同一段配色样板在两页各抄一遍、抄反了一个分支，收成 `TogglePalette`
-  之后调用方传的是「选没选中」，这类抄错不可能再犯；记账页保存后**只清金额与备注**，
-  类型/账户/分类/日期留着（连记几笔同类账不用重选）。
-  ⚠️ 记账页那条**没有测试覆盖**（`_onSave` 要连着数据库才走得完），只能靠 Play 验
-  ✅ **Play 肉眼验收通过**（2026-09-13，13 项）
-- ✅ **底部导航栏遮挡修复 + 锁竖屏**（2026-09-13）—— 真机上开三键导航时**整块底部
-  被盖住**（四个标签的标签栏 + 账户页/报表页的底部内容）。根因链：APK 是
-  `targetSdk 35` → Android 15 强制 edge-to-edge（导航栏变浮层）→ 而 **Unity 2022.3 的
-  `Screen.safeArea` 不包含导航栏**（UUM-121413，只在 6.1 修复、没回移 2022）。
-  修法**不是**无条件减导航栏高度，而是按**差额**补：`extra = Max(0, 导航栏高度 - safeArea.y)`
-  ——Android 13/14 的 safeArea 本来就排除了导航栏，无条件减会凭空多一条白边，
-  两种错都不报错。规则抽在 `Core/Layout/SafeAreaLayout.cs`（`SafeAreaLayoutTests`
-  16 条钉着，其中两条幂等用例就是这个 bug 的形状），导航栏高度走
-  `App/UI/AndroidSystemBars.cs` 读 `WindowInsets`（**px 不是 dp**，且**不能每帧读**——
-  每次新建的 `AndroidJavaObject` 各占一个 JNI local ref）。
-  ⚠️ 三个连带改动漏一个就白改：`Background` 必须从 SafeArea 挪到 Canvas（否则导航栏
-  那条露出相机的蓝灰清屏色）；**安全区被吃光时放弃内缩**（高度成 0 会让标题栏/标签栏/
-  内容区全塌，整屏空白且不报错）；锁竖屏（版式只验过竖屏）。
-  ⚠️ **第一版真机没修好**，但读数把原因指出来了：API 30+ 的
-  `getInsets(Type.navigationBars())` 在真机上返回 **0**，deprecated 的
-  `getSystemWindowInsetBottom()` 才给出正确的 124px。已加回退——**新 API 优先，
-  它为 0 才用老的**（**不许改成取较大值**，手势导航下会多让出一截白边）。
-  这条教训值钱：**「修了没效果」时塞一行读数进包，比反复试快得多**
-  ⚠️ **第二版仍有毛病，但换了个**：位置对了，底部却空出 124px。读数 `nav 124` 说明系统
-  认为导航栏**正占着**那 124px——**不是被藏了，是图标看不见**。根因同样在 Unity 生成的
-  主题里：`BaseUnityTheme` 继承 `Holo.Light`，而 **Holo 是 API 27 之前的东西，没有
-  `windowLightNavigationBar` 属性**，默认 false = 画白图标；白图标落在燕麦米白底上就是隐形。
-  Android 15 之前不显形（导航栏是不透明黑条），是 edge-to-edge 才让它暴露。
-  修法：启动时设深色图标 + `show()` + `BEHAVIOR_DEFAULT`（只在 API 30+）
-  ⚠️ **第三版图标改深色成了**（三个键看得见了），但**导航键会自己消失**——放着不动
-  慢慢就没了，往上划才浮出来、一两秒又缩回去。这不是没让它显示，是**我们自己请求了
-  全屏沉浸**：Player Settings 的「Start in Fullscreen Mode」会往清单里写
-  `unity.launch-fullscreen=True`，播放器据此设 `SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-  IMMERSIVE_STICKY`（`libunity.so` 里直接搜得到这两个字符串）——现象与 IMMERSIVE_STICKY
-  的定义一字不差。微信不请求全屏，导航键才常驻。**已关掉该选项**，并把
-  `EnsureSystemBarsUsable()` 从 `AppRoot.Awake` 挪进 `SafeAreaFitter._apply()`
-  ——播放器设标志的时机在我们后面，**只调一次会被它盖掉，得每次重算安全区重申一遍**
-  ⚠️ **手势导航下「底下空一条」是另一个根因**：光看导航栏 inset 分不出导航模式，
-  某些机型手势导航下照样报三键的 48dp。改用 `WindowInsets.Type.tappableElement()`
-  分辨（**为 0 = 手势导航**，系统栏不占版面，标签栏落到底，微信的样子），
-  规则在 `SafeAreaLayout.ResolveBottomInset`。读不到时按「有导航键」兜底，
-  **不能按手势算**——多留一截只是难看，少留一截是点不到
-  ⚠️ **这几条 Play 都验不了**——编辑器里 safeArea 全屏、导航栏恒 0，改动完全不可见，
-  只能真机验。前五轮每轮都在包里塞一行临时诊断读数定位，**验完已删**
-  ⚠️ **第四轮验完，前两条过了、三键下冒出第三个问题**：位置**偏高**，标签栏底下空一条。
-  读数是答案的一半——`screen 1080x2276`，2400 的屏少掉的正是一个导航栏，**窗口自己已经
-  停在导航栏上沿了**；可 `getInsets(navigationBars())` **照样报 124**，于是重复预留。
-  **光看 inset 分不出「窗口铺在导航栏下面」和「窗口停在导航栏上沿」**，两者要的答案
-  恰好相反。`ResolveBottomInset` 加第三个判据（渲染面底边到屏幕底边的间距，够一整条就
-  让 0）——判据是**够不够一整条，不是把差额减掉**，减差额方向恰好反了
-  ⚠️ **第五轮验完，位置全对了**（三键下标签栏正好落在导航键上方、手势下仍贴底），
-  只剩**底色**：两条系统栏都是纯黑。根因是 `setStatusBarColor` / `setNavigationBarColor`
-  的文档写明「**只有窗口带 `FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS` 时才生效**」，
-  而 Unity 那套 Holo 主题没开这一位——调用**跑了、但被系统静默丢掉**，不报错不崩溃。
-  修法是**先 `addFlags` 再设颜色，顺序不能换**。（第五轮截图里**顶部**那条深色横带是
-  当时那版临时诊断面板自己，与系统栏的黑不是一回事，别当成一个）
-  ✅ **第六轮真机验收通过**（2026-09-14）——两条系统栏都成了页面底色、图标看得清，
-  这一轮结束。带读数的临时诊断组件已删，旧的构建产物也一并清掉了——
-  `Builds/` 下只剩当前这一版。清单见 `Claude/plans/android-release-checklist.md`
+- 逐项完成度、测试用例数、APK 体积 → **`SPEC.md` 第 2 节**
+- 真机验收的六轮过程、未通过项、遗留问题 → **`Claude/plans/android-release-checklist.md`**
 
-**写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
-`ITransactionRepository` 等于绕过校验。
+⚠️ **会过期的数字（用例数、包体大小、完成百分比）一律只写在 `SPEC.md` 里，本文件不复制。**
+同一个数字存两处，必然有一处先烂掉——实测：总用例数在本文件里停在 270（实际 371），
+而 `AndroidPlayerSettingsTests` 的用例数在 `SPEC.md` 里停在 9（实际 11），烂的方向还相反。
 
-⚠️ **打包配置现在有测试守着**（`AndroidPlayerSettingsTests`，11 个用例）。
-改 Player Settings 前先看这个文件——计划里 Task 17 那张配置表的每一条都有对应断言，
-配置对不对不靠肉眼核对 Unity 面板。
+### 别处查不到的硬约束
 
-⚠️ **真机验收的两处已知瑕疵**（都不影响功能，详见 `Claude/plans/android-release-checklist.md`）：
-APK 里仍有 `android.permission.INTERNET`（UnityWebRequest 模块带的，得自定义 AndroidManifest
-才能去掉）；备注里的 emoji 显示为空白。**emoji 那条已定性为纯字体问题，数据没丢**——
-真机上看到空白时别急着去查存储，写入链路三段都有测试钉着了。
+- **写账单必须走 `TransactionService.Save()` / `CreateTransfer()`**，直接调
+  `ITransactionRepository` 等于绕过校验
+- **接页面时别把展示规则写进页面里。** 页面上的分组、文案拼接、兜底规则都是纯逻辑，
+  抽到 `Core` 才能被测试盯住——EditMode 跑不到页面，留在页面里只能靠肉眼看。
+  Task 14-16 抽的分别是 `Core/Statements/StatementBuilder.cs`（本地日期分组 / 金额正负号 /
+  名称兜底）、`Core/Accounts/AccountForm.cs`（类型标签 / 名称与初始余额校验）、
+  `Core/Reports/ReportForm.cs`（构成标题 / 占比文案 / 条形宽度钳位），页面只管取数和渲染
+- **规则能抽成纯函数就抽，抽不成纯函数的就收成组件**——组件不是页面，EditMode 里
+  `new` 得出来、节点名就是它的形状，也就测得了。月份条（`App/UI/MonthBar.cs`）是
+  后一条路的先例：原先两页各一份、零测试，收成组件后 19 个用例盯上了它的翻月进位、
+  回调与弹窗联动。**先问「这段逻辑能不能离开页面」，再问「该放 Core 还是该做组件」。**
+  详见 `Assets/Scripts/App/CLAUDE.md`
+- **反向验证会暴露测试自身的洞，别把「预测失败数对上了」当成通过。** Task 15 注入
+  4 个假 bug 后失败数确实是 5，但对不上预测的那 5 个：`Validate_EmptyBalance_MeansZero`
+  该红没红，因为它只断言了 `InitialBalanceCents == 0`，而校验失败的返回值那个字段同样是
+  默认值 0——「留空按 0 算」和「留空报错」在这个断言下没有区别。别只看失败个数，要逐个
+  核对**名字**对不对得上
 
-⚠️ **接页面时别把展示规则写进页面里。** 页面的分组、文案拼接、兜底规则都是纯逻辑，
-抽到 `Core` 才能被测试盯住——EditMode 跑不到页面，留在页面里只能靠肉眼看。
-Task 14 抽的是 `Core/Statements/StatementBuilder.cs`（按本地日期分组 / 金额正负号 /
-名称兜底），Task 15 抽的是 `Core/Accounts/AccountForm.cs`（类型标签 / 名称与初始
-余额校验），Task 16 抽的是 `Core/Reports/ReportForm.cs`（构成标题 / 占比文案 /
-条形宽度钳位），页面只管取数和渲染。
+### 守着配置的测试（改配置前先看这两个文件）
 
-**规则能抽成纯函数就抽，抽不成纯函数的就收成组件**——组件不是页面，EditMode 里
-`new` 得出来、节点名就是它的形状，也就测得了。月份条（`App/UI/MonthBar.cs`）是
-后一条路的先例：原先两页各一份、零测试，收成组件后 19 个用例盯上了它的翻月进位、
-回调与弹窗联动。**先问「这段逻辑能不能离开页面」，再问「该放 Core 还是该做组件」。**
+- **`AndroidPlayerSettingsTests`** —— 计划里 Task 17 那张配置表的每一条都有对应断言，
+  配置对不对不靠肉眼核对 Unity 面板
+- **`AndroidBuildConfigTests`** —— 守着 NuGetForUnity 的 runtime 登记表
 
-⚠️ **反向验证会暴露测试自身的洞，别把「预测失败数对上了」当成通过。** Task 15 注入
-4 个假 bug 后失败数确实是 5，但对不上预测的那 5 个：`Validate_EmptyBalance_MeansZero`
-该红没红，因为它只断言了 `InitialBalanceCents == 0`，而校验失败的返回值那个字段同样是
-默认值 0——「留空按 0 算」和「留空报错」在这个断言下没有区别。别只看失败个数，要逐个
-核对**名字**对不对得上。
+### 真机验收的两处已知瑕疵（都不影响功能）
 
-⚠️ **Android 真机相关的坑，详见 `SPEC.md` 第 11 节**：
+详见 `Claude/plans/android-release-checklist.md`。APK 里仍有 `android.permission.INTERNET`
+（UnityWebRequest 模块带的，得自定义 AndroidManifest 才能去掉）；备注里的 emoji 显示为空白。
+**emoji 那条已定性为纯字体问题，数据没丢**——真机上看到空白时别急着去查存储，
+写入链路三段都有测试钉着了。
+
+### Android 真机相关的坑
+
+**详见 `SPEC.md` 第 11 节**（按「风险 → 现象 → 处置」组织，每条都写到结论）。最常踩的四条：
 
 - **`NuGetForUnity` 只解压 `NativeRuntimeSettings.json` 里登记过的 runtime**，
   nupkg 里的其余平台会被**静默丢弃**，编辑器里完全看不出来。新增带原生库的包时
