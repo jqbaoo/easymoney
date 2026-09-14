@@ -119,9 +119,12 @@ namespace EasyMoney.Core
         }
 
         /// <summary>
-        /// 底部到底要预留多少像素——**导航栏不占版面时就是 0**。
+        /// 底部到底要预留多少像素——**导航栏已经不在渲染面里、或者压根不占版面时就是 0**。
         ///
-        /// 三键导航和手势导航要区别对待：
+        /// 两个条件各挡一种错法，都要看：
+        ///
+        /// ① **窗口有没有自己让开**（<paramref name="iWindowBottomGapPx"/>）——见下面那段。
+        /// ② **是不是三键导航**——手势导航下导航栏不占版面：
         ///
         /// * **三键**：屏幕底部一条 48dp 的实心按钮条，内容钻到它下面就永远看不见，
         ///   必须整条让出来（微信也是这么做的，标签栏正好落在导航键上方）。
@@ -139,20 +142,31 @@ namespace EasyMoney.Core
         /// 少留一截是内容被系统栏压住、再也点不到——宁可难看。
         /// 而且 Android 13/14 及更早的 <c>Screen.safeArea</c> 本来就排除了导航栏，
         /// 多留的那截会被 <see cref="Compute"/> 里的差额规则抵消掉，这层兜底几乎不会生效。
+        ///
+        /// <paramref name="iWindowBottomGapPx"/> 是**渲染面底边到屏幕底边还剩多少像素**。
+        /// 它不为 0 就说明窗口**自己已经把底部让开了**（Unity 不再请求全屏之后就是这样），
+        /// 此时导航栏虽然还报着 124px，但那 124px 已经不在渲染面里——再留一条就是白边，
+        /// 真机上看到的是「内容整体偏高、标签栏下面空一块」。
+        ///
+        /// ⚠️ <b>判据是「让开的量够不够一整条」，不是把差额减掉。</b>
+        /// 减差额在「窗口顶部让出状态栏、底部却铺到导航栏下面」的机器上会少留一截，
+        /// 那又变成内容被压住。而「让开了一部分、差一点点」在真机上基本不会出现——
+        /// 窗口要么铺到屏幕底，要么停在导航栏上沿。
         /// </summary>
-        public static int ResolveBottomInset(int iNavigationBarPx, int iTappableElementPx)
+        public static int ResolveBottomInset(
+            int iNavigationBarPx, int iTappableElementPx, int iWindowBottomGapPx)
         {
             if (iNavigationBarPx <= 0)
             {
                 return 0;
             }
 
-            if (iTappableElementPx < 0)
+            if (iTappableElementPx == 0)
             {
-                return iNavigationBarPx;
+                return 0;
             }
 
-            if (iTappableElementPx == 0)
+            if (iWindowBottomGapPx >= iNavigationBarPx)
             {
                 return 0;
             }

@@ -33,13 +33,15 @@ namespace EasyMoney.App.UI
     public static class AndroidSystemBars
     {
         /// <summary>
-        /// **底部要预留多少**（屏幕像素）。非 Android、读不到、这台设备本来就没有导航栏，
-        /// 以及**手势导航**（导航栏不占版面）时都返回 0——调用方一律按「不用让」处理。
+        /// **底部要预留多少**（屏幕像素）。下面这些情况都返回 0，调用方一律按「不用让」处理：
+        /// 非 Android、读不到、这台设备本来就没有导航栏、**手势导航**（导航栏不占版面）、
+        /// 以及**窗口自己已经让开了底部**（不再请求全屏之后就是这样）。
         ///
-        /// 注意它不总是「导航栏高度」：三键导航下才是，手势导航下按 0 算，
-        /// 分辨规则在 <see cref="SafeAreaLayout.ResolveBottomInset"/> 里（可测的纯函数）。
+        /// ⚠️ 名字是「预留多少」不是「导航栏多高」——这两个值在三键导航 + 窗口铺满时
+        /// 才相等。分辨规则全在 <see cref="SafeAreaLayout.ResolveBottomInset"/> 里
+        /// （可测的纯函数），方法本身只负责把几个数读回来。
         /// </summary>
-        public static int NavigationBarHeightPx()
+        public static int BottomInsetPx()
         {
 #if UNITY_ANDROID
             // 编辑器里安全区等于全屏、也没有导航栏，一律当作不用让
@@ -48,7 +50,7 @@ namespace EasyMoney.App.UI
                 return 0;
             }
 
-            return _readNavigationBarHeightPx();
+            return _readBottomInsetPx();
 #else
             return 0;
 #endif
@@ -219,7 +221,7 @@ namespace EasyMoney.App.UI
             return oDecorView.Call<AndroidJavaObject>("getRootWindowInsets");
         }
 
-        private static int _readNavigationBarHeightPx()
+        private static int _readBottomInsetPx()
         {
             try
             {
@@ -238,7 +240,7 @@ namespace EasyMoney.App.UI
             {
                 // 不能静默返回 0：那样日志里「抛了异常」和「这台设备没导航栏」长得一模一样，
                 // 真机上「修了跟没修一样」就无从排查了
-                Debug.LogWarning($"[AndroidSystemBars] 读导航栏高度失败，按 0 处理：{oError}");
+                Debug.LogWarning($"[AndroidSystemBars] 读底部预留高度失败，按 0 处理：{oError}");
                 return 0;
             }
         }
@@ -287,6 +289,16 @@ namespace EasyMoney.App.UI
 
                 // 深色图标：我们的底是浅色的，默认那套白图标画上去等于没有
                 oController.Call("setSystemBarsAppearance", iLightNavBars, iLightNavBars);
+
+                // 导航栏的底色交给系统画，而系统默认给的是**纯黑**——本项目的底是燕麦米白，
+                // 一条黑边横在底下很扎眼（微信那边是白底深色键）。把它设成页面底色，
+                // 导航栏就和界面连成一片了。
+                //
+                // ⚠️ 这一句在 Android 15 上**可能被系统忽略**（setNavigationBarColor 对
+                // edge-to-edge 的应用已废弃）。被忽略不会更糟——底色还是系统那个黑，
+                // 图标颜色本来就跟着底色走。所以它属于「成了更好，不成不亏」，
+                // 别为了它去改 targetSdk 或自定义清单
+                oWindow.Call("setNavigationBarColor", _colorToArgb(Theme.BACKGROUND));
 
                 // 别自动隐藏。底部那 124px 是按「导航栏在」留出来的，
                 // 系统把导航栏收走，留出来的就成了一块纯空白
@@ -361,7 +373,35 @@ namespace EasyMoney.App.UI
             int iLegacy = _legacyInsetBottom(oInsets);
             int iNavBar = SafeAreaLayout.ResolveNavigationBarHeight(iNewApi, iLegacy);
 
-            return SafeAreaLayout.ResolveBottomInset(iNavBar, _tappableElementBottom(oInsets));
+            return SafeAreaLayout.ResolveBottomInset(
+                iNavBar, _tappableElementBottom(oInsets), _windowBottomGapPx());
+        }
+
+        /// <summary>
+        /// 渲染面底边到屏幕底边还剩多少像素。
+        ///
+        /// 为什么需要它：**关掉「Start in Fullscreen Mode」之后，窗口自己就不铺到导航栏下面了**
+        /// （真机读数：`Screen.height` 从 2400 变成 2276，正好少一个导航栏）。但
+        /// <c>getInsets(navigationBars())</c> **照样报 124**——所以光看 inset 分不出
+        /// 「窗口铺在导航栏下面」和「窗口已经停在导航栏上沿」，前者要留、后者留了就是白边，
+        /// 真机现象是「内容整体偏高、标签栏下面空一块」。
+        ///
+        /// 两个来源取较大值：两个都是「屏幕原始高度」，个别机型上会有一个不灵
+        /// （所以真机读数里两个都打出来对照）。**任一个报对了就能判对**，
+        /// 而它们报大了也不会误判——铺满时 <c>Screen.height</c> 同样大，差额仍是 0。
+        /// </summary>
+        private static int _windowBottomGapPx()
+        {
+            if (Screen.height <= 0)
+            {
+                return 0;
+            }
+
+            int iSystemHeight = Mathf.Max(Display.main.systemHeight, Screen.currentResolution.height);
+
+            int iGap = iSystemHeight - Screen.height;
+
+            return iGap > 0 ? iGap : 0;
         }
 
         /// <summary>
@@ -451,6 +491,16 @@ namespace EasyMoney.App.UI
         private static int _legacyInsetBottom(AndroidJavaObject oInsets)
         {
             return oInsets.Call<int>("getSystemWindowInsetBottom");
+        }
+
+        /// <summary>
+        /// Unity 的 <c>Color</c>（0..1 的 float）转 Android 的 ARGB 整数。
+        /// Java 那边收的是有符号 int，不需要额外处理——位模式一样。
+        /// </summary>
+        private static int _colorToArgb(Color oColor)
+        {
+            Color32 oBytes = oColor;
+            return (oBytes.a << 24) | (oBytes.r << 16) | (oBytes.g << 8) | oBytes.b;
         }
 
         private static int _sdkInt()

@@ -32,7 +32,7 @@ namespace EasyMoney.App.UI
         private RectTransform m_Rect;
         private Rect m_LastSafeArea = Rect.zero;
         private Vector2Int m_LastScreenSize = Vector2Int.zero;
-        private int m_NavigationBarPx;
+        private int m_BottomInsetPx;
         private int m_FramesSinceProbe;
         private float m_StartTime;
 
@@ -54,10 +54,10 @@ namespace EasyMoney.App.UI
                 return;
             }
 
-            // 导航栏高度还没读到，就在启动头两秒里再试几次。设备本来就没导航栏时
+            // 底部要预留多少还没读到，就在启动头两秒里再试几次。设备本来就不用让时
             // 会一直返回 0，试满时间窗就自然停下——不用另外记「失败过几次」
             m_FramesSinceProbe++;
-            if (m_NavigationBarPx <= 0 &&
+            if (m_BottomInsetPx <= 0 &&
                 m_FramesSinceProbe >= INSET_PROBE_FRAME_GAP &&
                 Time.realtimeSinceStartup - m_StartTime < INSET_PROBE_SECONDS)
             {
@@ -108,11 +108,11 @@ namespace EasyMoney.App.UI
             AndroidSystemBars.EnsureNavigationBarUsable();
 
             // 读一次要走一串 JNI，所以只在真要重算的时候读，不放进 Update 每帧跑
-            m_NavigationBarPx = AndroidSystemBars.NavigationBarHeightPx();
+            m_BottomInsetPx = AndroidSystemBars.BottomInsetPx();
 
             SafeAreaAnchors oAnchors = SafeAreaLayout.Compute(
                 new SafeAreaRect(oSafeArea.x, oSafeArea.y, oSafeArea.width, oSafeArea.height),
-                Screen.width, Screen.height, m_NavigationBarPx);
+                Screen.width, Screen.height, m_BottomInsetPx);
 
             m_Rect.anchorMin = new Vector2(oAnchors.MinX, oAnchors.MinY);
             m_Rect.anchorMax = new Vector2(oAnchors.MaxX, oAnchors.MaxY);

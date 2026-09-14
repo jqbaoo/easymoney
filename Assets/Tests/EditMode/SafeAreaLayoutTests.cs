@@ -236,9 +236,9 @@ namespace EasyMoney.Tests
         [Test]
         public void ResolveBottomInset_ThreeButtonNavigation_KeepsNavBarHeight()
         {
-            // 三键导航：底部一条 48dp 的实心按钮条，内容钻进去就永远看不见。
-            // tappableElement 非 0 就说明有可点的系统栏，也就是三键
-            Assert.AreEqual(124, SafeAreaLayout.ResolveBottomInset(124, 124),
+            // 三键导航 + 窗口铺到屏幕底：底部一条 48dp 的实心按钮条，
+            // 内容钻进去就永远看不见。tappableElement 非 0 说明有可点的系统栏，也就是三键
+            Assert.AreEqual(124, SafeAreaLayout.ResolveBottomInset(124, 124, 0),
                 "三键导航下要把整条导航栏让出来");
         }
 
@@ -248,7 +248,7 @@ namespace EasyMoney.Tests
             // 手势导航：只有一条贴底的细提示条，不占版面（tappableElement 为 0）。
             // 让出来的话底部就凭空多一条空白——真机上验收时看到的就是这个，
             // 微信在同样的情况下标签栏是贴底的
-            Assert.AreEqual(0, SafeAreaLayout.ResolveBottomInset(124, 0),
+            Assert.AreEqual(0, SafeAreaLayout.ResolveBottomInset(124, 0, 0),
                 "手势导航下不留，标签栏要落到屏幕最底");
         }
 
@@ -258,7 +258,7 @@ namespace EasyMoney.Tests
             // ⚠️ 这条钉的是「读不到时按有导航键算」：API 30 以下没有 tappableElement，
             // 返回 -1 表示「不知道」。两个方向都可能错，但错法不一样——
             // 多留一截只是难看，少留一截是内容被系统栏压住、再也点不到
-            Assert.AreEqual(124, SafeAreaLayout.ResolveBottomInset(124, -1),
+            Assert.AreEqual(124, SafeAreaLayout.ResolveBottomInset(124, -1, 0),
                 "读不到可点区域时宁可多留，不能按手势算");
         }
 
@@ -267,9 +267,37 @@ namespace EasyMoney.Tests
         {
             // 设备本来就没有导航栏（或还没读到），此时 tappable 说什么都不重要：
             // 没有导航栏可以让，就不该凭空留一条
-            Assert.AreEqual(0, SafeAreaLayout.ResolveBottomInset(0, 0));
-            Assert.AreEqual(0, SafeAreaLayout.ResolveBottomInset(0, 124),
+            Assert.AreEqual(0, SafeAreaLayout.ResolveBottomInset(0, 0, 0));
+            Assert.AreEqual(0, SafeAreaLayout.ResolveBottomInset(0, 124, 0),
                 "导航栏高度都没有，tappable 有值也留不出东西");
+        }
+
+        [Test]
+        public void ResolveBottomInset_WindowAlreadyClearedTheGap_ReservesNothing()
+        {
+            // ⚠️ **这一条是真机上「内容整体偏高、标签栏下面空一块」的形状。**
+            //
+            // 关掉「Start in Fullscreen Mode」之后窗口自己就不铺到导航栏下面了
+            // （实测 Screen.height 从 2400 变成 2276，正好少一个导航栏），
+            // 但 getInsets(navigationBars()) **照样报 124**——光看 inset 分不出
+            // 「窗口铺在导航栏下面」和「窗口已经停在导航栏上沿」。
+            // 不判这一条的话，那 124px 会被再让一次，标签栏凭空抬高一条
+            Assert.AreEqual(0, SafeAreaLayout.ResolveBottomInset(124, 124, 124),
+                "窗口已经把底部让开了，再留一条就是白边");
+        }
+
+        [Test]
+        public void ResolveBottomInset_WindowPartiallyCleared_StillReservesWhole()
+        {
+            // ⚠️ 钉的是「判据是够不够一整条，不是把差额减掉」。
+            // 减差额（124-60=64）在「窗口顶部让出状态栏、底部却铺到导航栏下面」的机器上
+            // 会少留一截——那又变成内容被导航键压住，方向恰好反了。
+            // 真机上窗口只会停在两种位置：贴着屏幕底，或者停在导航栏上沿，
+            // 「让开了一半」是构造出来的，但规则的方向必须在这里定死
+            Assert.AreEqual(124, SafeAreaLayout.ResolveBottomInset(124, 124, 60),
+                "只让开一半时宁可整条都留，不能按差额减");
+            Assert.AreEqual(124, SafeAreaLayout.ResolveBottomInset(124, 124, 123),
+                "差一个像素也算没让开");
         }
     }
 }
