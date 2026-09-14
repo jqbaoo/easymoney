@@ -95,7 +95,7 @@ namespace EasyMoney.App.UI
             m_LastScreenSize = new Vector2Int(Screen.width, Screen.height);
             m_FramesSinceProbe = 0;
 
-            // 每次重算安全区都重申一遍「导航栏要看得见、别自动收走」。
+            // 每次重算安全区都重申一遍「两条系统栏跟页面同色、导航栏别被收走」。
             //
             // 为什么不能只调一次：Unity 的播放器会自己往窗口上设全屏沉浸标志
             // （SYSTEM_UI_FLAG_HIDE_NAVIGATION | IMMERSIVE_STICKY，libunity.so 里
@@ -105,7 +105,7 @@ namespace EasyMoney.App.UI
             // 又会在切回前台时跑一次，正好是播放器可能重新设标志的两个时间点。
             //
             // 代价是把那串 JNI 多走十几遍。_apply 本身就不是每帧调用的，撑得住
-            AndroidSystemBars.EnsureNavigationBarUsable();
+            AndroidSystemBars.EnsureSystemBarsUsable();
 
             // 读一次要走一串 JNI，所以只在真要重算的时候读，不放进 Update 每帧跑
             m_BottomInsetPx = AndroidSystemBars.BottomInsetPx();

@@ -57,27 +57,34 @@ namespace EasyMoney.App.UI
         }
 
         /// <summary>
-        /// 让系统导航栏**看得见、留得住**。启动时调一次即可。
+        /// 把**两条系统栏**调成与界面一致的外观，并要求系统别把导航栏收走。
+        /// 每次重算安全区都调一遍（调用点在 <c>SafeAreaFitter._apply()</c>）。
         ///
-        /// 为什么需要：Android 15 强制 edge-to-edge 之后，导航栏变成了**没有底色的浮层**，
-        /// 图标颜色交给系统按 <c>windowLightNavigationBar</c> 决定——而 Unity 生成的
-        /// <c>BaseUnityTheme</c> 在 API 31+ 继承的是
-        /// <c>android:Theme.Holo.Light.NoActionBar.Fullscreen</c>，Holo 是 API 27 之前的东西，
-        /// **压根没有这个属性**，取默认值 <c>false</c> = 画**白色**图标。
-        /// 白图标落在本项目的燕麦米白底色上就是隐形。
+        /// 四件事，顺序不能换：
         ///
-        /// 真机上的现象正是这个：底部空出 124px 什么都没有，而读数
-        /// <c>nav 124</c> 明明说导航栏占着地方——**它不是被藏起来了，是看不见**。
-        /// （真被藏起来的话读数会变 0，底部那 124px 会被内容吃掉、标签栏直接贴到屏幕最底。）
+        /// ① **先取得「系统栏底色由这个窗口负责画」的资格**——见下面那段 ⚠️。
+        /// ② 两条栏的底色都设成页面底色。系统默认给的是**纯黑**，而本项目的底是燕麦米白，
+        ///    两条黑边夹着界面很扎眼（微信那边是底色连着界面）。
+        /// ③ 底色浅，图标就得是深的。图标颜色由系统按 <c>windowLightNavigationBar</c> 定，
+        ///    而 Unity 生成的 <c>BaseUnityTheme</c> 在 API 31+ 继承的是
+        ///    <c>android:Theme.Holo.Light.NoActionBar.Fullscreen</c>——Holo 是 API 27 之前的
+        ///    东西，**压根没有这个属性**，取默认值 <c>false</c> = 画**白色**图标。
+        ///    真机上第三轮的现象正是这个：底部空出 124px 什么都没有，而读数 <c>nav 124</c>
+        ///    明明说导航栏占着地方——**它不是被藏起来了，是看不见**。
+        /// ④ 明确要求系统**显示**导航栏、且**不要自动隐藏**——底部那 124px 是留出来了的，
+        ///    收走就成了空白。
         ///
-        /// 所以这里做两件事：把图标改成深色（我们的底是浅色）；再明确要求系统**显示**
-        /// 导航栏、且**不要自动隐藏**——底部那 124px 是留出来了的，收走就成了空白。
+        /// ⚠️ <b>少了第 ① 步，第 ② 步会被静默忽略。</b>
+        /// <c>Window.setStatusBarColor</c> / <c>setNavigationBarColor</c> 的文档写得很明白：
+        /// **只有窗口带 <c>FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS</c> 时这两个调用才生效**。
+        /// 而 Unity 那套 Holo 主题没有开这一位——第四轮真机上两条栏都是纯黑，
+        /// 就是这么来的：代码跑了，颜色被系统丢掉了，**不报错、不崩溃**。
         ///
-        /// ⚠️ <b>只在 API 30+ 动手。</b> Android 11 以下不强制 edge-to-edge，导航栏是
-        /// **不透明的黑条**，白图标配黑底本来就清楚——在那里设「浅色导航栏」会把图标
+        /// ⚠️ <b>只在 API 30+ 动手。</b> Android 11 以下不强制 edge-to-edge，两条栏都是
+        /// **不透明的黑条**，白图标配黑底本来就清楚——在那里设「浅色系统栏」会把图标
         /// 变成黑图标画黑底，比不设更糟。
         /// </summary>
-        public static void EnsureNavigationBarUsable()
+        public static void EnsureSystemBarsUsable()
         {
 #if UNITY_ANDROID
             if (Application.isEditor)
@@ -85,7 +92,7 @@ namespace EasyMoney.App.UI
                 return;
             }
 
-            _ensureNavigationBarUsable();
+            _ensureSystemBarsUsable();
 #endif
         }
 
@@ -156,6 +163,34 @@ namespace EasyMoney.App.UI
             return _probeNavigationBarVisible();
 #else
             return -1;
+#endif
+        }
+
+        /// <summary>
+        /// ⚠️ 临时，诊断用：系统栏的**窗口标志**与两条栏**读回来的底色**，一行文本。
+        /// 非 Android 返回「非 Android」。
+        ///
+        /// 为什么要单独报这个：第五轮真机上两条栏都是纯黑，而代码里明明调了
+        /// `setStatusBarColor` / `setNavigationBarColor`。「调用跑了但被系统丢掉」和
+        /// 「压根没跑到」在截图上一模一样，只有读回来才知道——颜色读回来是页面底色
+        /// 而屏幕上仍是黑的，就坐实了是系统丢的，下一步只能去改主题（`windowDrawsSystemBarBackgrounds`），
+        /// 而不是继续在这几个 API 上打转。
+        ///
+        /// `flags` 打十六进制是有用的：`80000000` = `FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS`
+        /// 有没有设上，`04000000` / `08000000` = 半透明状态栏/导航栏有没有被谁设上
+        /// （设了就说明系统会自算一层蒙版，颜色同样不生效）。
+        /// </summary>
+        public static string SystemBarAppearanceForDiagnostics()
+        {
+#if UNITY_ANDROID
+            if (Application.isEditor)
+            {
+                return "非 Android";
+            }
+
+            return _probeSystemBarAppearance();
+#else
+            return "非 Android";
 #endif
         }
 
@@ -246,11 +281,11 @@ namespace EasyMoney.App.UI
         }
 
         /// <summary>
-        /// 把导航栏图标改成深色，并要求系统显示它、别自动隐藏。
-        /// 为什么只在 API 30+ 做、做之前是什么样子，见
-        /// <see cref="EnsureNavigationBarUsable"/> 的注释。
+        /// 设两条系统栏的底色与图标颜色，并要求系统显示导航栏、别自动隐藏。
+        /// 为什么只在 API 30+ 做、每一步为什么是这个顺序，见
+        /// <see cref="EnsureSystemBarsUsable"/> 的注释。
         /// </summary>
-        private static void _ensureNavigationBarUsable()
+        private static void _ensureSystemBarsUsable()
         {
             if (_sdkInt() < 30)
             {
@@ -275,32 +310,37 @@ namespace EasyMoney.App.UI
                     return;
                 }
 
-                // WindowInsetsController 是接口，APPEARANCE_* / BEHAVIOR_* 是它上面的常量。
-                // 读常量而不是写死 0x10 / 1，理由同 navigationBars()：
-                // 字面量的含义改了不会有任何报错，只会悄悄失效
+                // 常量一律从类上读，不写死字面量——理由同 navigationBars()：
+                // 含义改了不会有任何报错，只会悄悄失效
                 using AndroidJavaClass oControllerClass =
                     new AndroidJavaClass("android.view.WindowInsetsController");
+                using AndroidJavaClass oLayoutParamsClass =
+                    new AndroidJavaClass("android.view.WindowManager$LayoutParams");
 
+                int iLightStatusBars = oControllerClass.GetStatic<int>("APPEARANCE_LIGHT_STATUS_BARS");
                 int iLightNavBars = oControllerClass.GetStatic<int>("APPEARANCE_LIGHT_NAVIGATION_BARS");
                 int iBehaviorDefault = oControllerClass.GetStatic<int>("BEHAVIOR_DEFAULT");
 
                 using AndroidJavaClass oType = new AndroidJavaClass("android.view.WindowInsets$Type");
                 int iNavBars = oType.CallStatic<int>("navigationBars");
 
-                // 深色图标：我们的底是浅色的，默认那套白图标画上去等于没有
-                oController.Call("setSystemBarsAppearance", iLightNavBars, iLightNavBars);
+                // ① 先要「系统栏底色由这个窗口负责画」的资格。
+                // **Unity 那套 Holo 主题没开这一位**，而 Window.setStatusBarColor /
+                // setNavigationBarColor 只在窗口带这个标志时才生效——少了这一句，
+                // 下面那两句颜色调用会被静默丢掉，真机上就是两条纯黑，跟没写代码一样
+                oWindow.Call("addFlags",
+                    oLayoutParamsClass.GetStatic<int>("FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS"));
 
-                // 导航栏的底色交给系统画，而系统默认给的是**纯黑**——本项目的底是燕麦米白，
-                // 一条黑边横在底下很扎眼（微信那边是白底深色键）。把它设成页面底色，
-                // 导航栏就和界面连成一片了。
-                //
-                // ⚠️ 这一句在 Android 15 上**可能被系统忽略**（setNavigationBarColor 对
-                // edge-to-edge 的应用已废弃）。被忽略不会更糟——底色还是系统那个黑，
-                // 图标颜色本来就跟着底色走。所以它属于「成了更好，不成不亏」，
-                // 别为了它去改 targetSdk 或自定义清单
-                oWindow.Call("setNavigationBarColor", _colorToArgb(Theme.BACKGROUND));
+                // ② 两条栏的底色都跟页面走
+                int iArgb = _colorToArgb(Theme.BACKGROUND);
+                oWindow.Call("setStatusBarColor", iArgb);
+                oWindow.Call("setNavigationBarColor", iArgb);
 
-                // 别自动隐藏。底部那 124px 是按「导航栏在」留出来的，
+                // ③ 底色浅 → 图标要深，两条栏都要。默认那套白图标画在浅底上等于没有
+                int iLightBars = iLightStatusBars | iLightNavBars;
+                oController.Call("setSystemBarsAppearance", iLightBars, iLightBars);
+
+                // ④ 别自动隐藏。底部那 124px 是按「导航栏在」留出来的，
                 // 系统把导航栏收走，留出来的就成了一块纯空白
                 oController.Call("setSystemBarsBehavior", iBehaviorDefault);
                 oController.Call("show", iNavBars);
@@ -308,8 +348,38 @@ namespace EasyMoney.App.UI
             catch (System.Exception oError)
             {
                 // 失败就退回系统默认外观——不影响记账，但要在日志里留痕：
-                // 否则真机上「还是看不见」和「压根没走到这里」分不出来
-                Debug.LogWarning($"[AndroidSystemBars] 设置导航栏外观失败，按系统默认处理：{oError}");
+                // 否则真机上「还是黑的」和「压根没走到这里」分不出来
+                Debug.LogWarning($"[AndroidSystemBars] 设置系统栏外观失败，按系统默认处理：{oError}");
+            }
+        }
+
+        private static string _probeSystemBarAppearance()
+        {
+            try
+            {
+                using AndroidJavaClass oUnityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+                using AndroidJavaObject oActivity = oUnityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+
+                if (oActivity == null)
+                {
+                    return "读不到（无 Activity）";
+                }
+
+                using AndroidJavaObject oWindow = oActivity.Call<AndroidJavaObject>("getWindow");
+                using AndroidJavaObject oAttributes = oWindow.Call<AndroidJavaObject>("getAttributes");
+
+                // 三条都是「我们设了什么」，不是「系统画了什么」——两者不一致时
+                // 就是系统把调用丢了，那才是这一行要回答的问题
+                int iFlags = oAttributes.Get<int>("flags");
+                int iStatusBar = oWindow.Call<int>("getStatusBarColor");
+                int iNavigationBar = oWindow.Call<int>("getNavigationBarColor");
+
+                return $"flags {iFlags:X8}  sb {iStatusBar:X8}  nb {iNavigationBar:X8}";
+            }
+            catch (System.Exception oError)
+            {
+                Debug.LogWarning($"[AndroidSystemBars] 读系统栏外观失败：{oError}");
+                return "读失败";
             }
         }
 

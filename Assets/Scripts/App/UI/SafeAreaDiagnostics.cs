@@ -17,7 +17,7 @@ namespace EasyMoney.App.UI
     /// </summary>
     public sealed class SafeAreaDiagnostics : MonoBehaviour
     {
-        private const float PANEL_HEIGHT = 240f;
+        private const float PANEL_HEIGHT = 300f;
 
         /// <summary>
         /// 面板顶边离 Canvas 顶多远。
@@ -102,8 +102,11 @@ namespace EasyMoney.App.UI
             // 「内容整体偏高、标签栏下面空一块」）。两个来源都打出来，
             // 万一某个机型上有一个不灵，一眼就能看出是哪个
             int iSystemHeight = Display.main.systemHeight;
-            int iResolutionHeight = Screen.currentResolution.height;
             int iGap = iSystemHeight > Screen.height ? iSystemHeight - Screen.height : 0;
+
+            // 「我们设了什么」——三条栏的外观读数。**屏幕上是黑的而这里读回来是页面底色**，
+            // 就说明 setStatusBarColor 那一串被系统丢掉了，得去改主题而不是继续调这几个 API
+            string sBars = AndroidSystemBars.SystemBarAppearanceForDiagnostics();
 
             // 重算一遍「该让多少」，跟界面上实际的表现对照。
             // 故意调的是同一个纯函数，这样读数反映的是算出来的结果而不是拍的数
@@ -120,11 +123,11 @@ namespace EasyMoney.App.UI
             // nav 是「导航栏报多高」，tap 是「系统栏实际占多高」，两者都可能撒谎——
             // 某些机型手势导航下 nav 照样报三键的 124，靠 tap 才分得出来
             m_Label.text =
-                $"safeArea y={oSafe.y:F0} h={oSafe.height:F0} w={oSafe.width:F0}\n" +
-                $"screen {Screen.width}x{Screen.height}  " +
-                $"sys {iSystemHeight}  res {iResolutionHeight}  gap {iGap}\n" +
+                $"safeArea y={oSafe.y:F0} h={oSafe.height:F0}\n" +
+                $"screen {Screen.width}x{Screen.height}  sys {iSystemHeight}  gap {iGap}\n" +
                 $"nav {iNavBar} (new {iNewApi}/old {iLegacy})  vis {iVisible}  tap {iTappable}\n" +
-                $"inset {iInset}  extra {fExtra:F0}";
+                $"inset {iInset}  extra {fExtra:F0}\n" +
+                $"bars {sBars}";
         }
     }
 }
