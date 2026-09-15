@@ -172,7 +172,8 @@ bash Tools/run-editmode-tests.sh
 
 ⚠️ 但**跑之前仍然要先关掉 Unity 编辑器**：项目被占着时第二个实例起不来，崩在
 `HandleProjectAlreadyOpenInAnotherInstance`，报退出码 2，**看起来跟编译错误一样**。
-（脚本有超时兜底，但那条路查起来很费时间，不如关掉编辑器省事。）
+脚本现在会**提前拦住**这种情况（起实例前先查占用，有就打印提示并 exit 2，
+不去起那个注定起不来的实例），但关掉编辑器仍是最省事的做法。
 
 详见 `SPEC.md` 第 10 节。
 
