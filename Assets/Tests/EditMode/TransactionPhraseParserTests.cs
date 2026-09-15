@@ -150,6 +150,28 @@ namespace EasyMoney.Tests
             Assert.AreEqual(Money.FromYuan(30).Cents, oDraft.AmountCents);
         }
 
+        /// <summary>
+        /// 「类型」后面的分类名听错一个字也认得出（「餐饮」→「餐引」）。
+        ///
+        /// 这条守的是一条**极容易漏掉的路径**：普通说法「分类餐引」是在
+        /// <see cref="DraftResolver"/> 那一步才做匹配的，而「类型X」得先在这里判断
+        /// X 算不算一个分类名——这一步若还是严格全等，「类型餐引」当场就被判成
+        /// 没听懂，**根本走不到 <see cref="DraftResolver"/>**，
+        /// 分类的模糊匹配在这条路上整个失效。
+        /// </summary>
+        [Test]
+        public void Parse_TypeLabelWithTypo_FillsCategoryName()
+        {
+            Assert.IsTrue(_parse("记一笔，类型餐引，金额30", out TransactionDraft oDraft));
+
+            // 错字**原样**传下去，不在这里纠正：这一层只回答「这算不算一个分类名」，
+            // 换成库里哪个 Id 是 DraftResolver 的事
+            Assert.AreEqual("餐引", oDraft.CategoryName);
+            Assert.IsFalse(oDraft.Type.HasValue, "「餐引」不在账单类型词表里，不该被认成类型");
+            Assert.IsEmpty(oDraft.Unrecognized, "认出来了就不该再报「没认出」");
+            Assert.AreEqual(Money.FromYuan(30).Cents, oDraft.AmountCents);
+        }
+
         // ── C. 金额 ──────────────────────────────────
 
         [Test]

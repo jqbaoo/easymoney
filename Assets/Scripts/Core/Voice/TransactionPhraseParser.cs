@@ -274,6 +274,15 @@ namespace EasyMoney.Core
         /// 「类型餐饮」是分类，「类型收入」是账单类型——用户不必改口头习惯去区分
         /// 「类型」和「分类」这两个词。
         ///
+        /// 认分类名这一步走 <see cref="NameMatcher.PickUniqueIndex"/>，与
+        /// <see cref="DraftResolver"/> 用的是**同一套规则**，所以「类型餐引」听错一个字
+        /// 也认得出。两处若各用一套，就会出现「这里认了、那边匹配不上」的错位，
+        /// 而用户看到的只是「分类莫名其妙没填上」。
+        ///
+        /// ⚠️ 认出来之后**原样把值传下去**（<c>CategoryName = "餐引"</c>），**不在这里纠正**：
+        /// 这里只回答「这算不算一个分类名」，换成库里哪个 Id 是 <see cref="DraftResolver"/>
+        /// 的职责。两处都纠一次的话，以后改匹配规则就得改两个地方，漏一个行为就不一致。
+        ///
         /// 两边都不在时不猜，报为未识别让用户看见：猜错会把账记到别的分类上，
         /// 而用户不一定发现；留空他补一下就好。
         /// </summary>
@@ -289,31 +298,13 @@ namespace EasyMoney.Core
                 }
             }
 
-            if (_contains(lCategoryNames, sValue))
+            if (NameMatcher.PickUniqueIndex(sValue, lCategoryNames) >= 0)
             {
                 oDraft.CategoryName = sValue;
                 return;
             }
 
             oDraft.Unrecognized.Add(sValue);
-        }
-
-        private static bool _contains(IList<string> lItems, string sValue)
-        {
-            if (lItems == null)
-            {
-                return false;
-            }
-
-            foreach (string sItem in lItems)
-            {
-                if (string.Equals(sItem, sValue, StringComparison.Ordinal))
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         /// <summary>一个标签在句子里的某次出现。</summary>
