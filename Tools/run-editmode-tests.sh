@@ -36,6 +36,25 @@ _stop_test_unity()
   " >/dev/null 2>&1
 }
 
+# ── 起实例之前先确认项目没被占用 ──────────────────────────
+# 同一个项目只允许一个 Unity 实例。被占着时第二个实例会崩在
+# HandleProjectAlreadyOpenInAnotherInstance，**报退出码 2，跟编译错误长得一模一样**
+# ——照着编译错误去查会白费很多时间。这里提前拦下，把话说清楚。
+# 检出任何引用本项目的 Unity 进程都算占用（用户开着的编辑器、上一轮的残留实例）；
+# PowerShell 本身不可用时退化成「不拦」，照旧往下跑。
+BUSY_PID=$(powershell -NoProfile -Command "
+  Get-CimInstance Win32_Process -Filter \"Name='Unity.exe'\" |
+  Where-Object { \$_.CommandLine -like '*easymoney*' } |
+  Select-Object -First 1 -ExpandProperty ProcessId
+" 2>/dev/null | tr -d '\r[:space:]')
+
+if [ -n "$BUSY_PID" ]; then
+  echo "项目已被另一个 Unity 实例占用（PID $BUSY_PID），请先关闭 Unity 编辑器再跑测试。"
+  echo "（被占用时第二个实例会崩在 HandleProjectAlreadyOpenInAnotherInstance，"
+  echo "  报退出码 2，看起来跟编译错误一样——所以这里直接拦下，不去起那个实例。）"
+  exit 2
+fi
+
 rm -f "$RESULTS"
 
 # ── 为什么后台起、然后轮询结果文件 ──────────────────────────
